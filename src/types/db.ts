@@ -294,7 +294,8 @@ export interface Poll {
 export interface PollResult {
   option_id: UUID;
   label: string;
-  position: number;
+  /** Prefixe cote SQL : `position` est un mot-cle refuse en parametre de sortie. */
+  option_position: number;
   votes: number;
   voted: boolean;
 }

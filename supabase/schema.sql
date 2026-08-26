@@ -2384,12 +2384,15 @@ $$;
  * ne servirait a rien : les chiffres auraient deja quitte le serveur.
  */
 create or replace function public.poll_results(p_poll_id uuid)
+-- `position` est un mot-cle de Postgres : accepte comme nom de colonne dans un
+-- CREATE TABLE, mais refuse comme nom de parametre de sortie ici. D'ou le
+-- prefixe, qui evite d'avoir a le mettre entre guillemets partout.
 returns table (
-  option_id uuid,
-  label     text,
-  position  int,
-  votes     bigint,
-  voted     boolean
+  option_id       uuid,
+  label           text,
+  option_position int,
+  votes           bigint,
+  voted           boolean
 )
 language sql
 stable
