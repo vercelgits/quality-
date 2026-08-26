@@ -36,8 +36,10 @@ clôture, fermeture programmée.
 bannissement temporaire, verrouillage de salon, mode lent, signalements et
 journal d'audit complet.
 
-**Léger.** 168 ko gzippés au total, un seul aller-retour au démarrage, pas de
-bibliothèque d'icônes, et en version bureau aucun moteur de navigateur embarqué.
+**Léger côté livraison.** 168 ko gzippés pour le web, un seul aller-retour au
+démarrage, pas de bibliothèque d'icônes. En version bureau, l'installateur pèse
+1,3 Mo et l'exécutable 3,4 Mo, contre plusieurs dizaines de mégaoctets pour une
+application Electron équivalente.
 
 **Une interface qui se règle.** Thème monochrome clair et sombre, trois densités,
 palette de commandes (`Ctrl+K`), respect de `prefers-reduced-motion`.
@@ -99,9 +101,17 @@ npm run dev
 
 ## Application de bureau
 
-L'enveloppe utilise **Tauri**, qui s'appuie sur le WebView déjà présent dans
-Windows. Le binaire pèse quelques mégaoctets au lieu des ~150 Mo d'Electron, et
-la mémoire consommée est celle d'un onglet.
+L'enveloppe utilise **Tauri**, qui s'appuie sur le WebView2 déjà présent dans
+Windows plutôt que d'embarquer sa propre copie de Chromium.
+
+Ce que cela gagne, mesuré sur cette application : l'exécutable fait **3,4 Mo** et
+l'installateur **1,3 Mo**, là où Electron en embarquerait plusieurs dizaines.
+
+Ce que cela ne gagne pas : la mémoire vive. WebView2 lance un Chromium
+multi-processus comme le ferait Electron. Orbit occupe **environ 390 Mo** au
+repos — 26 Mo pour le processus Rust, le reste réparti sur six processus
+WebView2. C'est nettement moins que Discord, qui dépasse couramment le
+gigaoctet, mais ce n'est pas « la mémoire d'un onglet ».
 
 Il faut la chaîne Rust, une seule fois :
 

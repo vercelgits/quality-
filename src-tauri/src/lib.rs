@@ -5,8 +5,12 @@
 // pas faire — icone de barre des taches, raccourci global, fenetre unique.
 //
 // Contrairement a Electron, aucun moteur de rendu n'est embarque : le binaire
-// pese quelques megaoctets au lieu de cent cinquante, et la memoire consommee
-// est celle d'un onglet, pas celle d'un navigateur complet.
+// fait 3,4 Mo et l'installateur 1,3 Mo, la ou Electron embarquerait sa propre
+// copie de Chromium.
+//
+// Le gain porte sur la taille livree, pas sur la memoire vive : WebView2 lance
+// un Chromium multi-processus comme le ferait Electron, et l'application occupe
+// environ 390 Mo au repos. Mieux que Discord, mais pas d'un ordre de grandeur.
 
 use tauri::{
     menu::{Menu, MenuItem},
