@@ -11,7 +11,7 @@ import { Avatar } from '@/components/Avatar';
 import { ProfileTile } from '@/features/profile/ProfileCard';
 import { RichText } from '@/lib/richtext';
 import { formatRelative, formatTime } from '@/lib/time';
-import type { Message, Profile, SpaceRole, UUID } from '@/types/db';
+import type { Message, Profile, SpaceRole } from '@/types/db';
 
 /** Panneau lateral droit. Son contenu depend de l'onglet actif. */
 export function SidePanel() {
@@ -334,5 +334,3 @@ function MembersPanel() {
     </div>
   );
 }
-
-export type { UUID };

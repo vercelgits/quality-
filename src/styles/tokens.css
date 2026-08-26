@@ -105,8 +105,8 @@
      penchent avec la meme profondeur apparente. Une valeur plus courte
      exagererait l'effet jusqu'a le rendre caricatural. */
   --perspective: 900px;
-  --tilt-max: 7deg;
-  --lift: 6px;
+  --tilt-max: 3deg;
+  --lift: 3px;
 
   /* ==================================================================
      Palette claire
@@ -160,11 +160,12 @@
 
   /* Degrades. Le degrade d'accent traverse trois teintes voisines en OKLCH,
      ce qui evite la bande grise que produirait le meme parcours en sRGB. */
+  /* Reserve aux grandes surfaces : bannieres, illustrations. Jamais sur un
+     bouton ni sur un fond de panneau. */
   --gradient-accent: linear-gradient(
     135deg,
     oklch(60% 0.23 var(--hue-primary)) 0%,
-    oklch(62% 0.2 calc(var(--hue-primary) - 40)) 50%,
-    oklch(64% 0.18 var(--hue-secondary)) 100%
+    oklch(63% 0.19 calc(var(--hue-primary) - 35)) 100%
   );
   --gradient-aurora: linear-gradient(
     120deg,

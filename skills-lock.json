@@ -1,0 +1,131 @@
+{
+  "version": 1,
+  "skills": {
+    "accessibility": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/accessibility/SKILL.md",
+      "computedHash": "3f390c14d09ca45da332b6c421b3195d12da099ec24ee549f80e666ec48dc89b"
+    },
+    "architecture": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/architecture/SKILL.md",
+      "computedHash": "63e6ab07146f10aed351ee190e6c79dd8fb40bf20ed9c15c6ba397fbbba05559"
+    },
+    "c4-architecture": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/creative-design/c4-architecture/SKILL.md",
+      "computedHash": "9192b5d6be529478a70d1a73f3d4ce83db12c2052c4e6df4accd445f21e906d4"
+    },
+    "code-review-checklist": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/code-review-checklist/SKILL.md",
+      "computedHash": "4c5dbdfef8a45bc3a17f15ba7383d99967f52404366fb8919305880134edc8d7"
+    },
+    "docker-expert": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/docker-expert/SKILL.md",
+      "computedHash": "c57f0fbdfd11a21ced2c5c3102421ee5e79e8de9872152c21c42b30be3b34516"
+    },
+    "frontend-ui": {
+      "source": "womendefiningai/claude-code-skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-ui/SKILL.md",
+      "computedHash": "5b3429996589efbbf7ef43e08f7cb4b8881b86651875c19429f8418c9efedae5"
+    },
+    "performance": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/performance/SKILL.md",
+      "computedHash": "9e0e29b7919bacfd2d0caae0f841fa53ae3d7b7427d27f4fdbacc76643d7d138"
+    },
+    "playwright-e2e-builder": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/playwright-e2e-builder/SKILL.md",
+      "computedHash": "0733d1de8a6e8a81878209cf79b313bc20ea741ef40117fc2ff2787ca32e8f41"
+    },
+    "playwright-skill": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/utilities/playwright-skill/SKILL.md",
+      "computedHash": "0f4b5a14e0afb85c2855943e5898a2da565c504bc46943aaf9e768f251ceb47f"
+    },
+    "premium-web-design": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/creative-design/premium-web-design/SKILL.md",
+      "computedHash": "5198b24891d9d8c3ad7fed4d8220554186874ccff1c598be3810571b73ca0616"
+    },
+    "react-best-practices": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/web-development/react-best-practices/SKILL.md",
+      "computedHash": "11ca78c0f5ac7585286331df5ba0ba6a9f3014b0844abea7fb01de5f7933f21e"
+    },
+    "react-patterns": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/react-patterns/SKILL.md",
+      "computedHash": "ddec119b3bde73b8aa93ffb5f0e7bbc17fa7c9dcdec813edb2511925806ffe2e"
+    },
+    "requesting-code-review": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/requesting-code-review/SKILL.md",
+      "computedHash": "45bc3d93df767608bc73b86f69f20fbb8d21e65fe784873d0f0b43e4ac67b384"
+    },
+    "security-compliance": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/security-compliance/SKILL.md",
+      "computedHash": "747a25a95f4cdca6bfe132515251b989c315c855dc2ad7591f52b64c139b9d4e"
+    },
+    "security-guidance": {
+      "source": "alirezarezvani/claude-skills",
+      "sourceType": "github",
+      "skillPath": "engineering/security-guidance/skills/security-guidance/SKILL.md",
+      "computedHash": "11b445e0cae60d4cf3ddbf5aacfb31363a8251c1afbf8012b6f6c88fdd03ac84"
+    },
+    "security-review": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/cc-skill-security-review/SKILL.md",
+      "computedHash": "5d137f0304ea45675b78171f4ec4379dd14306851a86314512a0683eafc2da63"
+    },
+    "security-threat-model": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/security/security-threat-model/SKILL.md",
+      "computedHash": "e2198bc2b4c67c1ae12392f74406aecd6227b0cb1a2fb9cc36627bf3073d87b4"
+    },
+    "senior-architect": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/senior-architect/SKILL.md",
+      "computedHash": "03f75291acbd3934c4a1d8aa73b24357d74d848fa587bf5d7dc0a90e7437b5b7"
+    },
+    "testing-patterns": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/testing-patterns/SKILL.md",
+      "computedHash": "8ebab54001e9ca5f1e2589f013c8960c8880241d125faaef3496fa96ea20f710"
+    },
+    "typescript-expert": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/development/typescript-expert/SKILL.md",
+      "computedHash": "e9849ebd067e2b7b620cdbd4d02468215f52d03ba7ad7830e9d980f13bc3a58e"
+    },
+    "web-design-guidelines": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "skillPath": "cli-tool/components/skills/creative-design/web-design-guidelines/SKILL.md",
+      "computedHash": "9e3990bbf0bae401ccc1d74608e87ef5d1879bce925121f72f049877ac86963d"
+    }
+  }
+}

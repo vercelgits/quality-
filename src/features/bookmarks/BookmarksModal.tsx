@@ -7,7 +7,7 @@ import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
 import { RichText } from '@/lib/richtext';
 import { formatRelative } from '@/lib/time';
-import type { MessageRow, UUID } from '@/types/db';
+import type { MessageRow } from '@/types/db';
 
 interface SavedMessage extends MessageRow {
   note: string | null;
@@ -151,5 +151,3 @@ export function BookmarksModal({ open, onClose }: { open: boolean; onClose: () =
     </Modal>
   );
 }
-
-export type { UUID };

@@ -6,6 +6,7 @@ import { useVoice } from '@/features/voice/useVoice';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { formatRelative } from '@/lib/time';
+import { DirectMessageList } from '@/features/dm/DirectMessageList';
 import type { Channel, UUID } from '@/types/db';
 
 export function Sidebar() {
@@ -30,12 +31,13 @@ export function Sidebar() {
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [threadsOpen, setThreadsOpen] = useState(true);
 
+  const view = useUI((state) => state.view);
   const space = spaces.find((item) => item.id === activeSpaceId) ?? null;
 
   const spaceChannels = useMemo(
     () =>
       channels
-        .filter((channel) => channel.space_id === activeSpaceId)
+        .filter((channel) => channel.space_id !== null && channel.space_id === activeSpaceId)
         .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name)),
     [channels, activeSpaceId],
   );
@@ -64,6 +66,16 @@ export function Sidebar() {
       return next;
     });
   };
+
+  // La vue privee remplace entierement le contenu de la barre laterale.
+  if (view === 'direct') {
+    return (
+      <aside className="sidebar">
+        <DirectMessageList />
+        <UserBar />
+      </aside>
+    );
+  }
 
   if (!space) {
     return (

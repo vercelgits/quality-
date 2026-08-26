@@ -60,17 +60,17 @@
 /* En clair, les halos doivent rester des teintes : a pleine opacite ils
    laveraient le texte. */
 :root:not([data-theme='dark']) .ambient__orb {
-  opacity: 0.22;
+  opacity: 0.12;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .ambient__orb {
-    opacity: 0.42;
+    opacity: 0.24;
   }
 }
 
 :root[data-theme='dark'] .ambient__orb {
-  opacity: 0.42;
+  opacity: 0.24;
 }
 
 /* Grain tres fin : casse les bandes visibles dans les grands degrades. */
@@ -153,8 +153,8 @@
   transition: opacity var(--duration-normal) var(--ease-out);
   background: radial-gradient(
     circle at var(--glare-x) var(--glare-y),
-    oklch(100% 0 0 / 0.22),
-    transparent 55%
+    oklch(100% 0 0 / 0.1),
+    transparent 60%
   );
 }
 

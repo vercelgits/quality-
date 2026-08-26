@@ -33,8 +33,13 @@ const STAT_LABELS: { key: keyof ProfileStats; label: string; icon: IconName }[] 
 
 export function ProfileCard({ userId }: { userId: UUID }) {
   const profiles = useChat((state) => state.profiles);
+  const openDm = useChat((state) => state.openDm);
   const me = useSession((state) => state.profile);
   const openModal = useUI((state) => state.openModal);
+  const closeModal = useUI((state) => state.closeModal);
+  const selectChannel = useUI((state) => state.selectChannel);
+  const showDirectMessages = useUI((state) => state.showDirectMessages);
+  const [opening, setOpening] = useState(false);
 
   const [stats, setStats] = useState<ProfileStats | null>(null);
   const profile = profiles[userId] ?? (userId === me?.id ? me : undefined);
@@ -179,7 +184,26 @@ export function ProfileCard({ userId }: { userId: UUID }) {
             <Icon name="edit" size={15} />
             Modifier mon profil
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            className="btn btn--primary btn--block"
+            disabled={opening}
+            onClick={() => {
+              setOpening(true);
+              void openDm(profile.id).then((channel) => {
+                setOpening(false);
+                if (!channel) return;
+                showDirectMessages();
+                selectChannel(channel.id);
+                closeModal();
+              });
+            }}
+          >
+            {opening ? <span className="spinner" /> : <Icon name="send" size={15} />}
+            Envoyer un message
+          </button>
+        )}
       </TiltCard>
     </div>
   );

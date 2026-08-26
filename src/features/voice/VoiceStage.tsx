@@ -5,7 +5,7 @@ import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { formatDuration } from '@/lib/time';
-import type { Channel, UUID, VoiceParticipant } from '@/types/db';
+import type { Channel, VoiceParticipant } from '@/types/db';
 
 /** Tableau vide partage : une nouvelle instance casserait la memoisation. */
 const EMPTY_PARTICIPANTS: VoiceParticipant[] = [];
@@ -248,5 +248,3 @@ function ScreenTile({ stream, label }: { stream: MediaStream | undefined; label:
     </figure>
   );
 }
-
-export type { UUID };

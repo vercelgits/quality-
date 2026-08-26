@@ -14,7 +14,8 @@ export type ISODate = string;
 
 export type PresenceStatus = 'online' | 'idle' | 'dnd' | 'offline';
 export type SpaceRole = 'owner' | 'admin' | 'moderator' | 'member';
-export type ChannelKind = 'text' | 'voice';
+/** `dm` : conversation a deux. `group` : conversation a plusieurs. */
+export type ChannelKind = 'text' | 'voice' | 'dm' | 'group';
 
 /** Lien externe affiche sur une carte de profil. */
 export interface ProfileLink {
@@ -78,7 +79,8 @@ export interface Category {
 
 export interface Channel {
   id: UUID;
-  space_id: UUID;
+  /** Nul pour une conversation privee, qui n'appartient a aucun espace. */
+  space_id: UUID | null;
   category_id: UUID | null;
   kind: ChannelKind;
   name: string;
@@ -94,7 +96,7 @@ export interface Channel {
 export interface Thread {
   id: UUID;
   channel_id: UUID;
-  space_id: UUID;
+  space_id: UUID | null;
   root_message_id: UUID;
   title: string;
   created_by: UUID;
@@ -182,6 +184,7 @@ export interface BootstrapPayload {
   profiles: Profile[];
   open_threads: Thread[];
   read_states: ReadState[];
+  dm_participants: DmParticipant[];
   /** Rang de l utilisateur par espace, indexe par identifiant d espace. */
   ranks: Record<UUID, number>;
   /** Exclusions de parole en cours qui le concernent. */
@@ -189,11 +192,20 @@ export interface BootstrapPayload {
   bookmarks: Bookmark[];
 }
 
+/** Participation a une conversation privee. */
+export interface DmParticipant {
+  channel_id: UUID;
+  user_id: UUID;
+  joined_at: ISODate;
+  /** Masquee de la liste, mais l'historique reste intact. */
+  hidden: boolean;
+}
+
 export interface SearchRow {
   id: UUID;
   channel_id: UUID;
   channel_name: string;
-  space_id: UUID;
+  space_id: UUID | null;
   thread_id: UUID | null;
   author_id: UUID;
   content: string;

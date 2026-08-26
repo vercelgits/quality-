@@ -3,6 +3,8 @@ import { useUI } from '@/store/ui';
 import { useSession } from '@/store/session';
 import { useVoice } from '@/features/voice/useVoice';
 import { Icon } from '@/components/Icon';
+import { Avatar } from '@/components/Avatar';
+import { dmTitle } from '@/features/dm/DirectMessageList';
 import type { Channel } from '@/types/db';
 
 export function ChannelHeader({ channel }: { channel: Channel }) {
@@ -12,6 +14,8 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
   const toggleSidebar = useUI((state) => state.toggleSidebar);
 
   const threads = useChat((state) => state.threads);
+  const dmParticipants = useChat((state) => state.dmParticipants);
+  const profiles = useChat((state) => state.profiles);
   const profile = useSession((state) => state.profile);
 
   const voiceChannelId = useVoice((state) => state.channelId);
@@ -25,6 +29,14 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
 
   const inThisVoice = voiceChannelId === channel.id;
 
+  // Une conversation privee n'a ni sujet, ni moderation, ni salon vocal.
+  const isDirect = channel.space_id === null;
+  const participants = dmParticipants[channel.id] ?? [];
+  const title = isDirect ? dmTitle(channel, participants, profiles, profile?.id) : channel.name;
+  const otherProfile = isDirect
+    ? profiles[participants.find((id) => id !== profile?.id) ?? '']
+    : undefined;
+
   return (
     <header className="channel-header">
       <button
@@ -36,13 +48,21 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
         <Icon name="inbox" size={17} />
       </button>
 
-      <span className="channel-header__mark" aria-hidden="true">
-        <Icon name={channel.kind === 'voice' ? 'volume' : 'hash'} size={17} />
-      </span>
+      {isDirect ? (
+        <>
+          <Avatar profile={otherProfile} size={28} status={otherProfile?.status} showStatus />
+          <h1 className="channel-header__name truncate">{title}</h1>
+        </>
+      ) : (
+        <>
+          <span className="channel-header__mark" aria-hidden="true">
+            <Icon name={channel.kind === 'voice' ? 'volume' : 'hash'} size={17} />
+          </span>
+          <h1 className="channel-header__name truncate">{channel.name}</h1>
+        </>
+      )}
 
-      <h1 className="channel-header__name truncate">{channel.name}</h1>
-
-      {channel.topic ? (
+      {channel.topic && !isDirect ? (
         <>
           <span className="channel-header__separator" aria-hidden="true" />
           <p className="channel-header__topic truncate" title={channel.topic}>

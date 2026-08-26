@@ -312,16 +312,16 @@ code, pre, kbd, samp {
 }
 
 .btn--primary {
-  background: var(--gradient-accent);
+  background: var(--accent);
   border-color: transparent;
-  color: #fff;
-  box-shadow: var(--shadow-sm), var(--edge-light);
+  color: var(--text-on-accent);
+  box-shadow: var(--shadow-xs);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--gradient-accent);
+  background: var(--accent-hover);
   border-color: transparent;
-  box-shadow: var(--shadow-md), var(--shadow-glow);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn--ghost {

@@ -16,9 +16,20 @@ export type Modal =
   | { kind: 'report'; messageId: UUID }
   | { kind: 'poll'; channelId: UUID; threadId: UUID | null }
   | { kind: 'bookmarks' }
-  | { kind: 'edit-profile' };
+  | { kind: 'edit-profile' }
+  | { kind: 'new-dm' };
+
+/**
+ * Ce que montre la barre laterale.
+ *
+ * `direct` est un etat a part entiere et non l'absence d'espace : sans cela,
+ * la selection automatique du premier espace ecraserait immediatement le choix
+ * de l'utilisateur.
+ */
+export type SidebarView = 'space' | 'direct';
 
 interface UIState {
+  view: SidebarView;
   activeSpaceId: UUID | null;
   activeChannelId: UUID | null;
   activeThreadId: UUID | null;
@@ -38,6 +49,7 @@ interface UIState {
   searchQuery: string;
 
   selectSpace: (spaceId: UUID | null) => void;
+  showDirectMessages: () => void;
   selectChannel: (channelId: UUID) => void;
   openThread: (threadId: UUID) => void;
   closeThread: () => void;
@@ -53,6 +65,7 @@ interface UIState {
 }
 
 export const useUI = create<UIState>((set, get) => ({
+  view: 'space',
   activeSpaceId: null,
   activeChannelId: null,
   activeThreadId: null,
@@ -68,6 +81,7 @@ export const useUI = create<UIState>((set, get) => ({
 
   selectSpace: (spaceId) =>
     set({
+      view: 'space',
       activeSpaceId: spaceId,
       activeChannelId: null,
       activeThreadId: null,
@@ -83,6 +97,17 @@ export const useUI = create<UIState>((set, get) => ({
       // ce qui est affiche a gauche.
       activeThreadId: null,
       panel: get().panel === 'thread' ? 'none' : get().panel,
+      replyingTo: null,
+      editingId: null,
+    }),
+
+  showDirectMessages: () =>
+    set({
+      view: 'direct',
+      activeSpaceId: null,
+      activeChannelId: null,
+      activeThreadId: null,
+      panel: 'none',
       replyingTo: null,
       editingId: null,
     }),

@@ -6,6 +6,7 @@ import { PollComposer } from '@/features/polls/PollComposer';
 import { BookmarksModal } from '@/features/bookmarks/BookmarksModal';
 import { ProfileCard } from '@/features/profile/ProfileCard';
 import { ProfileEditor } from '@/features/profile/ProfileEditor';
+import { NewDmModal } from '@/features/dm/NewDmModal';
 import { Icon } from '@/components/Icon';
 import { useUI } from '@/store/ui';
 import { useChat } from '@/store/chat';
@@ -62,6 +63,7 @@ export function Modals() {
       />
       <BookmarksModal open={modal.kind === 'bookmarks'} onClose={closeModal} />
       <ProfileEditor open={modal.kind === 'edit-profile'} onClose={closeModal} />
+      <NewDmModal open={modal.kind === 'new-dm'} onClose={closeModal} />
     </>
   );
 }

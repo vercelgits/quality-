@@ -29,6 +29,7 @@ export function Workspace() {
   const bootstrapChat = useChat((state) => state.bootstrap);
   const resetChat = useChat((state) => state.reset);
 
+  const view = useUI((state) => state.view);
   const activeSpaceId = useUI((state) => state.activeSpaceId);
   const activeChannelId = useUI((state) => state.activeChannelId);
   const sidebarCollapsed = useUI((state) => state.sidebarCollapsed);
@@ -73,10 +74,13 @@ export function Workspace() {
   /* ------------------------------------------------- Selection par defaut */
 
   useEffect(() => {
+    // En vue privee, l'absence d'espace actif est voulue : la remplir
+    // renverrait l'utilisateur dans un espace a chaque rendu.
+    if (view === 'direct') return;
     if (!ready || spaces.length === 0) return;
     if (activeSpaceId && spaces.some((space) => space.id === activeSpaceId)) return;
     selectSpace(spaces[0]!.id);
-  }, [ready, spaces, activeSpaceId, selectSpace]);
+  }, [ready, spaces, activeSpaceId, selectSpace, view]);
 
   useEffect(() => {
     if (!activeSpaceId) return;
@@ -172,7 +176,7 @@ export function Workspace() {
       <SpaceRail />
       <Sidebar />
 
-      <main className="main">
+      <main className="main" id="conversation">
         {channel ? (
           <>
             <ChannelHeader channel={channel} />
@@ -188,12 +192,36 @@ export function Workspace() {
           </>
         ) : (
           <div className="main__empty">
-            <Icon name="compass" size={30} />
-            <h2>Aucun salon selectionne</h2>
-            <p>
-              Choisissez un salon a gauche, ou appuyez sur <span className="kbd">Ctrl</span>
-              <span className="kbd">K</span> pour naviguer au clavier.
-            </p>
+            <span className="empty__icon">
+              <Icon name={view === 'direct' ? 'thread' : 'hash'} size={26} />
+            </span>
+
+            {view === 'direct' ? (
+              <>
+                <h2>Aucune conversation ouverte</h2>
+                <p>
+                  Choisissez une conversation a gauche, ou demarrez-en une nouvelle.
+                  Vous pouvez ecrire aux personnes avec qui vous partagez un espace.
+                </p>
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={() => useUI.getState().openModal({ kind: 'new-dm' })}
+                >
+                  <Icon name="plus" size={15} />
+                  Nouvelle conversation
+                </button>
+              </>
+            ) : (
+              <>
+                <h2>Aucun salon selectionne</h2>
+                <p>
+                  Choisissez un salon a gauche, ou appuyez sur{' '}
+                  <span className="kbd">Ctrl</span>
+                  <span className="kbd">K</span> pour tout atteindre au clavier.
+                </p>
+              </>
+            )}
           </div>
         )}
       </main>

@@ -19,9 +19,42 @@ export function SpaceRail() {
   const activeSpaceId = useUI((state) => state.activeSpaceId);
   const selectSpace = useUI((state) => state.selectSpace);
   const openModal = useUI((state) => state.openModal);
+  const view = useUI((state) => state.view);
+  const showDirectMessages = useUI((state) => state.showDirectMessages);
+
+  // Non-lus cumules de toutes les conversations privees, affiches sur le
+  // bouton d'accueil.
+  const directUnread = channels
+    .filter((channel) => channel.space_id === null)
+    .reduce((total, channel) => total + (readStates[channel.id]?.mention_count ?? 0), 0);
 
   return (
-    <nav className="rail" aria-label="Espaces">
+    <nav className="rail" aria-label="Navigation principale">
+      <div className="rail__home">
+        <span
+          className={'rail__indicator' + (view === 'direct' ? ' is-active' : '')}
+          aria-hidden="true"
+        />
+        <button
+          type="button"
+          className={'rail__button rail__button--home' + (view === 'direct' ? ' is-active' : '')}
+          onClick={showDirectMessages}
+          aria-current={view === 'direct' ? 'true' : undefined}
+          title="Messages prives"
+        >
+          <Icon name="thread" size={21} />
+          <span className="visually-hidden">Messages prives</span>
+        </button>
+
+        {directUnread > 0 ? (
+          <span className="rail__badge badge" aria-label={`${directUnread} mentions privees`}>
+            {directUnread > 99 ? '99+' : directUnread}
+          </span>
+        ) : null}
+      </div>
+
+      <hr className="rail__divider" />
+
       <ul className="rail__list">
         {spaces.map((space) => {
           const spaceChannels = channels.filter(
@@ -44,14 +77,20 @@ export function SpaceRail() {
               <span
                 className={
                   'rail__indicator' +
-                  (isActive ? ' is-active' : unread > 0 ? ' is-unread' : '')
+                  (isActive && view === 'space'
+                    ? ' is-active'
+                    : unread > 0
+                      ? ' is-unread'
+                      : '')
                 }
                 aria-hidden="true"
               />
 
               <button
                 type="button"
-                className={'rail__button' + (isActive ? ' is-active' : '')}
+                className={
+                  'rail__button' + (isActive && view === 'space' ? ' is-active' : '')
+                }
                 style={
                   {
                     '--space-accent': hueFor(space.id),

@@ -68,8 +68,11 @@ export function Composer({ channelId, threadId = null, placeholder, autoFocus }:
   const openModal = useUI((state) => state.openModal);
 
   const channel = channels.find((item) => item.id === channelId);
-  const myRank = channel ? (ranks[channel.space_id] ?? 0) : 0;
-  const timeout = channel ? timeouts[channel.space_id] : undefined;
+  // Une conversation privee n'appartient a aucun espace : ni rang, ni sanction,
+  // ni moderation ne s'y appliquent.
+  const spaceId = channel?.space_id ?? null;
+  const myRank = spaceId ? (ranks[spaceId] ?? 0) : 0;
+  const timeout = spaceId ? timeouts[spaceId] : undefined;
 
   /* ------------------------------------------------------- Droit d'ecrire */
 

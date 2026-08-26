@@ -5,6 +5,7 @@ import { notify, preview } from '@/lib/notify';
 import type {
   Attachment,
   Bookmark,
+  DmParticipant,
   BootstrapPayload,
   Category,
   Channel,
@@ -127,6 +128,8 @@ interface ChatState {
   /** Exclusions de parole en cours qui le concernent, par espace. */
   timeouts: Record<UUID, SpaceTimeout>;
   bookmarks: Bookmark[];
+  /** Participants des conversations privees, indexes par salon. */
+  dmParticipants: Record<UUID, UUID[]>;
 
   messages: Record<ViewKey, Message[]>;
   hasMore: Record<ViewKey, boolean>;
@@ -165,6 +168,10 @@ interface ChatState {
 
   markRead: (channelId: UUID) => Promise<void>;
   bumpUnread: (channelId: UUID, isMention: boolean) => void;
+
+  openDm: (otherUserId: UUID) => Promise<Channel | null>;
+  createGroupDm: (userIds: UUID[], name?: string) => Promise<Channel | null>;
+  hideDm: (channelId: UUID) => Promise<void>;
 
   toggleBookmark: (messageId: UUID, note?: string | null) => Promise<void>;
   reportMessage: (messageId: UUID, reason: string) => Promise<boolean>;
@@ -226,6 +233,7 @@ export const useChat = create<ChatState>((set, get) => ({
   ranks: {},
   timeouts: {},
   bookmarks: [],
+  dmParticipants: {},
 
   messages: {},
   hasMore: {},
@@ -257,6 +265,7 @@ export const useChat = create<ChatState>((set, get) => ({
       ranks: payload.ranks ?? {},
       timeouts: Object.fromEntries((payload.timeouts ?? []).map((t) => [t.space_id, t])),
       bookmarks: payload.bookmarks ?? [],
+      dmParticipants: groupParticipants(payload.dm_participants ?? []),
     });
   },
 
@@ -666,6 +675,52 @@ export const useChat = create<ChatState>((set, get) => ({
 
   /* ---------------------------------------------------------- Espaces, salons */
 
+  /**
+   * Ouvre la conversation avec quelqu'un, ou rouvre celle qui existe deja.
+   * La base refuse si aucun espace n'est partage avec cette personne.
+   */
+  openDm: async (otherUserId) => {
+    const { data, error } = await supabase.rpc('open_dm', { p_other_user_id: otherUserId });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return null;
+    }
+
+    // L'appartenance et les participants viennent de l'amorcage : le recharger
+    // evite de reconstruire a la main un etat partiel qui pourrait diverger.
+    await get().bootstrap();
+    return data as Channel;
+  },
+
+  createGroupDm: async (userIds, name) => {
+    const { data, error } = await supabase.rpc('create_group_dm', {
+      p_user_ids: userIds,
+      p_name: name ?? null,
+    });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return null;
+    }
+
+    await get().bootstrap();
+    return data as Channel;
+  },
+
+  hideDm: async (channelId) => {
+    // Retrait optimiste : la conversation disparait tout de suite de la liste.
+    set((state) => ({
+      channels: state.channels.filter((item) => item.id !== channelId),
+    }));
+
+    const { error } = await supabase.rpc('hide_dm', { p_channel_id: channelId });
+    if (error) {
+      set({ error: errorMessage(error) });
+      await get().bootstrap();
+    }
+  },
+
   /** Met un message de cote pour soi seul, ou l'en retire. */
   toggleBookmark: async (messageId, note = null) => {
     const existing = get().bookmarks.find((item) => item.message_id === messageId);
@@ -898,6 +953,7 @@ export const useChat = create<ChatState>((set, get) => ({
       ranks: {},
       timeouts: {},
       bookmarks: [],
+      dmParticipants: {},
       messages: {},
       hasMore: {},
       loading: {},
@@ -908,6 +964,15 @@ export const useChat = create<ChatState>((set, get) => ({
 /* -------------------------------------------------------------------------- */
 /* Aides                                                                       */
 /* -------------------------------------------------------------------------- */
+
+/** Regroupe les participations par salon. */
+function groupParticipants(rows: DmParticipant[]): Record<UUID, UUID[]> {
+  const grouped: Record<UUID, UUID[]> = {};
+  for (const row of rows) {
+    (grouped[row.channel_id] ??= []).push(row.user_id);
+  }
+  return grouped;
+}
 
 /** Charge en une requete les fils ouverts depuis les messages donnes. */
 async function fetchThreadsFor(messageIds: UUID[]): Promise<Map<UUID, Thread>> {
