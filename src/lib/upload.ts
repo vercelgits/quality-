@@ -123,3 +123,42 @@ export function releasePreviews(uploads: PendingUpload[]): void {
     if (upload.previewUrl) URL.revokeObjectURL(upload.previewUrl);
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Images de profil                                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Televerse un avatar ou une banniere dans le compartiment public `avatars`.
+ *
+ * Le chemin commence par l'identifiant de la personne, ce que la politique de
+ * stockage exige : chacun n'ecrit que dans son propre dossier. Le nom porte un
+ * horodatage pour que le navigateur ne serve pas l'ancienne image depuis son
+ * cache apres un changement.
+ */
+export async function uploadProfileImage(
+  file: File,
+  userId: UUID,
+  kind: 'avatar' | 'banner',
+): Promise<{ url: string } | { error: string }> {
+  const limit = kind === 'avatar' ? 2 * 1024 * 1024 : 4 * 1024 * 1024;
+
+  if (file.size > limit) {
+    return { error: `L'image depasse ${Math.round(limit / 1024 / 1024)} Mo.` };
+  }
+  if (!file.type.startsWith('image/')) {
+    return { error: 'Ce fichier n\u2019est pas une image.' };
+  }
+
+  const extension = (file.name.split('.').pop() ?? 'png').toLowerCase().slice(0, 5);
+  const path = `${userId}/${kind}-${Date.now()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from('avatars')
+    .upload(path, file, { contentType: file.type, upsert: true });
+
+  if (error) return { error: error.message };
+
+  const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+  return { url: data.publicUrl };
+}

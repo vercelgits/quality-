@@ -8,9 +8,10 @@ import { Composer } from '@/features/messages/Composer';
 import { SearchPanel } from '@/features/search/SearchPanel';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
+import { ProfileTile } from '@/features/profile/ProfileCard';
 import { RichText } from '@/lib/richtext';
 import { formatRelative, formatTime } from '@/lib/time';
-import type { Message, Profile, UUID } from '@/types/db';
+import type { Message, Profile, SpaceRole, UUID } from '@/types/db';
 
 /** Panneau lateral droit. Son contenu depend de l'onglet actif. */
 export function SidePanel() {
@@ -287,36 +288,27 @@ function MembersPanel() {
     return { online: online.sort(byName), offline: offline.sort(byName) };
   }, [members, profiles, activeSpaceId]);
 
-  const renderGroup = (label: string, entries: { member: { role: string }; profile: Profile }[]) =>
+  const renderGroup = (
+    label: string,
+    entries: { member: { role: SpaceRole }; profile: Profile }[],
+  ) =>
     entries.length === 0 ? null : (
       <section className="member-group">
         <h3 className="member-group__title">
-          {label} — {entries.length}
+          {label} <span className="member-group__count">{entries.length}</span>
         </h3>
-        <ul>
+        <ul className="member-grid">
           {entries.map(({ member, profile }) => (
             <li key={profile.id}>
-              <button
-                type="button"
-                className="member"
-                onClick={() => openModal({ kind: 'profile', userId: profile.id })}
-              >
-                <Avatar profile={profile} size={30} status={profile.status} showStatus />
-                <span className="member__body">
-                  <span className="member__name truncate">
-                    {profile.display_name}
-                    {profile.id === currentUserId ? ' (vous)' : ''}
-                  </span>
-                  {profile.custom_status ? (
-                    <span className="member__status truncate">{profile.custom_status}</span>
-                  ) : null}
-                </span>
-                {member.role !== 'member' ? (
-                  <span className="member__role">
-                    {member.role === 'owner' ? 'Proprietaire' : 'Admin'}
-                  </span>
-                ) : null}
-              </button>
+              <ProfileTile
+                profile={
+                  profile.id === currentUserId
+                    ? { ...profile, display_name: `${profile.display_name} (vous)` }
+                    : profile
+                }
+                role={member.role}
+                onOpen={(id) => openModal({ kind: 'profile', userId: id })}
+              />
             </li>
           ))}
         </ul>

@@ -1,0 +1,692 @@
+/* ==========================================================================
+   Orbit — ambiance, profondeur, profils
+
+   Tout ce qui donne du relief : le fond anime, les cartes inclinables, les
+   cartes de profil.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Fond d'ambiance
+
+   Trois halos flous derivent lentement derriere l'interface. Ils sont fixes au
+   viewport et sous tout le reste, donc ils ne genent ni les clics ni la
+   lecture. `filter: blur` sur un degrade coute une seule passe au compositeur.
+   -------------------------------------------------------------------------- */
+
+.ambient {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--bg-app);
+}
+
+.ambient__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.5;
+  will-change: transform;
+}
+
+.ambient__orb--one {
+  width: 46vw;
+  height: 46vw;
+  top: -14vw;
+  left: -10vw;
+  background: oklch(62% 0.22 var(--hue-primary));
+  animation: drift-one 34s var(--ease-in-out) infinite alternate;
+}
+
+.ambient__orb--two {
+  width: 38vw;
+  height: 38vw;
+  top: 32vh;
+  right: -12vw;
+  background: oklch(64% 0.19 var(--hue-secondary));
+  animation: drift-two 42s var(--ease-in-out) infinite alternate;
+}
+
+.ambient__orb--three {
+  width: 32vw;
+  height: 32vw;
+  bottom: -12vw;
+  left: 34vw;
+  background: oklch(64% 0.2 var(--hue-tertiary));
+  animation: drift-three 38s var(--ease-in-out) infinite alternate;
+}
+
+/* En clair, les halos doivent rester des teintes : a pleine opacite ils
+   laveraient le texte. */
+:root:not([data-theme='dark']) .ambient__orb {
+  opacity: 0.22;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .ambient__orb {
+    opacity: 0.42;
+  }
+}
+
+:root[data-theme='dark'] .ambient__orb {
+  opacity: 0.42;
+}
+
+/* Grain tres fin : casse les bandes visibles dans les grands degrades. */
+.ambient__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@keyframes drift-one {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to   { transform: translate3d(6vw, 8vh, 0) scale(1.15); }
+}
+
+@keyframes drift-two {
+  from { transform: translate3d(0, 0, 0) scale(1.1); }
+  to   { transform: translate3d(-8vw, -6vh, 0) scale(0.95); }
+}
+
+@keyframes drift-three {
+  from { transform: translate3d(0, 0, 0) scale(0.95); }
+  to   { transform: translate3d(5vw, -9vh, 0) scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient__orb { animation: none; }
+}
+
+:root[data-motion='reduced'] .ambient__orb { animation: none; }
+
+/* L'application flotte au-dessus du decor. */
+.workspace,
+.auth,
+.boot {
+  position: relative;
+  z-index: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Cartes inclinables
+
+   `--tilt-x` et `--tilt-y` sont ecrits par le composant a chaque image. La
+   transition ne porte que sur le retour au repos : pendant le survol, les
+   valeurs changent trop vite pour qu'une transition ait du sens.
+   -------------------------------------------------------------------------- */
+
+.tilt {
+  --tilt-x: 0;
+  --tilt-y: 0;
+  --glare-x: 50%;
+  --glare-y: 50%;
+  perspective: var(--perspective);
+  display: block;
+}
+
+.tilt__inner {
+  display: block;
+  position: relative;
+  border-radius: inherit;
+  transform-style: preserve-3d;
+  transform:
+    rotateX(calc(var(--tilt-x) * var(--tilt-max)))
+    rotateY(calc(var(--tilt-y) * var(--tilt-max)));
+  transition: transform var(--duration-slow) var(--ease-out);
+}
+
+.tilt:hover .tilt__inner {
+  transition: transform var(--duration-instant) linear;
+}
+
+/* Reflet : un halo clair qui suit le curseur, comme sur une surface vernie. */
+.tilt__glare {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--duration-normal) var(--ease-out);
+  background: radial-gradient(
+    circle at var(--glare-x) var(--glare-y),
+    oklch(100% 0 0 / 0.22),
+    transparent 55%
+  );
+}
+
+.tilt:hover .tilt__glare {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tilt__glare { display: none; }
+}
+
+:root[data-motion='reduced'] .tilt__glare { display: none; }
+
+/* --------------------------------------------------------------------------
+   Carte de profil
+   -------------------------------------------------------------------------- */
+
+.profile {
+  padding: var(--space-1);
+}
+
+.profile__card {
+  border-radius: var(--radius-xl);
+}
+
+.profile .tilt__inner {
+  padding-bottom: var(--space-6);
+  border-radius: var(--radius-xl);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-lg), var(--edge-light);
+  overflow: hidden;
+}
+
+.profile__banner {
+  position: relative;
+  height: 116px;
+  overflow: hidden;
+}
+
+.profile__banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile__banner-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-aurora);
+  background-size: 200% 200%;
+  animation: aurora-shift 14s var(--ease-in-out) infinite alternate;
+}
+
+@keyframes aurora-shift {
+  from { background-position: 0% 50%; }
+  to   { background-position: 100% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .profile__banner-fallback { animation: none; }
+}
+
+.profile__avatar {
+  display: flex;
+  justify-content: center;
+  margin-top: -46px;
+  /* Sort du plan de la carte : l'avatar avance vers le lecteur quand la carte
+     penche, ce qui produit la parallaxe qui donne l'illusion de relief. */
+  transform: translateZ(40px);
+}
+
+.profile__avatar .avatar {
+  padding: 4px;
+  border-radius: var(--radius-full);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-md);
+}
+
+.profile__identity {
+  text-align: center;
+  margin-top: var(--space-3);
+  padding: 0 var(--space-5);
+  transform: translateZ(24px);
+}
+
+.profile__name {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-display);
+}
+
+.profile__handle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+}
+
+.profile__dot {
+  margin: 0 var(--space-2);
+}
+
+.profile__status {
+  margin: var(--space-4) var(--space-5) 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.profile__badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-4) var(--space-5) 0;
+}
+
+.profile-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.profile-badge--owner {
+  background: var(--gradient-accent);
+  color: #fff;
+  box-shadow: var(--shadow-xs);
+}
+
+.profile-badge--admin {
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  border-color: var(--border-default);
+}
+
+.profile-badge--moderator {
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  border-color: var(--border-default);
+  border-style: dashed;
+}
+
+.profile-badge--member {
+  background: var(--bg-sunken);
+  color: var(--text-muted);
+}
+
+.profile__bio {
+  margin: var(--space-4) var(--space-6) 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+  text-align: center;
+}
+
+.profile__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: var(--space-4) var(--space-5) 0;
+}
+
+.profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  max-width: 200px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring);
+}
+
+.profile-link:hover {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  transform: translateY(-2px);
+  text-decoration: none;
+}
+
+.profile__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  margin: var(--space-6) var(--space-5) 0;
+  transform: translateZ(16px);
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+}
+
+.profile-stat__icon {
+  color: var(--accent-text);
+  margin-bottom: 2px;
+}
+
+.profile-stat__value {
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.profile-stat__skeleton {
+  display: block;
+  width: 28px;
+  height: 16px;
+}
+
+.profile-stat__label {
+  font-size: var(--text-2xs);
+  color: var(--text-muted);
+  text-align: center;
+  line-height: 1.25;
+}
+
+.profile__since {
+  margin: var(--space-5) var(--space-5) var(--space-4);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-align: center;
+  min-height: 1em;
+}
+
+.profile .btn--block {
+  width: calc(100% - var(--space-10));
+  margin: 0 var(--space-5);
+}
+
+@media (max-width: 420px) {
+  .profile__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Vignette de membre
+   -------------------------------------------------------------------------- */
+
+.member-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4);
+  text-align: left;
+  overflow: hidden;
+}
+
+/* Bande coloree discrete a gauche, qui donne a chaque membre un reperage
+   visuel constant d'une liste a l'autre. */
+.member-tile__wash {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  opacity: 0.9;
+}
+
+.member-tile__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.member-tile__name {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.member-tile__handle {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Editeur de profil
+   -------------------------------------------------------------------------- */
+
+.editor-preview {
+  position: relative;
+  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-3);
+  padding-bottom: var(--space-5);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.editor-preview__banner {
+  position: relative;
+  height: 96px;
+  overflow: hidden;
+}
+
+.editor-preview__banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.editor-preview__banner-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-aurora);
+}
+
+.editor-preview__banner-btn {
+  position: absolute;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: oklch(0% 0 0 / 0.55);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  backdrop-filter: blur(8px);
+}
+
+.editor-preview__banner-btn:hover:not(:disabled) {
+  background: oklch(0% 0 0 / 0.72);
+}
+
+.editor-preview__avatar {
+  position: relative;
+  width: fit-content;
+  margin: -38px auto 0;
+}
+
+.editor-preview__avatar .avatar {
+  padding: 3px;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+}
+
+.editor-preview__avatar-btn {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  color: #fff;
+  border: 2px solid var(--bg-sunken);
+  box-shadow: var(--shadow-sm);
+}
+
+.editor-preview__name {
+  margin-top: var(--space-3);
+  font-size: var(--text-md);
+  font-weight: var(--weight-bold);
+  text-align: center;
+}
+
+.editor-preview__handle {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.hue-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.hue-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  border: 2.5px solid transparent;
+  transition:
+    transform var(--duration-fast) var(--spring),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.hue-dot:hover {
+  transform: scale(1.1);
+}
+
+.hue-dot.is-active {
+  border-color: var(--text-primary);
+  transform: scale(1.12);
+}
+
+.hue-dot--auto {
+  display: grid;
+  place-items: center;
+  background: var(--bg-sunken);
+  border-color: var(--border-default);
+  color: var(--text-muted);
+}
+
+.link-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.link-editor__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+@media (max-width: 520px) {
+  .link-editor__row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .link-editor__row .input:nth-child(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Boite de dialogue sans chrome
+   -------------------------------------------------------------------------- */
+
+.modal__panel--bare {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.modal__body--bare {
+  padding: 0;
+  overflow: visible;
+}
+
+.modal__close-floating {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 5;
+  background: oklch(0% 0 0 / 0.4);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+.modal__close-floating:hover {
+  background: oklch(0% 0 0 / 0.62);
+  color: #fff;
+}
+
+/* Pastilles de teinte du panneau de preferences. Chacune montre le degrade
+   reel que la teinte produira, pas un aplat : c'est ce que l'on verra. */
+.hue-dot--theme[data-accent-swatch='indigo'] { background: linear-gradient(135deg, oklch(62% 0.22 275), oklch(66% 0.18 225)); }
+.hue-dot--theme[data-accent-swatch='violet'] { background: linear-gradient(135deg, oklch(62% 0.22 295), oklch(66% 0.18 250)); }
+.hue-dot--theme[data-accent-swatch='ocean']  { background: linear-gradient(135deg, oklch(62% 0.2 235),  oklch(68% 0.16 200)); }
+.hue-dot--theme[data-accent-swatch='teal']   { background: linear-gradient(135deg, oklch(66% 0.16 195), oklch(70% 0.15 165)); }
+.hue-dot--theme[data-accent-swatch='forest'] { background: linear-gradient(135deg, oklch(62% 0.17 155), oklch(68% 0.16 120)); }
+.hue-dot--theme[data-accent-swatch='sunset'] { background: linear-gradient(135deg, oklch(72% 0.17 45),  oklch(66% 0.2 20)); }
+.hue-dot--theme[data-accent-swatch='rose']   { background: linear-gradient(135deg, oklch(66% 0.21 350), oklch(64% 0.19 320)); }
+.hue-dot--theme[data-accent-swatch='mono']   { background: linear-gradient(135deg, oklch(78% 0 0), oklch(42% 0 0)); }
+
+/* Grille de membres. Une seule colonne dans le panneau lateral, qui est
+   etroit : deux colonnes y tronqueraient tous les noms. */
+.member-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.member-group__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+}
+
+/* Les libelles de l'en-tete disparaissent quand la place manque, mais le
+   bouton garde son `title` et son icone : on ne perd que le confort. */
+.channel-header__action-text {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
+@media (max-width: 1100px) {
+  .channel-header__action {
+    width: 40px;
+    padding: 0;
+  }
+  .channel-header__action-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

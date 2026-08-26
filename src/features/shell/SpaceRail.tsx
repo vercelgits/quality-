@@ -1,6 +1,6 @@
 import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
-import { initialsFor, monoFor, monoInk } from '@/constants';
+import { hueFor, initialsFor } from '@/constants';
 import { Icon } from '@/components/Icon';
 
 /**
@@ -54,8 +54,8 @@ export function SpaceRail() {
                 className={'rail__button' + (isActive ? ' is-active' : '')}
                 style={
                   {
-                    '--space-accent': monoFor(space.id),
-                    '--space-ink': monoInk(space.id),
+                    '--space-accent': hueFor(space.id),
+                    '--space-ink': '#fff',
                   } as React.CSSProperties
                 }
                 onClick={() => selectSpace(space.id)}

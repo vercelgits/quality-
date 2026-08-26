@@ -9,10 +9,21 @@ import type { Profile, PresenceStatus } from '@/types/db';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type Density = 'compact' | 'cozy' | 'spacious';
+export type AccentName =
+  | 'indigo'
+  | 'violet'
+  | 'ocean'
+  | 'teal'
+  | 'forest'
+  | 'sunset'
+  | 'rose'
+  | 'mono';
 
 export interface Preferences {
   theme: Theme;
   density: Density;
+  /** Teinte de base ; toute la palette en derive. */
+  accent: AccentName;
   /** Coupe toutes les animations, au-dela du reglage systeme. */
   reduceMotion: boolean;
   /** Envoi du message avec Entree seule, sinon Ctrl+Entree. */
@@ -24,6 +35,7 @@ export interface Preferences {
 const DEFAULT_PREFERENCES: Preferences = {
   theme: 'system',
   density: 'cozy',
+  accent: 'indigo',
   reduceMotion: false,
   sendOnEnter: true,
   showTimestamps: true,
@@ -63,6 +75,7 @@ export function applyPreferences(preferences: Preferences): void {
   }
 
   root.setAttribute('data-density', preferences.density);
+  root.setAttribute('data-accent', preferences.accent);
 
   if (preferences.reduceMotion) {
     root.setAttribute('data-motion', 'reduced');
@@ -88,7 +101,20 @@ interface SessionState {
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
   setProfile: (profile: Profile) => void;
-  updateProfile: (patch: Partial<Pick<Profile, 'display_name' | 'bio' | 'avatar_url'>>) => Promise<void>;
+  updateProfile: (
+    patch: Partial<
+      Pick<
+        Profile,
+        | 'display_name'
+        | 'bio'
+        | 'avatar_url'
+        | 'banner_url'
+        | 'pronouns'
+        | 'links'
+        | 'theme_hue'
+      >
+    >,
+  ) => Promise<void>;
   setStatus: (status: PresenceStatus, customStatus?: string | null) => Promise<void>;
   setPreference: <K extends keyof Preferences>(key: K, value: Preferences[K]) => void;
   clearError: () => void;
@@ -169,12 +195,29 @@ export const useSession = create<SessionState>((set, get) => ({
     // arriere si la base refuse.
     set({ profile: { ...current, ...patch } });
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('profiles')
       .update(patch)
       .eq('id', current.id)
       .select()
       .single();
+
+    // Les champs de profil enrichi viennent d'une migration optionnelle. Si
+    // elle n'est pas appliquee, Postgres refuse la colonne inconnue : on
+    // reessaie alors avec le sous-ensemble qui existe depuis le debut, plutot
+    // que de perdre aussi le nom et la biographie.
+    if (error && /column .* does not exist/i.test(error.message)) {
+      const fallback: Record<string, unknown> = {};
+      for (const key of ['display_name', 'bio', 'avatar_url'] as const) {
+        if (key in patch) fallback[key] = patch[key];
+      }
+      ({ data, error } = await supabase
+        .from('profiles')
+        .update(fallback)
+        .eq('id', current.id)
+        .select()
+        .single());
+    }
 
     if (error) {
       set({ profile: current, error: errorMessage(error) });

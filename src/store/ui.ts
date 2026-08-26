@@ -15,7 +15,8 @@ export type Modal =
   | { kind: 'moderation'; spaceId: UUID }
   | { kind: 'report'; messageId: UUID }
   | { kind: 'poll'; channelId: UUID; threadId: UUID | null }
-  | { kind: 'bookmarks' };
+  | { kind: 'bookmarks' }
+  | { kind: 'edit-profile' };
 
 interface UIState {
   activeSpaceId: UUID | null;

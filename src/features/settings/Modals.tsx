@@ -4,14 +4,14 @@ import { ModerationPanel } from '@/features/moderation/ModerationPanel';
 import { ReportModal } from '@/features/moderation/ReportModal';
 import { PollComposer } from '@/features/polls/PollComposer';
 import { BookmarksModal } from '@/features/bookmarks/BookmarksModal';
+import { ProfileCard } from '@/features/profile/ProfileCard';
+import { ProfileEditor } from '@/features/profile/ProfileEditor';
 import { Icon } from '@/components/Icon';
-import { Avatar } from '@/components/Avatar';
 import { useUI } from '@/store/ui';
 import { useChat } from '@/store/chat';
-import { useSession, type Density, type Theme } from '@/store/session';
+import { useSession, type AccentName, type Density, type Theme } from '@/store/session';
 import { supabase } from '@/lib/supabase';
-import { formatFull } from '@/lib/time';
-import { LIMITS, monoFor } from '@/constants';
+import { LIMITS } from '@/constants';
 import {
   isDesktop,
   permissionState,
@@ -61,6 +61,7 @@ export function Modals() {
         onClose={closeModal}
       />
       <BookmarksModal open={modal.kind === 'bookmarks'} onClose={closeModal} />
+      <ProfileEditor open={modal.kind === 'edit-profile'} onClose={closeModal} />
     </>
   );
 }
@@ -73,6 +74,17 @@ const THEMES: { value: Theme; label: string; icon: 'sun' | 'moon' | 'monitor' }[
   { value: 'light', label: 'Clair', icon: 'sun' },
   { value: 'dark', label: 'Sombre', icon: 'moon' },
   { value: 'system', label: 'Systeme', icon: 'monitor' },
+];
+
+const ACCENTS: { value: AccentName; label: string }[] = [
+  { value: 'indigo', label: 'Indigo' },
+  { value: 'violet', label: 'Violet' },
+  { value: 'ocean', label: 'Ocean' },
+  { value: 'teal', label: 'Turquoise' },
+  { value: 'forest', label: 'Foret' },
+  { value: 'sunset', label: 'Couchant' },
+  { value: 'rose', label: 'Rose' },
+  { value: 'mono', label: 'Sans couleur' },
 ];
 
 const DENSITIES: { value: Density; label: string; hint: string }[] = [
@@ -202,6 +214,31 @@ function PreferencesModal({ open, onClose }: { open: boolean; onClose: () => voi
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="field">
+          <span className="field__label">Couleur de l’interface</span>
+          <div className="hue-row">
+            {ACCENTS.map((option) => (
+              <button
+                type="button"
+                key={option.value}
+                className={
+                  'hue-dot hue-dot--theme' +
+                  (preferences.accent === option.value ? ' is-active' : '')
+                }
+                data-accent-swatch={option.value}
+                onClick={() => setPreference('accent', option.value)}
+                title={option.label}
+                aria-label={option.label}
+                aria-pressed={preferences.accent === option.value}
+              />
+            ))}
+          </div>
+          <p className="field__hint">
+            Une seule teinte de base : tout le reste en decoule, donc les contrastes
+            restent corrects quel que soit votre choix.
+          </p>
         </div>
 
         <div className="field">
@@ -653,35 +690,11 @@ function ProfileModal({
   userId: string | null;
   onClose: () => void;
 }) {
-  const profiles = useChat((state) => state.profiles);
-  const profile = userId ? profiles[userId] : undefined;
-
+  // La carte se suffit a elle-meme : la boite ne porte ni titre ni chrome, pour
+  // que la banniere touche le bord et que la carte reste l'objet principal.
   return (
-    <Modal open={open} title={profile?.display_name ?? 'Profil'} onClose={onClose} width={400}>
-      {profile ? (
-        <div className="profile-card">
-          <div
-            className="profile-card__banner"
-            style={{ background: monoFor(profile.id) }}
-          />
-          <div className="profile-card__avatar">
-            <Avatar profile={profile} size={72} status={profile.status} showStatus />
-          </div>
-
-          <h3 className="profile-card__name">{profile.display_name}</h3>
-          <p className="profile-card__handle">@{profile.username}</p>
-
-          {profile.custom_status ? (
-            <p className="profile-card__status">{profile.custom_status}</p>
-          ) : null}
-
-          {profile.bio ? <p className="profile-card__bio">{profile.bio}</p> : null}
-
-          <p className="profile-card__since">Membre depuis le {formatFull(profile.created_at)}</p>
-        </div>
-      ) : (
-        <p>Profil introuvable.</p>
-      )}
+    <Modal open={open} title="Profil" onClose={onClose} width={420} bare>
+      {userId ? <ProfileCard userId={userId} /> : null}
     </Modal>
   );
 }

@@ -16,16 +16,37 @@ export type PresenceStatus = 'online' | 'idle' | 'dnd' | 'offline';
 export type SpaceRole = 'owner' | 'admin' | 'moderator' | 'member';
 export type ChannelKind = 'text' | 'voice';
 
+/** Lien externe affiche sur une carte de profil. */
+export interface ProfileLink {
+  label: string;
+  url: string;
+}
+
 export interface Profile {
   id: UUID;
   username: string;
   display_name: string;
   accent: string;
   avatar_url: string | null;
+  banner_url: string | null;
   bio: string | null;
+  pronouns: string | null;
+  links: ProfileLink[];
+  /** Teinte choisie, appliquee a la carte de profil. `null` = teinte derivee. */
+  theme_hue: number | null;
   status: PresenceStatus;
   custom_status: string | null;
   created_at: ISODate;
+}
+
+/** Chiffres calcules a la demande, jamais stockes. */
+export interface ProfileStats {
+  messages: number;
+  threads_opened: number;
+  reactions_given: number;
+  shared_spaces: number;
+  joined_at: ISODate;
+  roles: SpaceRole[];
 }
 
 export interface Space {

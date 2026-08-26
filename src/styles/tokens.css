@@ -1,16 +1,15 @@
 /* ==========================================================================
    Orbit — jetons de design
 
-   Palette monochrome. Les couleurs sont exprimees en OKLCH avec une chroma nulle
-   sur toute l'interface : seule la luminosite distingue les surfaces. Un ecart
-   de luminosite y est percu de facon identique quelle que soit la teinte, donc
-   une echelle de gris derivee reste reguliere a l'oeil, ce que ne garantit pas
-   HSL.
+   Direction : « aurore ». Un fond profond bleu-violet, des surfaces de verre
+   qui laissent transparaitre ce qui est derriere, et des accents en degrade
+   violet -> cyan -> rose. Le nom du produit evoque l'orbite : la lumiere vient
+   donc du haut et de loin, comme un astre hors-champ.
 
-   Consequence a assumer : sans teinte, l'etat ne peut plus etre porte par la
-   couleur. Presence, alertes et mentions sont donc distinguees par la
-   luminosite, le remplissage et la bordure — ce qui a l'avantage de rester
-   lisible pour les daltoniens et en niveaux de gris.
+   Les couleurs sont en OKLCH. Contrairement a HSL, un meme ecart de luminosite
+   y est percu de facon identique quelle que soit la teinte : une palette
+   derivee reste donc reguliere a l'oeil sans corrections manuelles, et un
+   degrade entre deux teintes ne traverse pas de zone terne.
 
    Regle de structure : la palette claire est definie sur `:root` nu, et seuls
    les jetons qui changent sont redefinis pour le theme sombre. Aucune couleur
@@ -18,14 +17,18 @@
    ========================================================================== */
 
 :root {
+  /* ---------------------------------------------------------------- Teintes */
+  --hue-primary: 280;   /* violet */
+  --hue-secondary: 215; /* cyan-bleu */
+  --hue-tertiary: 340;  /* rose */
+
   /* ------------------------------------------------------------- Typographie */
   --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-display: 'Inter var', 'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code',
     Menlo, Consolas, monospace;
 
-  /* Echelle relevee d'environ 15 % par rapport a une interface de chat
-     classique : le confort de lecture prime sur la densite maximale. */
   --text-2xs: 0.75rem;
   --text-xs: 0.8125rem;
   --text-sm: 0.9375rem;
@@ -34,15 +37,20 @@
   --text-lg: 1.3125rem;
   --text-xl: 1.625rem;
   --text-2xl: 2.125rem;
+  --text-3xl: 2.75rem;
 
   --weight-normal: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
+  --weight-black: 800;
 
-  --leading-tight: 1.25;
+  --leading-tight: 1.2;
   --leading-normal: 1.5;
   --leading-relaxed: 1.65;
+
+  --tracking-tight: -0.02em;
+  --tracking-display: -0.035em;
 
   /* ------------------------------------------------------------------ Espace */
   --space-0: 0;
@@ -58,191 +66,295 @@
   --space-10: 3.5rem;
 
   /* ------------------------------------------------------------------ Rayons */
-  --radius-xs: 5px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 22px;
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
   --radius-full: 999px;
 
-  /* ---------------------------------------------------------------- Mouvement
-     Court et sans rebond : dans une application ou l'on clique des centaines
-     de fois par jour, une animation qui se remarque devient une animation qui
-     agace. */
+  /* --------------------------------------------------------------- Mouvement
+     Deux familles : `ease-out` pour ce qui obeit au doigt, `spring` pour ce qui
+     doit sembler avoir une masse. Le ressort depasse legerement sa cible, ce
+     qui donne l'impression d'un objet reel plutot que d'une valeur interpolee. */
   --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   --duration-instant: 80ms;
-  --duration-fast: 130ms;
-  --duration-normal: 200ms;
-  --duration-slow: 320ms;
+  --duration-fast: 140ms;
+  --duration-normal: 220ms;
+  --duration-slow: 380ms;
+  --duration-slower: 600ms;
 
   /* ---------------------------------------------------------------- Structure */
-  --rail-width: 76px;
-  --sidebar-width: 276px;
+  --rail-width: 80px;
+  --sidebar-width: 284px;
   --panel-width: 420px;
-  --header-height: 60px;
-  --composer-radius: var(--radius-lg);
+  --header-height: 64px;
+  --composer-radius: var(--radius-xl);
 
-  /* Densite d'affichage, pilotee par `[data-density]` plus bas. */
   --row-padding-y: var(--space-3);
   --row-gap: var(--space-4);
   --avatar-size: 42px;
   --message-leading: var(--leading-relaxed);
 
+  /* ------------------------------------------------------------------- 3D
+     La perspective est declaree une fois ici pour que toutes les cartes
+     penchent avec la meme profondeur apparente. Une valeur plus courte
+     exagererait l'effet jusqu'a le rendre caricatural. */
+  --perspective: 900px;
+  --tilt-max: 7deg;
+  --lift: 6px;
+
   /* ==================================================================
-     Palette claire — blanc, gris, noir
+     Palette claire
      ================================================================== */
 
-  --bg-app: oklch(97% 0 0);
-  --bg-rail: oklch(92% 0 0);
-  --bg-sidebar: oklch(95% 0 0);
+  --bg-app: oklch(97% 0.008 var(--hue-primary));
+  --bg-rail: oklch(94.5% 0.014 var(--hue-primary));
+  --bg-sidebar: oklch(96.5% 0.01 var(--hue-primary));
   --bg-surface: oklch(100% 0 0);
-  --bg-raised: oklch(99% 0 0);
-  --bg-sunken: oklch(93.5% 0 0);
-  --bg-overlay: oklch(100% 0 0 / 0.85);
-  --bg-scrim: oklch(0% 0 0 / 0.45);
+  --bg-raised: oklch(99.5% 0.004 var(--hue-primary));
+  --bg-sunken: oklch(93.5% 0.012 var(--hue-primary));
+  --bg-overlay: oklch(100% 0 0 / 0.72);
+  --bg-scrim: oklch(28% 0.06 var(--hue-primary) / 0.4);
 
-  --bg-hover: oklch(0% 0 0 / 0.05);
-  --bg-active: oklch(0% 0 0 / 0.09);
-  --bg-selected: oklch(0% 0 0 / 0.08);
+  /* Surface de verre : un fond translucide double d'un flou. Le flou est ce
+     qui distingue le verre d'un simple aplat transparent — sans lui, le texte
+     du dessous reste lisible et brouille celui du dessus. */
+  --glass-bg: oklch(100% 0 0 / 0.65);
+  --glass-border: oklch(100% 0 0 / 0.7);
+  --glass-blur: 20px;
 
-  --text-primary: oklch(15% 0 0);
-  --text-secondary: oklch(42% 0 0);
-  --text-muted: oklch(56% 0 0);
-  --text-faint: oklch(68% 0 0);
+  --bg-hover: oklch(from var(--accent) l c h / 0.07);
+  --bg-active: oklch(from var(--accent) l c h / 0.12);
+  --bg-selected: oklch(from var(--accent) l c h / 0.13);
+
+  --text-primary: oklch(22% 0.03 var(--hue-primary));
+  --text-secondary: oklch(45% 0.028 var(--hue-primary));
+  --text-muted: oklch(58% 0.024 var(--hue-primary));
+  --text-faint: oklch(70% 0.02 var(--hue-primary));
   --text-on-accent: oklch(100% 0 0);
 
-  --border-subtle: oklch(0% 0 0 / 0.09);
-  --border-default: oklch(0% 0 0 / 0.16);
-  --border-strong: oklch(0% 0 0 / 0.28);
+  --border-subtle: oklch(from var(--accent) l c h / 0.1);
+  --border-default: oklch(from var(--accent) l c h / 0.18);
+  --border-strong: oklch(from var(--accent) l c h / 0.32);
 
-  /* En monochrome, l'accent est le contraste maximal disponible. */
-  --accent: oklch(18% 0 0);
-  --accent-hover: oklch(8% 0 0);
-  --accent-soft: oklch(0% 0 0 / 0.09);
-  --accent-text: oklch(20% 0 0);
+  --accent: oklch(56% 0.22 var(--hue-primary));
+  --accent-hover: oklch(50% 0.24 var(--hue-primary));
+  --accent-soft: oklch(from var(--accent) l c h / 0.14);
+  --accent-text: oklch(48% 0.22 var(--hue-primary));
 
-  /* Etats : distingues par la luminosite et le remplissage, pas par la teinte. */
-  --success: oklch(38% 0 0);
-  --warning: oklch(52% 0 0);
-  --danger: oklch(22% 0 0);
-  --danger-soft: oklch(0% 0 0 / 0.08);
+  --secondary: oklch(58% 0.16 var(--hue-secondary));
+  --tertiary: oklch(62% 0.2 var(--hue-tertiary));
 
-  --mention-bg: oklch(0% 0 0 / 0.06);
-  --mention-border: oklch(20% 0 0);
+  --success: oklch(58% 0.17 150);
+  --warning: oklch(70% 0.17 75);
+  --danger: oklch(56% 0.22 25);
+  --danger-soft: oklch(from var(--danger) l c h / 0.12);
 
-  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.09);
-  --shadow-md: 0 2px 4px oklch(0% 0 0 / 0.07), 0 8px 20px oklch(0% 0 0 / 0.1);
-  --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.1), 0 20px 48px oklch(0% 0 0 / 0.18);
+  --mention-bg: oklch(from var(--warning) l c h / 0.14);
+  --mention-border: oklch(from var(--warning) l c h / 0.6);
 
-  --focus-ring: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--accent);
+  /* Degrades. Le degrade d'accent traverse trois teintes voisines en OKLCH,
+     ce qui evite la bande grise que produirait le meme parcours en sRGB. */
+  --gradient-accent: linear-gradient(
+    135deg,
+    oklch(60% 0.23 var(--hue-primary)) 0%,
+    oklch(62% 0.2 calc(var(--hue-primary) - 40)) 50%,
+    oklch(64% 0.18 var(--hue-secondary)) 100%
+  );
+  --gradient-aurora: linear-gradient(
+    120deg,
+    oklch(65% 0.22 var(--hue-primary)) 0%,
+    oklch(68% 0.2 var(--hue-tertiary)) 35%,
+    oklch(70% 0.17 var(--hue-secondary)) 70%,
+    oklch(66% 0.21 var(--hue-primary)) 100%
+  );
+  --gradient-surface: linear-gradient(
+    160deg,
+    oklch(100% 0 0 / 0.9),
+    oklch(100% 0 0 / 0.55)
+  );
+
+  /* Ombres teintees plutot que noires : une ombre grise sur un fond colore
+     lit comme de la salissure, une ombre teintee comme de la profondeur. */
+  --shadow-xs: 0 1px 2px oklch(30% 0.05 var(--hue-primary) / 0.08);
+  --shadow-sm: 0 2px 4px oklch(30% 0.05 var(--hue-primary) / 0.09);
+  --shadow-md:
+    0 2px 6px oklch(30% 0.05 var(--hue-primary) / 0.08),
+    0 10px 24px oklch(30% 0.05 var(--hue-primary) / 0.1);
+  --shadow-lg:
+    0 4px 12px oklch(30% 0.05 var(--hue-primary) / 0.1),
+    0 24px 56px oklch(30% 0.05 var(--hue-primary) / 0.16);
+  --shadow-glow: 0 0 32px oklch(from var(--accent) l c h / 0.28);
+
+  /* Liseré clair sur le haut des surfaces : simule une arete qui accroche la
+     lumiere, ce qui donne l'epaisseur sans dessiner de bordure complete. */
+  --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.8);
 
   color-scheme: light;
 }
 
 /* ==================================================================
    Palette sombre
-
-   Appliquee quand le systeme est en sombre sauf si le clair a ete choisi
-   explicitement, et quand le sombre est choisi explicitement. Les deux blocs
-   sont necessaires pour que le reglage manuel l'emporte dans les deux sens.
    ================================================================== */
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg-app: oklch(16% 0 0);
-    --bg-rail: oklch(10% 0 0);
-    --bg-sidebar: oklch(13% 0 0);
-    --bg-surface: oklch(18% 0 0);
-    --bg-raised: oklch(23% 0 0);
-    --bg-sunken: oklch(11% 0 0);
-    --bg-overlay: oklch(18% 0 0 / 0.9);
-    --bg-scrim: oklch(0% 0 0 / 0.68);
+    --bg-app: oklch(17% 0.028 var(--hue-primary));
+    --bg-rail: oklch(13% 0.03 var(--hue-primary));
+    --bg-sidebar: oklch(15% 0.03 var(--hue-primary));
+    --bg-surface: oklch(19% 0.03 var(--hue-primary));
+    --bg-raised: oklch(24% 0.035 var(--hue-primary));
+    --bg-sunken: oklch(12.5% 0.028 var(--hue-primary));
+    --bg-overlay: oklch(19% 0.03 var(--hue-primary) / 0.75);
+    --bg-scrim: oklch(8% 0.03 var(--hue-primary) / 0.65);
+
+    --glass-bg: oklch(26% 0.04 var(--hue-primary) / 0.55);
+    --glass-border: oklch(100% 0 0 / 0.12);
+    --glass-blur: 22px;
 
     --bg-hover: oklch(100% 0 0 / 0.06);
-    --bg-active: oklch(100% 0 0 / 0.11);
-    --bg-selected: oklch(100% 0 0 / 0.1);
+    --bg-active: oklch(100% 0 0 / 0.1);
+    --bg-selected: oklch(from var(--accent) l c h / 0.22);
 
-    --text-primary: oklch(97% 0 0);
-    --text-secondary: oklch(78% 0 0);
-    --text-muted: oklch(63% 0 0);
-    --text-faint: oklch(48% 0 0);
-    --text-on-accent: oklch(12% 0 0);
+    --text-primary: oklch(96% 0.01 var(--hue-primary));
+    --text-secondary: oklch(78% 0.02 var(--hue-primary));
+    --text-muted: oklch(64% 0.025 var(--hue-primary));
+    --text-faint: oklch(50% 0.025 var(--hue-primary));
+    --text-on-accent: oklch(14% 0.02 var(--hue-primary));
 
     --border-subtle: oklch(100% 0 0 / 0.08);
-    --border-default: oklch(100% 0 0 / 0.15);
-    --border-strong: oklch(100% 0 0 / 0.28);
+    --border-default: oklch(100% 0 0 / 0.14);
+    --border-strong: oklch(100% 0 0 / 0.26);
 
-    --accent: oklch(97% 0 0);
-    --accent-hover: oklch(100% 0 0);
-    --accent-soft: oklch(100% 0 0 / 0.12);
-    --accent-text: oklch(95% 0 0);
+    --accent: oklch(72% 0.2 var(--hue-primary));
+    --accent-hover: oklch(78% 0.19 var(--hue-primary));
+    --accent-soft: oklch(from var(--accent) l c h / 0.2);
+    --accent-text: oklch(80% 0.16 var(--hue-primary));
 
-    --success: oklch(82% 0 0);
-    --warning: oklch(68% 0 0);
-    --danger: oklch(92% 0 0);
-    --danger-soft: oklch(100% 0 0 / 0.11);
+    --secondary: oklch(74% 0.15 var(--hue-secondary));
+    --tertiary: oklch(74% 0.18 var(--hue-tertiary));
 
-    --mention-bg: oklch(100% 0 0 / 0.08);
-    --mention-border: oklch(95% 0 0);
+    --success: oklch(76% 0.17 150);
+    --warning: oklch(82% 0.16 80);
+    --danger: oklch(70% 0.2 25);
+    --danger-soft: oklch(from var(--danger) l c h / 0.18);
 
-    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.5);
-    --shadow-md: 0 2px 6px oklch(0% 0 0 / 0.5), 0 8px 24px oklch(0% 0 0 / 0.45);
-    --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.55), 0 20px 48px oklch(0% 0 0 / 0.6);
+    --mention-bg: oklch(from var(--warning) l c h / 0.12);
+    --mention-border: oklch(from var(--warning) l c h / 0.65);
+
+    --gradient-surface: linear-gradient(
+      160deg,
+      oklch(100% 0 0 / 0.09),
+      oklch(100% 0 0 / 0.02)
+    );
+
+    --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
+    --shadow-sm: 0 2px 4px oklch(0% 0 0 / 0.45);
+    --shadow-md: 0 2px 8px oklch(0% 0 0 / 0.45), 0 12px 28px oklch(0% 0 0 / 0.4);
+    --shadow-lg: 0 4px 14px oklch(0% 0 0 / 0.5), 0 28px 64px oklch(0% 0 0 / 0.55);
+    --shadow-glow: 0 0 40px oklch(from var(--accent) l c h / 0.35);
+
+    --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.1);
 
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg-app: oklch(16% 0 0);
-  --bg-rail: oklch(10% 0 0);
-  --bg-sidebar: oklch(13% 0 0);
-  --bg-surface: oklch(18% 0 0);
-  --bg-raised: oklch(23% 0 0);
-  --bg-sunken: oklch(11% 0 0);
-  --bg-overlay: oklch(18% 0 0 / 0.9);
-  --bg-scrim: oklch(0% 0 0 / 0.68);
+  --bg-app: oklch(17% 0.028 var(--hue-primary));
+  --bg-rail: oklch(13% 0.03 var(--hue-primary));
+  --bg-sidebar: oklch(15% 0.03 var(--hue-primary));
+  --bg-surface: oklch(19% 0.03 var(--hue-primary));
+  --bg-raised: oklch(24% 0.035 var(--hue-primary));
+  --bg-sunken: oklch(12.5% 0.028 var(--hue-primary));
+  --bg-overlay: oklch(19% 0.03 var(--hue-primary) / 0.75);
+  --bg-scrim: oklch(8% 0.03 var(--hue-primary) / 0.65);
+
+  --glass-bg: oklch(26% 0.04 var(--hue-primary) / 0.55);
+  --glass-border: oklch(100% 0 0 / 0.12);
+  --glass-blur: 22px;
 
   --bg-hover: oklch(100% 0 0 / 0.06);
-  --bg-active: oklch(100% 0 0 / 0.11);
-  --bg-selected: oklch(100% 0 0 / 0.1);
+  --bg-active: oklch(100% 0 0 / 0.1);
+  --bg-selected: oklch(from var(--accent) l c h / 0.22);
 
-  --text-primary: oklch(97% 0 0);
-  --text-secondary: oklch(78% 0 0);
-  --text-muted: oklch(63% 0 0);
-  --text-faint: oklch(48% 0 0);
-  --text-on-accent: oklch(12% 0 0);
+  --text-primary: oklch(96% 0.01 var(--hue-primary));
+  --text-secondary: oklch(78% 0.02 var(--hue-primary));
+  --text-muted: oklch(64% 0.025 var(--hue-primary));
+  --text-faint: oklch(50% 0.025 var(--hue-primary));
+  --text-on-accent: oklch(14% 0.02 var(--hue-primary));
 
   --border-subtle: oklch(100% 0 0 / 0.08);
-  --border-default: oklch(100% 0 0 / 0.15);
-  --border-strong: oklch(100% 0 0 / 0.28);
+  --border-default: oklch(100% 0 0 / 0.14);
+  --border-strong: oklch(100% 0 0 / 0.26);
 
-  --accent: oklch(97% 0 0);
-  --accent-hover: oklch(100% 0 0);
-  --accent-soft: oklch(100% 0 0 / 0.12);
-  --accent-text: oklch(95% 0 0);
+  --accent: oklch(72% 0.2 var(--hue-primary));
+  --accent-hover: oklch(78% 0.19 var(--hue-primary));
+  --accent-soft: oklch(from var(--accent) l c h / 0.2);
+  --accent-text: oklch(80% 0.16 var(--hue-primary));
 
-  --success: oklch(82% 0 0);
-  --warning: oklch(68% 0 0);
-  --danger: oklch(92% 0 0);
-  --danger-soft: oklch(100% 0 0 / 0.11);
+  --secondary: oklch(74% 0.15 var(--hue-secondary));
+  --tertiary: oklch(74% 0.18 var(--hue-tertiary));
 
-  --mention-bg: oklch(100% 0 0 / 0.08);
-  --mention-border: oklch(95% 0 0);
+  --success: oklch(76% 0.17 150);
+  --warning: oklch(82% 0.16 80);
+  --danger: oklch(70% 0.2 25);
+  --danger-soft: oklch(from var(--danger) l c h / 0.18);
 
-  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.5);
-  --shadow-md: 0 2px 6px oklch(0% 0 0 / 0.5), 0 8px 24px oklch(0% 0 0 / 0.45);
-  --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.55), 0 20px 48px oklch(0% 0 0 / 0.6);
+  --mention-bg: oklch(from var(--warning) l c h / 0.12);
+  --mention-border: oklch(from var(--warning) l c h / 0.65);
+
+  --gradient-surface: linear-gradient(
+    160deg,
+    oklch(100% 0 0 / 0.09),
+    oklch(100% 0 0 / 0.02)
+  );
+
+  --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
+  --shadow-sm: 0 2px 4px oklch(0% 0 0 / 0.45);
+  --shadow-md: 0 2px 8px oklch(0% 0 0 / 0.45), 0 12px 28px oklch(0% 0 0 / 0.4);
+  --shadow-lg: 0 4px 14px oklch(0% 0 0 / 0.5), 0 28px 64px oklch(0% 0 0 / 0.55);
+  --shadow-glow: 0 0 40px oklch(from var(--accent) l c h / 0.35);
+
+  --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.1);
 
   color-scheme: dark;
 }
 
 /* ==================================================================
-   Densite
+   Teinte choisie par l'utilisateur
 
-   Discord impose un seul rythme vertical. Ici l'utilisateur choisit :
-   `compact` pour voir plus de messages a l'ecran, `spacious` pour respirer.
+   Seule la teinte de base change : toute la palette en derive, donc un
+   reglage suffit a recolorer l'application sans casser les contrastes.
+   ================================================================== */
+
+:root[data-accent='violet'] { --hue-primary: 295; --hue-secondary: 250; --hue-tertiary: 340; }
+:root[data-accent='indigo'] { --hue-primary: 275; --hue-secondary: 225; --hue-tertiary: 320; }
+:root[data-accent='ocean']  { --hue-primary: 235; --hue-secondary: 200; --hue-tertiary: 280; }
+:root[data-accent='teal']   { --hue-primary: 195; --hue-secondary: 165; --hue-tertiary: 240; }
+:root[data-accent='forest'] { --hue-primary: 155; --hue-secondary: 120; --hue-tertiary: 195; }
+:root[data-accent='sunset'] { --hue-primary: 45;  --hue-secondary: 20;  --hue-tertiary: 350; }
+:root[data-accent='rose']   { --hue-primary: 350; --hue-secondary: 320; --hue-tertiary: 25; }
+:root[data-accent='mono']   { --hue-primary: 280; --hue-secondary: 280; --hue-tertiary: 280; }
+
+/* Le mode monochrome neutralise la chroma sans toucher a la structure. */
+:root[data-accent='mono'] {
+  --accent: oklch(62% 0 0);
+  --accent-hover: oklch(70% 0 0);
+  --accent-text: oklch(72% 0 0);
+  --secondary: oklch(60% 0 0);
+  --tertiary: oklch(66% 0 0);
+  --gradient-accent: linear-gradient(135deg, oklch(70% 0 0), oklch(45% 0 0));
+  --gradient-aurora: linear-gradient(120deg, oklch(75% 0 0), oklch(40% 0 0), oklch(65% 0 0));
+}
+
+/* ==================================================================
+   Densite
    ================================================================== */
 
 :root[data-density='compact'] {
@@ -261,6 +373,9 @@
 
 /* ==================================================================
    Accessibilite du mouvement
+
+   Coupe aussi les effets 3D : une carte qui penche sous le curseur est
+   exactement ce que le reglage systeme demande d'eviter.
    ================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -269,6 +384,9 @@
     --duration-fast: 0ms;
     --duration-normal: 0ms;
     --duration-slow: 0ms;
+    --duration-slower: 0ms;
+    --tilt-max: 0deg;
+    --lift: 0px;
   }
 }
 
@@ -277,4 +395,7 @@
   --duration-fast: 0ms;
   --duration-normal: 0ms;
   --duration-slow: 0ms;
+  --duration-slower: 0ms;
+  --tilt-max: 0deg;
+  --lift: 0px;
 }

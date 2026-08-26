@@ -77,6 +77,7 @@ a:hover {
 h1, h2, h3, h4, h5, h6 {
   font-weight: var(--weight-semibold);
   line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
   text-wrap: balance;
 }
 
@@ -96,9 +97,10 @@ code, pre, kbd, samp {
 /* --------------------------------------------------------------------------
    Focus
 
-   L'anneau n'apparait qu'au clavier : au clic, il ajouterait un halo que
-   personne n'a demande. Orbit se veut pilotable entierement au clavier, donc
-   cet anneau doit rester tres visible partout ou il apparait.
+   L'anneau n'apparait qu'au clavier : au clic il ajouterait un halo que
+   personne n'a demande. Il est volontairement epais et double d'un contour
+   sombre, pour rester visible aussi bien sur une surface claire que sur un
+   degrade colore.
    -------------------------------------------------------------------------- */
 
 :focus {
@@ -106,30 +108,48 @@ code, pre, kbd, samp {
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--accent);
   outline-offset: 2px;
   border-radius: var(--radius-xs);
 }
 
 /* --------------------------------------------------------------------------
-   Barres de defilement discretes, qui n'apparaissent qu'au survol de la zone
+   Lien d'evitement : premiere tabulation de la page, invisible jusque-la.
+   Permet d'atteindre la conversation sans traverser toute la navigation.
+   -------------------------------------------------------------------------- */
+
+.skip-link {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  z-index: 999;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: var(--text-on-accent);
+  font-weight: var(--weight-semibold);
+  transform: translateY(-200%);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+  text-decoration: none;
+}
+
+/* --------------------------------------------------------------------------
+   Barres de defilement
    -------------------------------------------------------------------------- */
 
 .scroll {
   overflow-y: auto;
   scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
-  transition: scrollbar-color var(--duration-normal) var(--ease-out);
-}
-
-.scroll:hover,
-.scroll:focus-within {
-  scrollbar-color: var(--border-strong) transparent;
+  scrollbar-color: var(--border-default) transparent;
 }
 
 .scroll::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
 }
 
 .scroll::-webkit-scrollbar-track {
@@ -137,15 +157,13 @@ code, pre, kbd, samp {
 }
 
 .scroll::-webkit-scrollbar-thumb {
-  background: transparent;
-  border: 3px solid transparent;
+  background-color: var(--border-default);
+  border: 4px solid transparent;
   border-radius: var(--radius-full);
   background-clip: content-box;
-  transition: background-color var(--duration-normal) var(--ease-out);
 }
 
-.scroll:hover::-webkit-scrollbar-thumb,
-.scroll:focus-within::-webkit-scrollbar-thumb {
+.scroll::-webkit-scrollbar-thumb:hover {
   background-color: var(--border-strong);
   background-clip: content-box;
 }
@@ -173,22 +191,84 @@ code, pre, kbd, samp {
   min-width: 0;
 }
 
-.row {
-  display: flex;
-  align-items: center;
+.row { display: flex; align-items: center; }
+.stack { display: flex; flex-direction: column; }
+.spacer { flex: 1 1 auto; }
+
+/* Texte en degrade, pour les titres. Reserve aux gros caracteres : en petit,
+   le degrade fait chuter le contraste sous le seuil lisible. */
+.gradient-text {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
-.stack {
-  display: flex;
-  flex-direction: column;
+/* --------------------------------------------------------------------------
+   Surfaces
+   -------------------------------------------------------------------------- */
+
+.surface {
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md), var(--edge-light);
 }
 
-.spacer {
-  flex: 1 1 auto;
+/* Verre : translucide + flou. Le repli sans flou est un aplat opaque, car un
+   fond translucide sans flou rend le texte illisible. */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg), var(--edge-light);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+  .glass {
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.4);
+  }
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .glass {
+    background: var(--bg-raised);
+  }
+}
+
+/* Carte : la brique de base de la nouvelle interface. */
+.card {
+  position: relative;
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm), var(--edge-light);
+  transition:
+    transform var(--duration-normal) var(--spring),
+    box-shadow var(--duration-normal) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.card--interactive:hover {
+  transform: translateY(calc(var(--lift) * -1));
+  box-shadow: var(--shadow-lg), var(--edge-light);
+  border-color: var(--border-default);
+}
+
+.divider {
+  height: 1px;
+  background: var(--border-subtle);
+  border: none;
+  flex: none;
 }
 
 /* --------------------------------------------------------------------------
    Boutons
+
+   Hauteur minimale de 40 px : c'est le seuil en dessous duquel une cible
+   devient difficile a viser a la souris comme au doigt.
    -------------------------------------------------------------------------- */
 
 .btn {
@@ -196,18 +276,20 @@ code, pre, kbd, samp {
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
+  min-height: 40px;
   padding: var(--space-3) var(--space-5);
   border-radius: var(--radius-md);
   font-size: var(--text-sm);
-  font-weight: var(--weight-medium);
+  font-weight: var(--weight-semibold);
   color: var(--text-primary);
   background: var(--bg-raised);
   border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-xs);
   transition:
     background-color var(--duration-fast) var(--ease-out),
     border-color var(--duration-fast) var(--ease-out),
-    transform var(--duration-instant) var(--ease-out),
-    opacity var(--duration-fast) var(--ease-out);
+    transform var(--duration-fast) var(--spring),
+    box-shadow var(--duration-fast) var(--ease-out);
   white-space: nowrap;
   user-select: none;
 }
@@ -215,30 +297,37 @@ code, pre, kbd, samp {
 .btn:hover:not(:disabled) {
   background: var(--bg-hover);
   border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: none;
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
+  box-shadow: none;
 }
 
 .btn--primary {
-  background: var(--accent);
+  background: var(--gradient-accent);
   border-color: transparent;
-  color: var(--text-on-accent);
+  color: #fff;
+  box-shadow: var(--shadow-sm), var(--edge-light);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
+  background: var(--gradient-accent);
   border-color: transparent;
+  box-shadow: var(--shadow-md), var(--shadow-glow);
 }
 
 .btn--ghost {
   background: transparent;
   border-color: transparent;
+  box-shadow: none;
   color: var(--text-secondary);
 }
 
@@ -246,41 +335,59 @@ code, pre, kbd, samp {
   background: var(--bg-hover);
   border-color: transparent;
   color: var(--text-primary);
+  box-shadow: none;
 }
 
 .btn--danger {
   background: var(--danger);
   border-color: transparent;
-  color: var(--text-on-accent);
+  color: #fff;
 }
 
 .btn--sm {
-  padding: var(--space-2) var(--space-3);
+  min-height: 32px;
+  padding: var(--space-2) var(--space-4);
   font-size: var(--text-xs);
+}
+
+.btn--lg {
+  min-height: 48px;
+  padding: var(--space-4) var(--space-7);
+  font-size: var(--text-base);
 }
 
 .btn--block {
   width: 100%;
 }
 
-/* Bouton carre ne contenant qu'une icone. */
+/* Bouton a icone. Il porte toujours un `aria-label`, et affiche son libelle
+   en info-bulle : une icone seule n'est comprehensible que de qui la connait
+   deja. */
 .icon-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
+  gap: var(--space-2);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md);
   color: var(--text-muted);
   transition:
     background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring);
   flex: none;
 }
 
 .icon-btn:hover:not(:disabled) {
   background: var(--bg-hover);
   color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.icon-btn:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .icon-btn[aria-pressed='true'],
@@ -294,6 +401,14 @@ code, pre, kbd, samp {
   color: var(--danger);
 }
 
+/* Variante avec libelle visible : preferee partout ou la place le permet. */
+.icon-btn--labelled {
+  width: auto;
+  padding: 0 var(--space-4);
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+}
+
 /* --------------------------------------------------------------------------
    Champs de saisie
    -------------------------------------------------------------------------- */
@@ -305,40 +420,46 @@ code, pre, kbd, samp {
 }
 
 .field__label {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
   color: var(--text-secondary);
-  letter-spacing: 0.01em;
 }
 
 .field__hint {
   font-size: var(--text-xs);
   color: var(--text-muted);
+  line-height: var(--leading-normal);
 }
 
 .field__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--danger);
 }
 
 .input {
   width: 100%;
+  min-height: 44px;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-md);
   background: var(--bg-sunken);
-  border: 1px solid var(--border-default);
+  border: 1.5px solid var(--border-default);
   color: var(--text-primary);
   font-size: var(--text-base);
   transition:
     border-color var(--duration-fast) var(--ease-out),
-    background-color var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .input::placeholder {
   color: var(--text-faint);
 }
 
-.input:hover {
+.input:hover:not(:disabled) {
   border-color: var(--border-strong);
 }
 
@@ -346,6 +467,7 @@ code, pre, kbd, samp {
   outline: none;
   border-color: var(--accent);
   background: var(--bg-surface);
+  box-shadow: 0 0 0 4px var(--accent-soft);
 }
 
 .input:disabled {
@@ -353,45 +475,58 @@ code, pre, kbd, samp {
   cursor: not-allowed;
 }
 
+textarea.input {
+  min-height: auto;
+  resize: vertical;
+}
+
 /* --------------------------------------------------------------------------
-   Etiquettes et pastilles
+   Etiquettes
    -------------------------------------------------------------------------- */
 
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 18px;
-  height: 18px;
+  min-width: 20px;
+  height: 20px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-full);
   background: var(--danger);
-  color: var(--text-on-accent);
+  color: #fff;
   font-size: var(--text-2xs);
   font-weight: var(--weight-bold);
   font-variant-numeric: tabular-nums;
   line-height: 1;
   flex: none;
+  box-shadow: var(--shadow-xs);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-full);
   background: var(--bg-sunken);
   border: 1px solid var(--border-subtle);
   font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
   color: var(--text-secondary);
+}
+
+.chip.is-active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-text);
 }
 
 .kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  min-width: 22px;
+  height: 22px;
   padding: 0 var(--space-2);
   border-radius: var(--radius-xs);
   background: var(--bg-sunken);
@@ -399,27 +534,47 @@ code, pre, kbd, samp {
   border-bottom-width: 2px;
   font-family: var(--font-sans);
   font-size: var(--text-2xs);
-  font-weight: var(--weight-medium);
-  color: var(--text-muted);
+  font-weight: var(--weight-semibold);
+  color: var(--text-secondary);
   line-height: 1;
 }
 
 /* --------------------------------------------------------------------------
-   Surfaces flottantes
+   Etats vides
+
+   Ils ne disent pas seulement « rien ici » : ils expliquent quoi faire. Un
+   ecran vide sans consigne est le moment ou l'on abandonne une application.
    -------------------------------------------------------------------------- */
 
-.surface {
-  background: var(--bg-raised);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-9) var(--space-5);
+  text-align: center;
 }
 
-.divider {
-  height: 1px;
-  background: var(--border-subtle);
-  border: none;
-  flex: none;
+.empty__icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-xl);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+}
+
+.empty__title {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+}
+
+.empty__body {
+  max-width: 40ch;
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
 }
 
 /* --------------------------------------------------------------------------
@@ -432,12 +587,12 @@ code, pre, kbd, samp {
 }
 
 @keyframes pop-in {
-  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 @keyframes slide-up {
-  from { opacity: 0; transform: translateY(8px); }
+  from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -447,16 +602,35 @@ code, pre, kbd, samp {
 
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 var(--accent-soft); }
-  70%  { box-shadow: 0 0 0 8px transparent; }
+  70%  { box-shadow: 0 0 0 10px transparent; }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
 .spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid var(--border-default);
+  width: 18px;
+  height: 18px;
+  border: 2.5px solid var(--border-default);
   border-top-color: var(--accent);
   border-radius: var(--radius-full);
   animation: spin 600ms linear infinite;
   flex: none;
+}
+
+/* Squelette de chargement : preferable a un spinner pour du contenu dont on
+   connait deja la forme, parce qu'il ne fait pas sursauter la page a l'arrivee. */
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--bg-sunken) 25%,
+    var(--bg-hover) 50%,
+    var(--bg-sunken) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
 }

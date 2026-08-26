@@ -70,22 +70,26 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
 
       <button
         type="button"
-        className="icon-btn"
+        className="icon-btn icon-btn--labelled channel-header__action"
         onClick={() => setPaletteOpen(true)}
-        title="Rechercher (Ctrl+K)"
-        aria-label="Rechercher"
+        title="Rechercher — Ctrl+K"
       >
         <Icon name="search" size={17} />
+        <span className="channel-header__action-text">Rechercher</span>
       </button>
 
       <button
         type="button"
-        className={'icon-btn' + (panel === 'thread' ? ' is-active' : '')}
+        className={
+          'icon-btn icon-btn--labelled channel-header__action' +
+          (panel === 'thread' ? ' is-active' : '')
+        }
         onClick={() => togglePanel('thread')}
-        title="Fils de discussion"
-        aria-label="Fils de discussion"
+        title="Fils de discussion — les questions en attente de reponse"
+        aria-pressed={panel === 'thread'}
       >
         <Icon name="thread" size={17} />
+        <span className="channel-header__action-text">Fils</span>
         {openThreadCount > 0 ? (
           <span className="icon-btn__dot" aria-label={`${openThreadCount} fils ouverts`} />
         ) : null}
@@ -93,22 +97,30 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
 
       <button
         type="button"
-        className={'icon-btn' + (panel === 'pins' ? ' is-active' : '')}
+        className={
+          'icon-btn icon-btn--labelled channel-header__action' +
+          (panel === 'pins' ? ' is-active' : '')
+        }
         onClick={() => togglePanel('pins')}
-        title="Messages epingles"
-        aria-label="Messages epingles"
+        title="Messages epingles — ce qu'il faut garder sous la main"
+        aria-pressed={panel === 'pins'}
       >
         <Icon name="pin" size={17} />
+        <span className="channel-header__action-text">Epingles</span>
       </button>
 
       <button
         type="button"
-        className={'icon-btn' + (panel === 'members' ? ' is-active' : '')}
+        className={
+          'icon-btn icon-btn--labelled channel-header__action' +
+          (panel === 'members' ? ' is-active' : '')
+        }
         onClick={() => togglePanel('members')}
-        title="Membres"
-        aria-label="Membres"
+        title="Qui est dans cet espace"
+        aria-pressed={panel === 'members'}
       >
         <Icon name="users" size={17} />
+        <span className="channel-header__action-text">Membres</span>
       </button>
     </header>
   );

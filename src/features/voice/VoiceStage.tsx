@@ -5,7 +5,10 @@ import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { formatDuration } from '@/lib/time';
-import type { Channel, UUID } from '@/types/db';
+import type { Channel, UUID, VoiceParticipant } from '@/types/db';
+
+/** Tableau vide partage : une nouvelle instance casserait la memoisation. */
+const EMPTY_PARTICIPANTS: VoiceParticipant[] = [];
 
 /** Vue principale d'un salon vocal : les participants et leurs partages. */
 export function VoiceStage({ channel }: { channel: Channel }) {
@@ -15,7 +18,11 @@ export function VoiceStage({ channel }: { channel: Channel }) {
   const channelId = useVoice((state) => state.channelId);
   const connecting = useVoice((state) => state.connecting);
   const error = useVoice((state) => state.error);
-  const participants = useVoice((state) => state.participantsByChannel[channel.id] ?? []);
+  // Le selecteur renvoie la reference telle quelle : ecrire `?? []` a
+  // l'interieur fabriquerait un tableau neuf a chaque appel, et zustand,
+  // comparant les references, redeclencherait un rendu sans fin.
+  const rawParticipants = useVoice((state) => state.participantsByChannel[channel.id]);
+  const participants = rawParticipants ?? EMPTY_PARTICIPANTS;
   const remoteAudio = useVoice((state) => state.remoteAudio);
   const remoteScreens = useVoice((state) => state.remoteScreens);
   const localScreen = useVoice((state) => state.localScreen);

@@ -40,6 +40,17 @@ function hashOf(seed: string): number {
   return Math.abs(hash);
 }
 
+/**
+ * Couleur stable derivee d'un identifiant.
+ *
+ * La teinte fait le tour du cercle chromatique, mais luminosite et chroma
+ * restent fixes : deux personnes ont donc des couleurs distinctes et de meme
+ * intensite percue, sans qu'aucune ne ressorte plus que les autres.
+ */
+export function hueFor(seed: string): string {
+  return `oklch(66% 0.19 ${hashOf(seed) % 360})`;
+}
+
 /** Gris stable derive d'un identifiant. */
 export function monoFor(seed: string): string {
   return `oklch(${MONO_STEPS[hashOf(seed) % MONO_STEPS.length]}% 0 0)`;

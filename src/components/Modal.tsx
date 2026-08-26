@@ -9,6 +9,11 @@ interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   width?: number;
+  /**
+   * Retire l'en-tete et les marges internes : la boite devient un simple
+   * cadre. Utile quand le contenu est lui-meme une carte dessinee bord a bord.
+   */
+  bare?: boolean;
 }
 
 /**
@@ -26,6 +31,7 @@ export function Modal({
   children,
   footer,
   width = 460,
+  bare = false,
 }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
 
@@ -64,13 +70,23 @@ export function Modal({
       ref={ref}
       className="modal"
       style={{ maxWidth: width }}
-      aria-labelledby="modal-title"
+      {...(bare ? { 'aria-label': title } : { 'aria-labelledby': 'modal-title' })}
       // Un clic sur la zone hors du panneau ferme la boite, comme partout.
       onClick={(event) => {
         if (event.target === ref.current) onClose();
       }}
     >
-      <div className="modal__panel">
+      <div className={'modal__panel' + (bare ? ' modal__panel--bare' : '')}>
+        {bare ? (
+          <button
+            type="button"
+            className="icon-btn modal__close-floating"
+            onClick={onClose}
+            aria-label="Fermer"
+          >
+            <Icon name="x" size={16} />
+          </button>
+        ) : (
         <header className="modal__header">
           <div className="stack" style={{ gap: 'var(--space-1)', minWidth: 0 }}>
             <h2 className="modal__title" id="modal-title">
@@ -82,8 +98,11 @@ export function Modal({
             <Icon name="x" size={16} />
           </button>
         </header>
+        )}
 
-        <div className="modal__body scroll">{children}</div>
+        <div className={'modal__body scroll' + (bare ? ' modal__body--bare' : '')}>
+          {children}
+        </div>
 
         {footer ? <footer className="modal__footer">{footer}</footer> : null}
       </div>

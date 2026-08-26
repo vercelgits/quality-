@@ -1,4 +1,4 @@
-import { initialsFor, monoFor, monoInk } from '@/constants';
+import { hueFor, initialsFor } from '@/constants';
 import type { PresenceStatus, Profile } from '@/types/db';
 
 const STATUS_LABEL: Record<PresenceStatus, string> = {
@@ -37,8 +37,8 @@ export function Avatar({ profile, size = 38, status, showStatus = false }: Avata
         <span
           className="avatar__initials"
           style={{
-            background: monoFor(seed),
-            color: monoInk(seed),
+            background: hueFor(seed),
+            color: '#fff',
             fontSize: Math.max(9, Math.round(size * 0.36)),
           }}
           aria-hidden="true"
