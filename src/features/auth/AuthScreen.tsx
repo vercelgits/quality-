@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 
-type Mode = 'signin' | 'signup';
+type Mode = 'signin' | 'signup' | 'forgot';
 
 const HIGHLIGHTS = [
   {
@@ -30,7 +30,7 @@ export function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const { signIn, signUp, error, clearError } = useSession();
+  const { signIn, signUp, requestPasswordReset, error, clearError } = useSession();
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -41,7 +41,17 @@ export function AuthScreen() {
     setBusy(true);
 
     try {
-      if (mode === 'signin') {
+      if (mode === 'forgot') {
+        const sent = await requestPasswordReset(email);
+        if (sent) {
+          // Le message ne dit pas si l'adresse est connue : l'inverse
+          // permettrait d'enumerer les comptes inscrits.
+          setNotice(
+            'Si un compte existe avec cette adresse, un lien de reinitialisation ' +
+              'vient d’y etre envoye. Pensez a regarder vos indesirables.',
+          );
+        }
+      } else if (mode === 'signin') {
         await signIn(email.trim(), password);
       } else {
         await signUp(email.trim(), password, username.trim());
@@ -69,10 +79,14 @@ export function AuthScreen() {
       ? 'Entre 2 et 32 caracteres : lettres, chiffres, point, tiret, souligne.'
       : null;
 
+  const emailLooksValid = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim());
+
   const canSubmit =
-    email.trim().length > 3 &&
-    password.length >= 6 &&
-    (mode === 'signin' || (username.trim().length >= 2 && usernameIssue === null));
+    mode === 'forgot'
+      ? emailLooksValid
+      : emailLooksValid &&
+        password.length >= 6 &&
+        (mode === 'signin' || (username.trim().length >= 2 && usernameIssue === null));
 
   return (
     <div className="auth">
@@ -112,6 +126,7 @@ export function AuthScreen() {
 
       <section className="auth__panel">
         <form className="auth__form" onSubmit={handleSubmit}>
+          {mode !== 'forgot' ? (
           <div className="auth__tabs" role="tablist" aria-label="Mode de connexion">
             <button
               type="button"
@@ -132,6 +147,15 @@ export function AuthScreen() {
               Creer un compte
             </button>
           </div>
+          ) : (
+            <div className="stack" style={{ gap: 'var(--space-2)' }}>
+              <h1 className="auth__title">Mot de passe oublie</h1>
+              <p className="auth__subtitle">
+                Indiquez votre adresse : nous vous enverrons un lien pour en choisir
+                un nouveau.
+              </p>
+            </div>
+          )}
 
           <div className="field">
             <label className="field__label" htmlFor="auth-email">
@@ -172,6 +196,7 @@ export function AuthScreen() {
             </div>
           ) : null}
 
+          {mode !== 'forgot' ? (
           <div className="field">
             <label className="field__label" htmlFor="auth-password">
               Mot de passe
@@ -189,8 +214,17 @@ export function AuthScreen() {
             />
             {mode === 'signup' ? (
               <p className="field__hint">Six caracteres minimum.</p>
-            ) : null}
+            ) : (
+              <button
+                type="button"
+                className="auth__link"
+                onClick={() => switchMode('forgot')}
+              >
+                Mot de passe oublie ?
+              </button>
+            )}
           </div>
+          ) : null}
 
           {error ? (
             <p className="auth__error" role="alert">
@@ -206,8 +240,22 @@ export function AuthScreen() {
 
           <button className="btn btn--primary btn--block" type="submit" disabled={!canSubmit || busy}>
             {busy ? <span className="spinner" /> : null}
-            {mode === 'signin' ? 'Entrer' : 'Creer mon espace'}
+            {mode === 'forgot'
+              ? 'Envoyer le lien'
+              : mode === 'signin'
+                ? 'Entrer'
+                : 'Creer mon espace'}
           </button>
+
+          {mode === 'forgot' ? (
+            <button
+              type="button"
+              className="auth__link auth__link--centered"
+              onClick={() => switchMode('signin')}
+            >
+              Revenir a la connexion
+            </button>
+          ) : null}
 
           <p className="auth__legal">
             En continuant, vous acceptez que vos messages soient stockes sur le projet

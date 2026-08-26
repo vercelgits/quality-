@@ -72,8 +72,12 @@ function translate(message: string): string {
   if (message.includes('duplicate key') && message.includes('username')) {
     return 'Ce pseudo est deja pris.';
   }
-  if (message.includes('Failed to fetch')) {
-    return 'Impossible de joindre le serveur. Verifiez votre connexion.';
+  if (message.includes('Failed to fetch') || message.includes('NetworkError')) {
+    return 'Impossible de joindre le serveur. Verifiez votre connexion, puis reessayez.';
+  }
+  // Message renvoye par nos fonctions quand un quota est atteint.
+  if (message.includes('Trop de') || message.includes('Trop d')) {
+    return message;
   }
   return message;
 }

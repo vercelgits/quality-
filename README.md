@@ -230,6 +230,32 @@ ajoutez l'URL de production dans **Authentication → URL Configuration**.
 
 ---
 
+## Tests
+
+```bash
+npm test
+```
+
+Dix-sept tests tournent sans aucune configuration : écran de connexion,
+validation des formulaires, accessibilité clavier, thèmes clair et sombre,
+`prefers-reduced-motion`, et adaptation aux petits écrans sur un profil
+d'appareil réel.
+
+Neuf autres couvrent les parcours authentifiés — envoi, modification,
+suppression, réaction, fil, recherche, messages privés. Ils écrivent dans un
+vrai projet Supabase, donc ils demandent un compte dédié et **se déclarent
+ignorés** si les variables sont absentes plutôt que d'échouer :
+
+```bash
+E2E_EMAIL=compte-de-test@exemple.fr E2E_PASSWORD=... npm test
+```
+
+Un identifiant de test n'a rien à faire dans le dépôt : c'est pourquoi ils sont
+lus depuis l'environnement, et pourquoi un clone frais peut lancer la suite
+publique sans rien configurer.
+
+---
+
 ## Limites connues
 
 - **Le vocal est en maillage.** Le coût monte au carré du nombre de

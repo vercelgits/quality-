@@ -438,8 +438,9 @@ export const useChat = create<ChatState>((set, get) => ({
             : message,
         ),
       },
-      error: error ? errorMessage(error) : state.error,
     }));
+
+    if (error) set({ error: await explainInsertFailure(error) });
   },
 
   retryMessage: async (view, messageId) => {
@@ -964,6 +965,35 @@ export const useChat = create<ChatState>((set, get) => ({
 /* -------------------------------------------------------------------------- */
 /* Aides                                                                       */
 /* -------------------------------------------------------------------------- */
+
+/**
+ * Traduit un refus d'insertion en phrase comprehensible.
+ *
+ * Une politique RLS refusee remonte toujours le meme message generique, quelle
+ * qu'en soit la cause : quota depasse, exclusion de parole, salon verrouille ou
+ * mode lent. On interroge donc la base pour savoir laquelle s'applique, plutot
+ * que d'afficher « nouvelle ligne viole la politique de securite » a quelqu'un
+ * qui a simplement ecrit trop vite.
+ */
+async function explainInsertFailure(error: { message?: string }): Promise<string> {
+  const raw = error.message ?? '';
+
+  if (!raw.includes('row-level security') && !raw.includes('violates')) {
+    return errorMessage(error);
+  }
+
+  const { data } = await supabase.rpc('my_rate_limits');
+  const limits = data as { messages_last_minute: number; messages_limit: number } | null;
+
+  if (limits && limits.messages_last_minute >= limits.messages_limit) {
+    return 'Vous ecrivez trop vite. Attendez une minute avant de reprendre.';
+  }
+
+  return (
+    'Impossible d’envoyer ce message ici. Le salon est peut-etre verrouille, ' +
+    'en mode lent, ou vous n’avez plus le droit d’y ecrire.'
+  );
+}
 
 /** Regroupe les participations par salon. */
 function groupParticipants(rows: DmParticipant[]): Record<UUID, UUID[]> {

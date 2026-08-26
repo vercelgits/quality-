@@ -100,6 +100,11 @@ interface SessionState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string) => Promise<void>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<boolean>;
+  updatePassword: (password: string) => Promise<boolean>;
+  /** Vrai apres un retour depuis un lien de recuperation. */
+  recovering: boolean;
+  endRecovery: () => void;
   setProfile: (profile: Profile) => void;
   updateProfile: (
     patch: Partial<
@@ -125,6 +130,7 @@ export const useSession = create<SessionState>((set, get) => ({
   profile: null,
   loading: true,
   error: null,
+  recovering: false,
   preferences: loadPreferences(),
 
   /**
@@ -141,8 +147,17 @@ export const useSession = create<SessionState>((set, get) => ({
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       set({ session, loading: false });
+
       if (event === 'SIGNED_OUT') {
-        set({ profile: null });
+        set({ profile: null, recovering: false });
+        return;
+      }
+
+      // Supabase ouvre une session valide au retour du lien de recuperation.
+      // Sans ce drapeau, l'utilisateur atterrirait directement dans
+      // l'application sans jamais choisir son nouveau mot de passe.
+      if (event === 'PASSWORD_RECOVERY') {
+        set({ recovering: true });
       }
     });
 
@@ -172,6 +187,41 @@ export const useSession = create<SessionState>((set, get) => ({
       throw error;
     }
   },
+
+  /**
+   * Envoie le courriel de reinitialisation.
+   *
+   * La reponse est volontairement identique que l'adresse existe ou non :
+   * repondre « compte inconnu » permettrait d'enumerer les inscrits.
+   */
+  requestPasswordReset: async (email) => {
+    set({ error: null });
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/`,
+    });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return false;
+    }
+    return true;
+  },
+
+  updatePassword: async (password) => {
+    set({ error: null });
+
+    const { error } = await supabase.auth.updateUser({ password });
+    if (error) {
+      set({ error: errorMessage(error) });
+      return false;
+    }
+
+    set({ recovering: false });
+    return true;
+  },
+
+  endRecovery: () => set({ recovering: false }),
 
   signOut: async () => {
     // Le passage hors ligne est tente mais ne doit jamais empecher la

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useSession } from '@/store/session';
 import { AuthScreen } from '@/features/auth/AuthScreen';
+import { PasswordRecovery } from '@/features/auth/PasswordRecovery';
 import { Workspace } from '@/features/shell/Workspace';
 import { Icon } from '@/components/Icon';
 import { Ambient } from '@/components/Ambient';
@@ -8,6 +9,7 @@ import { Ambient } from '@/components/Ambient';
 export function App() {
   const session = useSession((state) => state.session);
   const loading = useSession((state) => state.loading);
+  const recovering = useSession((state) => state.recovering);
   const initialize = useSession((state) => state.initialize);
 
   useEffect(() => initialize(), [initialize]);
@@ -30,7 +32,13 @@ export function App() {
       <a className="skip-link" href="#conversation">
         Aller a la conversation
       </a>
-      {session ? <Workspace /> : <AuthScreen />}
+      {recovering ? (
+        <PasswordRecovery />
+      ) : session ? (
+        <Workspace />
+      ) : (
+        <AuthScreen />
+      )}
     </>
   );
 }

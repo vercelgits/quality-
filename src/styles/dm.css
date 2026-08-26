@@ -252,3 +252,57 @@
   color: var(--text-muted);
   line-height: var(--leading-relaxed);
 }
+
+/* ==========================================================================
+   Recuperation de compte
+   ========================================================================== */
+
+.auth--single {
+  grid-template-columns: 1fr;
+}
+
+.auth__brand--centered {
+  justify-content: center;
+}
+
+.auth__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-display);
+}
+
+.auth__subtitle {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+}
+
+/* Lien secondaire d'un formulaire : discret, mais avec une cible cliquable
+   pleine hauteur et un soulignement au survol pour qu'on le reconnaisse. */
+.auth__link {
+  align-self: flex-start;
+  /* Meme minimum que les autres cibles : un lien de formulaire se clique
+     autant qu'un bouton, et 29 px se ratent au doigt. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--text-muted);
+  text-decoration: underline;
+  text-decoration-color: transparent;
+  text-underline-offset: 3px;
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    text-decoration-color var(--duration-fast) var(--ease-out);
+}
+
+.auth__link:hover {
+  color: var(--accent-text);
+  text-decoration-color: currentColor;
+}
+
+.auth__link--centered {
+  align-self: center;
+}
