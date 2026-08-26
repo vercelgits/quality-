@@ -1,6 +1,6 @@
 import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
-import { initialsFor } from '@/constants';
+import { initialsFor, monoFor, monoInk } from '@/constants';
 import { Icon } from '@/components/Icon';
 
 /**
@@ -52,7 +52,12 @@ export function SpaceRail() {
               <button
                 type="button"
                 className={'rail__button' + (isActive ? ' is-active' : '')}
-                style={{ '--space-accent': space.accent } as React.CSSProperties}
+                style={
+                  {
+                    '--space-accent': monoFor(space.id),
+                    '--space-ink': monoInk(space.id),
+                  } as React.CSSProperties
+                }
                 onClick={() => selectSpace(space.id)}
                 aria-current={isActive ? 'true' : undefined}
                 title={space.name}

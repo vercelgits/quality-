@@ -21,6 +21,11 @@ export function Sidebar() {
   const threads = useChat((state) => state.threads);
   const readStates = useChat((state) => state.readStates);
   const profiles = useChat((state) => state.profiles);
+  const ranks = useChat((state) => state.ranks);
+
+  // Le rang decide des outils affiches. La base revalide de toute facon chaque
+  // action : ce test ne sert qu'a ne pas montrer un bouton qui echouerait.
+  const myRank = activeSpaceId ? (ranks[activeSpaceId] ?? 0) : 0;
 
   const [collapsedCategories, setCollapsedCategories] = useState<Set<string>>(new Set());
   const [threadsOpen, setThreadsOpen] = useState(true);
@@ -84,8 +89,20 @@ export function Sidebar() {
           title="Inviter du monde"
         >
           <span className="truncate">{space.name}</span>
-          <Icon name="chevron-down" size={15} />
+          <Icon name="link" size={14} />
         </button>
+
+        {myRank >= 1 ? (
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => openModal({ kind: 'moderation', spaceId: space.id })}
+            title="Console de moderation"
+            aria-label="Console de moderation"
+          >
+            <Icon name="filter" size={16} />
+          </button>
+        ) : null}
       </header>
 
       <div className="sidebar__scroll scroll">

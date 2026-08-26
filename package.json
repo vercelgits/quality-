@@ -10,13 +10,18 @@
     "preview": "vite preview --port 4173",
     "typecheck": "tsc -b --noEmit false --emitDeclarationOnly false --pretty",
     "db:push": "supabase db push",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "tauri": "tauri",
+    "desktop": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.3",
+    "@tauri-apps/api": "^2.1.1",
+    "@tauri-apps/plugin-notification": "^2.2.0"
   },
   "devDependencies": {
     "@types/node": "^26.3.0",
@@ -24,7 +29,8 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
     "typescript": "^5.7.3",
-    "vite": "^6.0.7"
+    "vite": "^6.0.7",
+    "@tauri-apps/cli": "^2.1.0"
   },
   "engines": {
     "node": ">=20"

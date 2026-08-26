@@ -1,19 +1,23 @@
 import { create } from 'zustand';
 import { supabase, errorMessage } from '@/lib/supabase';
 import { LIMITS } from '@/constants';
+import { notify, preview } from '@/lib/notify';
 import type {
   Attachment,
+  Bookmark,
   BootstrapPayload,
   Category,
   Channel,
   Message,
   MessageRow,
+  Poll,
   Profile,
   ReactionGroup,
   ReactionRow,
   ReadState,
   Space,
   SpaceMember,
+  SpaceTimeout,
   Thread,
   UUID,
 } from '@/types/db';
@@ -36,7 +40,14 @@ export function viewKeyFor(channelId: UUID, threadId: UUID | null): ViewKey {
 type RawMessage = MessageRow & {
   reactions?: Pick<ReactionRow, 'user_id' | 'emoji' | 'created_at'>[] | null;
   attachments?: Attachment[] | null;
+  polls?: Poll[] | Poll | null;
 };
+
+/** Supabase renvoie une relation un-a-un tantot seule, tantot dans un tableau. */
+function firstOf<T>(value: T[] | T | null | undefined): T | null {
+  if (value == null) return null;
+  return Array.isArray(value) ? (value[0] ?? null) : value;
+}
 
 /** Regroupe les reactions brutes par emoji, en conservant l'ordre d'apparition. */
 function groupReactions(rows: Pick<ReactionRow, 'user_id' | 'emoji' | 'created_at'>[]): ReactionGroup[] {
@@ -66,6 +77,7 @@ function toMessage(raw: RawMessage, thread: Thread | null): Message {
     reactions: groupReactions(raw.reactions ?? []),
     attachments: raw.attachments ?? [],
     thread,
+    poll: firstOf(raw.polls),
   };
 }
 
@@ -110,6 +122,12 @@ interface ChatState {
   threads: Record<UUID, Thread>;
   readStates: Record<UUID, ReadState>;
 
+  /** Rang de l'utilisateur par espace : 0 membre, 1 moderateur, 2 admin, 3 proprietaire. */
+  ranks: Record<UUID, number>;
+  /** Exclusions de parole en cours qui le concernent, par espace. */
+  timeouts: Record<UUID, SpaceTimeout>;
+  bookmarks: Bookmark[];
+
   messages: Record<ViewKey, Message[]>;
   hasMore: Record<ViewKey, boolean>;
   loading: Record<ViewKey, boolean>;
@@ -127,6 +145,14 @@ interface ChatState {
     content: string;
     replyToId?: UUID | null;
     authorId: UUID;
+    attachments?: {
+      storage_path: string;
+      filename: string;
+      content_type: string;
+      size: number;
+      width: number | null;
+      height: number | null;
+    }[];
   }) => Promise<void>;
   retryMessage: (view: ViewKey, messageId: UUID) => Promise<void>;
   editMessage: (view: ViewKey, messageId: UUID, content: string) => Promise<void>;
@@ -139,6 +165,9 @@ interface ChatState {
 
   markRead: (channelId: UUID) => Promise<void>;
   bumpUnread: (channelId: UUID, isMention: boolean) => void;
+
+  toggleBookmark: (messageId: UUID, note?: string | null) => Promise<void>;
+  reportMessage: (messageId: UUID, reason: string) => Promise<boolean>;
 
   createSpace: (name: string, description?: string) => Promise<Space | null>;
   joinSpace: (inviteCode: string) => Promise<Space | null>;
@@ -157,7 +186,30 @@ interface ChatState {
   reset: () => void;
 }
 
-const MESSAGE_SELECT = '*, reactions(user_id, emoji, created_at), attachments(*)';
+const MESSAGE_SELECT_FULL =
+  '*, reactions(user_id, emoji, created_at), attachments(*), polls(*)';
+
+/**
+ * Selection de repli, sans les sondages.
+ *
+ * PostgREST refuse une jointure imbriquee vers une table qu'il ne connait pas
+ * et fait alors echouer toute la requete : sans ce repli, une base a laquelle
+ * il manque la migration des sondages n'afficherait plus aucun message. On
+ * prefere perdre les sondages que perdre la conversation.
+ */
+const MESSAGE_SELECT_BASE = '*, reactions(user_id, emoji, created_at), attachments(*)';
+
+/** Passe a `false` des qu'on a constate que la table des sondages manque. */
+let pollsAvailable = true;
+
+function messageSelect(): string {
+  return pollsAvailable ? MESSAGE_SELECT_FULL : MESSAGE_SELECT_BASE;
+}
+
+/** Vrai si l'erreur signale une relation absente du cache de schema. */
+function isMissingRelationship(error: { message?: string } | null): boolean {
+  return Boolean(error?.message?.includes('relationship') && error.message.includes('polls'));
+}
 
 export const useChat = create<ChatState>((set, get) => ({
   ready: false,
@@ -170,6 +222,10 @@ export const useChat = create<ChatState>((set, get) => ({
   profiles: {},
   threads: {},
   readStates: {},
+
+  ranks: {},
+  timeouts: {},
+  bookmarks: [],
 
   messages: {},
   hasMore: {},
@@ -198,6 +254,9 @@ export const useChat = create<ChatState>((set, get) => ({
       profiles: Object.fromEntries((payload.profiles ?? []).map((p) => [p.id, p])),
       threads: Object.fromEntries((payload.open_threads ?? []).map((t) => [t.id, t])),
       readStates: Object.fromEntries((payload.read_states ?? []).map((r) => [r.channel_id, r])),
+      ranks: payload.ranks ?? {},
+      timeouts: Object.fromEntries((payload.timeouts ?? []).map((t) => [t.space_id, t])),
+      bookmarks: payload.bookmarks ?? [],
     });
   },
 
@@ -209,23 +268,31 @@ export const useChat = create<ChatState>((set, get) => ({
 
     set((state) => ({ loading: { ...state.loading, [view]: true } }));
 
-    let query = supabase
-      .from('messages')
-      .select(MESSAGE_SELECT)
-      .eq('channel_id', channelId)
-      .order('created_at', { ascending: false })
-      .limit(LIMITS.messagePageSize);
+    const build = () => {
+      const base = supabase
+        .from('messages')
+        .select(messageSelect())
+        .eq('channel_id', channelId)
+        .order('created_at', { ascending: false })
+        .limit(LIMITS.messagePageSize);
+      return threadId ? base.eq('thread_id', threadId) : base.is('thread_id', null);
+    };
 
-    query = threadId ? query.eq('thread_id', threadId) : query.is('thread_id', null);
+    let { data, error } = await build();
 
-    const { data, error } = await query;
+    if (isMissingRelationship(error)) {
+      pollsAvailable = false;
+      ({ data, error } = await build());
+    }
 
     if (error) {
       set((state) => ({ loading: { ...state.loading, [view]: false }, error: errorMessage(error) }));
       return;
     }
 
-    const raws = (data ?? []) as RawMessage[];
+    // La selection etant construite a l execution, PostgREST ne peut plus en
+    // inferer le type : le passage par `unknown` est ici la conversion honnete.
+    const raws = (data ?? []) as unknown as RawMessage[];
     const threads = await fetchThreadsFor(raws.map((row) => row.id));
     const built = raws.map((raw) => toMessage(raw, threads.get(raw.id) ?? null)).reverse();
 
@@ -249,7 +316,7 @@ export const useChat = create<ChatState>((set, get) => ({
 
     let query = supabase
       .from('messages')
-      .select(MESSAGE_SELECT)
+      .select(messageSelect())
       .eq('channel_id', channelId)
       // Le curseur est l'instant du plus ancien message affiche. Les egalites
       // exactes sont improbables, et la fusion par identifiant les absorbe de
@@ -267,7 +334,9 @@ export const useChat = create<ChatState>((set, get) => ({
       return;
     }
 
-    const raws = (data ?? []) as RawMessage[];
+    // La selection etant construite a l execution, PostgREST ne peut plus en
+    // inferer le type : le passage par `unknown` est ici la conversion honnete.
+    const raws = (data ?? []) as unknown as RawMessage[];
     const threads = await fetchThreadsFor(raws.map((row) => row.id));
     const built = raws.map((raw) => toMessage(raw, threads.get(raw.id) ?? null));
 
@@ -281,9 +350,17 @@ export const useChat = create<ChatState>((set, get) => ({
 
   /* ------------------------------------------------------------------ Ecriture */
 
-  sendMessage: async ({ channelId, threadId = null, content, replyToId = null, authorId }) => {
+  sendMessage: async ({
+    channelId,
+    threadId = null,
+    content,
+    replyToId = null,
+    authorId,
+    attachments = [],
+  }) => {
     const trimmed = content.trim();
-    if (!trimmed) return;
+    // Un envoi sans texte reste valide s'il porte un fichier.
+    if (!trimmed && attachments.length === 0) return;
 
     const view = viewKeyFor(channelId, threadId);
 
@@ -304,6 +381,7 @@ export const useChat = create<ChatState>((set, get) => ({
       reactions: [],
       attachments: [],
       thread: null,
+      poll: null,
       pending: true,
     };
 
@@ -319,6 +397,28 @@ export const useChat = create<ChatState>((set, get) => ({
       content: trimmed,
       reply_to_id: replyToId,
     });
+
+    // Les pieces jointes sont rattachees apres coup : leur politique RLS exige
+    // que le message existe deja et nous appartienne.
+    if (!error && attachments.length > 0) {
+      const { data } = await supabase
+        .from('attachments')
+        .insert(attachments.map((item) => ({ ...item, message_id: id })))
+        .select();
+
+      if (data) {
+        set((state) => ({
+          messages: {
+            ...state.messages,
+            [view]: (state.messages[view] ?? []).map((message) =>
+              message.id === id
+                ? { ...message, attachments: data as Attachment[] }
+                : message,
+            ),
+          },
+        }));
+      }
+    }
 
     set((state) => ({
       messages: {
@@ -566,6 +666,45 @@ export const useChat = create<ChatState>((set, get) => ({
 
   /* ---------------------------------------------------------- Espaces, salons */
 
+  /** Met un message de cote pour soi seul, ou l'en retire. */
+  toggleBookmark: async (messageId, note = null) => {
+    const existing = get().bookmarks.find((item) => item.message_id === messageId);
+
+    if (existing) {
+      set((state) => ({
+        bookmarks: state.bookmarks.filter((item) => item.message_id !== messageId),
+      }));
+      const { error } = await supabase.from('bookmarks').delete().eq('message_id', messageId);
+      if (error) set({ error: errorMessage(error) });
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('bookmarks')
+      .insert({ message_id: messageId, note })
+      .select()
+      .single();
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return;
+    }
+    set((state) => ({ bookmarks: [data as Bookmark, ...state.bookmarks] }));
+  },
+
+  reportMessage: async (messageId, reason) => {
+    const { error } = await supabase.rpc('report_message', {
+      p_message_id: messageId,
+      p_reason: reason,
+    });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return false;
+    }
+    return true;
+  },
+
   createSpace: async (name, description) => {
     const { data, error } = await supabase.rpc('create_space', {
       p_name: name,
@@ -621,7 +760,7 @@ export const useChat = create<ChatState>((set, get) => ({
       if (!alreadyThere) {
         const { data } = await supabase
           .from('messages')
-          .select(MESSAGE_SELECT)
+          .select(messageSelect())
           .eq('id', raw.id)
           .maybeSingle();
 
@@ -638,6 +777,19 @@ export const useChat = create<ChatState>((set, get) => ({
         me !== undefined &&
         new RegExp(`@(${me.username}|everyone|here|tous)\\b`, 'i').test(raw.content);
       get().bumpUnread(raw.channel_id, mentioned);
+
+      // Seules les mentions declenchent une bulle. Notifier chaque message d'un
+      // salon actif reviendrait a ce que l'utilisateur coupe tout au bout de
+      // dix minutes.
+      if (mentioned) {
+        const author = state.profiles[raw.author_id];
+        const channel = state.channels.find((item) => item.id === raw.channel_id);
+        void notify({
+          title: `${author?.display_name ?? 'Quelqu’un'} vous a mentionne`,
+          body: `${channel ? `#${channel.name} · ` : ''}${preview(raw.content)}`,
+          tag: raw.channel_id,
+        });
+      }
     }
   },
 
@@ -743,6 +895,9 @@ export const useChat = create<ChatState>((set, get) => ({
       profiles: {},
       threads: {},
       readStates: {},
+      ranks: {},
+      timeouts: {},
+      bookmarks: [],
       messages: {},
       hasMore: {},
       loading: {},

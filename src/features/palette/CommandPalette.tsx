@@ -37,6 +37,9 @@ export function CommandPalette() {
   const spaces = useChat((state) => state.spaces);
   const profiles = useChat((state) => state.profiles);
 
+  const ranks = useChat((state) => state.ranks);
+  const activeSpaceId = useUI((state) => state.activeSpaceId);
+
   const preferences = useSession((state) => state.preferences);
   const setPreference = useSession((state) => state.setPreference);
   const signOut = useSession((state) => state.signOut);
@@ -145,6 +148,15 @@ export function CommandPalette() {
           ),
       },
       {
+        id: 'action:bookmarks',
+        label: 'Messages sauvegardes',
+        hint: 'Visibles de vous seul',
+        icon: 'inbox',
+        group: 'Actions',
+        keywords: 'signets garder cote favoris',
+        run: () => openModal({ kind: 'bookmarks' }),
+      },
+      {
         id: 'action:preferences',
         label: 'Ouvrir les preferences',
         icon: 'settings',
@@ -177,12 +189,28 @@ export function CommandPalette() {
       },
     );
 
+    // La console n'apparait que pour qui peut s'en servir : proposer une
+    // commande qui echouerait ensuite ne rend service a personne.
+    if (activeSpaceId && (ranks[activeSpaceId] ?? 0) >= 1) {
+      list.push({
+        id: 'action:moderation',
+        label: 'Console de moderation',
+        hint: 'Membres, signalements, journal',
+        icon: 'filter',
+        group: 'Actions',
+        keywords: 'bannir exclure silence signalement',
+        run: () => openModal({ kind: 'moderation', spaceId: activeSpaceId }),
+      });
+    }
+
     return list;
   }, [
     spaces,
     channels,
     profiles,
     preferences,
+    ranks,
+    activeSpaceId,
     selectSpace,
     selectChannel,
     setPanel,

@@ -1,13 +1,23 @@
 import { useEffect, useState } from 'react';
 import { Modal } from '@/components/Modal';
+import { ModerationPanel } from '@/features/moderation/ModerationPanel';
+import { ReportModal } from '@/features/moderation/ReportModal';
+import { PollComposer } from '@/features/polls/PollComposer';
+import { BookmarksModal } from '@/features/bookmarks/BookmarksModal';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { useUI } from '@/store/ui';
 import { useChat } from '@/store/chat';
-import { useSession, type AccentName, type Density, type Theme } from '@/store/session';
+import { useSession, type Density, type Theme } from '@/store/session';
 import { supabase } from '@/lib/supabase';
 import { formatFull } from '@/lib/time';
-import { LIMITS } from '@/constants';
+import { LIMITS, monoFor } from '@/constants';
+import {
+  isDesktop,
+  permissionState,
+  requestPermission,
+  type NotificationPermissionState,
+} from '@/lib/notify';
 
 /** Point d'entree unique : affiche la boite de dialogue demandee par l'etat. */
 export function Modals() {
@@ -34,6 +44,23 @@ export function Modals() {
         userId={modal.kind === 'profile' ? modal.userId : null}
         onClose={closeModal}
       />
+      <ModerationPanel
+        open={modal.kind === 'moderation'}
+        spaceId={modal.kind === 'moderation' ? modal.spaceId : null}
+        onClose={closeModal}
+      />
+      <ReportModal
+        open={modal.kind === 'report'}
+        messageId={modal.kind === 'report' ? modal.messageId : null}
+        onClose={closeModal}
+      />
+      <PollComposer
+        open={modal.kind === 'poll'}
+        channelId={modal.kind === 'poll' ? modal.channelId : null}
+        threadId={modal.kind === 'poll' ? modal.threadId : null}
+        onClose={closeModal}
+      />
+      <BookmarksModal open={modal.kind === 'bookmarks'} onClose={closeModal} />
     </>
   );
 }
@@ -53,8 +80,6 @@ const DENSITIES: { value: Density; label: string; hint: string }[] = [
   { value: 'cozy', label: 'Confortable', hint: 'L’equilibre par defaut' },
   { value: 'spacious', label: 'Aeree', hint: 'Plus de respiration entre les lignes' },
 ];
-
-const ACCENT_NAMES: AccentName[] = ['indigo', 'violet', 'bleu', 'cyan', 'vert', 'ambre', 'rose'];
 
 function PreferencesModal({ open, onClose }: { open: boolean; onClose: () => void }) {
   const preferences = useSession((state) => state.preferences);
@@ -180,24 +205,6 @@ function PreferencesModal({ open, onClose }: { open: boolean; onClose: () => voi
         </div>
 
         <div className="field">
-          <span className="field__label">Couleur d’accent</span>
-          <div className="accent-row">
-            {ACCENT_NAMES.map((name) => (
-              <button
-                type="button"
-                key={name}
-                className={'accent-dot' + (preferences.accent === name ? ' is-active' : '')}
-                data-accent-preview={name}
-                onClick={() => setPreference('accent', name)}
-                title={name}
-                aria-label={`Accent ${name}`}
-                aria-pressed={preferences.accent === name}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="field">
           <span className="field__label">Densite d’affichage</span>
           <div className="prefs__options">
             {DENSITIES.map((option) => (
@@ -239,6 +246,13 @@ function PreferencesModal({ open, onClose }: { open: boolean; onClose: () => voi
           label="Reduire les animations"
           hint="Coupe les transitions, au-dela du reglage du systeme."
         />
+      </section>
+
+      <hr className="divider" />
+
+      <section className="prefs__section">
+        <h3 className="prefs__title">Notifications</h3>
+        <NotificationSetting />
       </section>
     </Modal>
   );
@@ -646,7 +660,10 @@ function ProfileModal({
     <Modal open={open} title={profile?.display_name ?? 'Profil'} onClose={onClose} width={400}>
       {profile ? (
         <div className="profile-card">
-          <div className="profile-card__banner" style={{ background: profile.accent }} />
+          <div
+            className="profile-card__banner"
+            style={{ background: monoFor(profile.id) }}
+          />
           <div className="profile-card__avatar">
             <Avatar profile={profile} size={72} status={profile.status} showStatus />
           </div>
@@ -666,5 +683,60 @@ function ProfileModal({
         <p>Profil introuvable.</p>
       )}
     </Modal>
+  );
+}
+
+/* ========================================================================== */
+/* Notifications                                                              */
+/* ========================================================================== */
+
+/**
+ * Autorisation des notifications de bureau.
+ *
+ * La demande n'est jamais faite automatiquement : les navigateurs penalisent
+ * les sites qui la declenchent au chargement, et l'utilisateur refuse par
+ * reflexe. Elle part donc d'un clic explicite.
+ */
+function NotificationSetting() {
+  const [state, setState] = useState<NotificationPermissionState>('default');
+
+  useEffect(() => {
+    void permissionState().then(setState);
+  }, []);
+
+  if (state === 'unsupported') {
+    return <p className="field__hint">Ce navigateur ne gere pas les notifications.</p>;
+  }
+
+  return (
+    <div className="field">
+      <p className="field__hint">
+        Une bulle apparait uniquement quand on vous mentionne et que la fenetre
+        n’est pas au premier plan.
+        {isDesktop() ? ' Elle passe par le centre de notifications du systeme.' : ''}
+      </p>
+
+      {state === 'granted' ? (
+        <p className="chip" style={{ alignSelf: 'flex-start' }}>
+          <Icon name="check" size={13} />
+          Notifications autorisees
+        </p>
+      ) : state === 'denied' ? (
+        <p className="field__error">
+          Notifications bloquees. Reautorisez-les depuis les reglages du site dans
+          votre navigateur.
+        </p>
+      ) : (
+        <button
+          type="button"
+          className="btn btn--sm"
+          style={{ alignSelf: 'flex-start' }}
+          onClick={() => void requestPermission().then(setState)}
+        >
+          <Icon name="bell" size={14} />
+          Autoriser les notifications
+        </button>
+      )}
+    </div>
   );
 }

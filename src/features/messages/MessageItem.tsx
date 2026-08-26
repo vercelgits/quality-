@@ -2,8 +2,10 @@ import { memo, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Avatar, AvatarStack } from '@/components/Avatar';
 import { Icon } from '@/components/Icon';
 import { RichText, type RichTextContext } from '@/lib/richtext';
-import { formatTime, formatFull, formatRelative, formatBytes } from '@/lib/time';
+import { formatTime, formatFull, formatRelative } from '@/lib/time';
 import { QUICK_REACTIONS } from '@/constants';
+import { PollCard } from '@/features/polls/PollCard';
+import { AttachmentList } from './AttachmentList';
 import type { Message, Profile, UUID } from '@/types/db';
 
 interface MessageItemProps {
@@ -30,6 +32,10 @@ interface MessageItemProps {
   onStartThread: (id: UUID) => void;
   onRetry: (id: UUID) => void;
   onJumpTo?: (id: UUID) => void;
+  onBookmark: (id: UUID) => void;
+  onReport: (id: UUID) => void;
+  /** Vrai si l'utilisateur a deja mis ce message de cote. */
+  bookmarked: boolean;
 }
 
 function MessageItemInner({
@@ -53,6 +59,9 @@ function MessageItemInner({
   onStartThread,
   onRetry,
   onJumpTo,
+  onBookmark,
+  onReport,
+  bookmarked,
 }: MessageItemProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draft, setDraft] = useState(message.content);
@@ -133,7 +142,7 @@ function MessageItemInner({
         <div className="message__content">
           {!grouped ? (
             <header className="message__header">
-              <span className="message__author" style={{ color: author?.accent }}>
+              <span className="message__author">
                 {author?.display_name ?? 'Compte supprime'}
               </span>
               <time
@@ -177,17 +186,9 @@ function MessageItemInner({
             </>
           )}
 
-          {message.attachments.length > 0 ? (
-            <ul className="message__attachments">
-              {message.attachments.map((attachment) => (
-                <li key={attachment.id} className="attachment">
-                  <Icon name="paperclip" size={14} />
-                  <span className="truncate">{attachment.filename}</span>
-                  <span className="attachment__size">{formatBytes(attachment.size)}</span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {message.poll ? <PollCard poll={message.poll} /> : null}
+
+          <AttachmentList attachments={message.attachments} />
 
           {message.reactions.length > 0 ? (
             <ul className="reactions">
@@ -310,6 +311,27 @@ function MessageItemInner({
           >
             <Icon name="pin" size={15} />
           </button>
+
+          <button
+            type="button"
+            className={'message__action' + (bookmarked ? ' is-active' : '')}
+            onClick={() => onBookmark(message.id)}
+            title={bookmarked ? 'Retirer des sauvegardes' : 'Sauvegarder pour moi'}
+            aria-pressed={bookmarked}
+          >
+            <Icon name="inbox" size={15} />
+          </button>
+
+          {!isMine ? (
+            <button
+              type="button"
+              className="message__action"
+              onClick={() => onReport(message.id)}
+              title="Signaler a la moderation"
+            >
+              <Icon name="filter" size={15} />
+            </button>
+          ) : null}
 
           {isMine ? (
             <button

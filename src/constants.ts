@@ -22,6 +22,41 @@ export const ACCENTS = [
   '#06b6d4', '#3b82f6',
 ] as const;
 
+/**
+ * Rampe de gris utilisee a la place des accents colores.
+ *
+ * Huit paliers de luminosite suffisent a distinguer les personnes d'un coup
+ * d'oeil sans introduire de teinte. Les valeurs sont choisies pour rester
+ * lisibles sur fond clair comme sur fond sombre : ce sont des gris medians,
+ * jamais les extremes de l'echelle.
+ */
+const MONO_STEPS = [30, 38, 46, 54, 62, 70, 78, 86] as const;
+
+function hashOf(seed: string): number {
+  let hash = 0;
+  for (let index = 0; index < seed.length; index += 1) {
+    hash = (hash * 31 + seed.charCodeAt(index)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+/** Gris stable derive d'un identifiant. */
+export function monoFor(seed: string): string {
+  return `oklch(${MONO_STEPS[hashOf(seed) % MONO_STEPS.length]}% 0 0)`;
+}
+
+/**
+ * Encre a poser sur `monoFor(seed)`.
+ *
+ * Le seuil suit la luminosite du fond plutot qu'une valeur fixe : au-dessus de
+ * 58 % on ecrit en noir, en dessous en blanc. Sans cela, les gris clairs de la
+ * rampe porteraient du texte blanc illisible.
+ */
+export function monoInk(seed: string): string {
+  const step = MONO_STEPS[hashOf(seed) % MONO_STEPS.length]!;
+  return step > 58 ? 'oklch(14% 0 0)' : 'oklch(98% 0 0)';
+}
+
 /** Emojis proposes en acces rapide sur la barre de reactions. */
 export const QUICK_REACTIONS = ['👍', '🎉', '❤️', '😂', '👀', '🔥'] as const;
 

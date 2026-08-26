@@ -11,7 +11,11 @@ export type Modal =
   | { kind: 'join-space' }
   | { kind: 'create-channel'; spaceId: UUID }
   | { kind: 'invite'; spaceId: UUID }
-  | { kind: 'profile'; userId: UUID };
+  | { kind: 'profile'; userId: UUID }
+  | { kind: 'moderation'; spaceId: UUID }
+  | { kind: 'report'; messageId: UUID }
+  | { kind: 'poll'; channelId: UUID; threadId: UUID | null }
+  | { kind: 'bookmarks' };
 
 interface UIState {
   activeSpaceId: UUID | null;

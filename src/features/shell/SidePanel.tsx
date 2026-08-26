@@ -303,7 +303,7 @@ function MembersPanel() {
               >
                 <Avatar profile={profile} size={30} status={profile.status} showStatus />
                 <span className="member__body">
-                  <span className="member__name truncate" style={{ color: profile.accent }}>
+                  <span className="member__name truncate">
                     {profile.display_name}
                     {profile.id === currentUserId ? ' (vous)' : ''}
                   </span>

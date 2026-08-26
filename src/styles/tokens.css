@@ -1,36 +1,39 @@
 /* ==========================================================================
    Orbit — jetons de design
 
-   Les couleurs sont exprimees en OKLCH. Contrairement a HSL, un meme ecart de
-   luminosite y est percu de facon identique quelle que soit la teinte : une
-   palette derivee reste donc coherente sans corrections a la main, et les
-   contrastes tiennent aussi bien en clair qu'en sombre.
+   Palette monochrome. Les couleurs sont exprimees en OKLCH avec une chroma nulle
+   sur toute l'interface : seule la luminosite distingue les surfaces. Un ecart
+   de luminosite y est percu de facon identique quelle que soit la teinte, donc
+   une echelle de gris derivee reste reguliere a l'oeil, ce que ne garantit pas
+   HSL.
+
+   Consequence a assumer : sans teinte, l'etat ne peut plus etre porte par la
+   couleur. Presence, alertes et mentions sont donc distinguees par la
+   luminosite, le remplissage et la bordure — ce qui a l'avantage de rester
+   lisible pour les daltoniens et en niveaux de gris.
 
    Regle de structure : la palette claire est definie sur `:root` nu, et seuls
    les jetons qui changent sont redefinis pour le theme sombre. Aucune couleur
-   n'existe uniquement dans un bloc conditionnel, donc rien ne peut disparaitre
-   selon le reglage du systeme.
+   n'existe uniquement dans un bloc conditionnel.
    ========================================================================== */
 
 :root {
-  /* ---------------------------------------------------------------- Teintes */
-  --hue-accent: 274;
-  --hue-neutral: 270;
-
   /* ------------------------------------------------------------- Typographie */
   --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
     'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code',
     Menlo, Consolas, monospace;
 
-  --text-2xs: 0.6875rem;
-  --text-xs: 0.75rem;
-  --text-sm: 0.8125rem;
-  --text-base: 0.9375rem;
-  --text-md: 1rem;
-  --text-lg: 1.125rem;
-  --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
+  /* Echelle relevee d'environ 15 % par rapport a une interface de chat
+     classique : le confort de lecture prime sur la densite maximale. */
+  --text-2xs: 0.75rem;
+  --text-xs: 0.8125rem;
+  --text-sm: 0.9375rem;
+  --text-base: 1.0625rem;
+  --text-md: 1.125rem;
+  --text-lg: 1.3125rem;
+  --text-xl: 1.625rem;
+  --text-2xl: 2.125rem;
 
   --weight-normal: 400;
   --weight-medium: 500;
@@ -43,23 +46,23 @@
 
   /* ------------------------------------------------------------------ Espace */
   --space-0: 0;
-  --space-1: 0.25rem;
-  --space-2: 0.375rem;
-  --space-3: 0.5rem;
-  --space-4: 0.75rem;
-  --space-5: 1rem;
-  --space-6: 1.25rem;
-  --space-7: 1.5rem;
-  --space-8: 2rem;
-  --space-9: 2.5rem;
-  --space-10: 3rem;
+  --space-1: 0.3125rem;
+  --space-2: 0.4375rem;
+  --space-3: 0.625rem;
+  --space-4: 0.875rem;
+  --space-5: 1.125rem;
+  --space-6: 1.4375rem;
+  --space-7: 1.75rem;
+  --space-8: 2.25rem;
+  --space-9: 2.75rem;
+  --space-10: 3.5rem;
 
   /* ------------------------------------------------------------------ Rayons */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-xl: 20px;
+  --radius-xs: 5px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
   --radius-full: 999px;
 
   /* ---------------------------------------------------------------- Mouvement
@@ -74,65 +77,63 @@
   --duration-slow: 320ms;
 
   /* ---------------------------------------------------------------- Structure */
-  --rail-width: 68px;
-  --sidebar-width: 248px;
-  --panel-width: 380px;
-  --header-height: 52px;
+  --rail-width: 76px;
+  --sidebar-width: 276px;
+  --panel-width: 420px;
+  --header-height: 60px;
   --composer-radius: var(--radius-lg);
 
   /* Densite d'affichage, pilotee par `[data-density]` plus bas. */
   --row-padding-y: var(--space-3);
   --row-gap: var(--space-4);
-  --avatar-size: 38px;
+  --avatar-size: 42px;
   --message-leading: var(--leading-relaxed);
 
   /* ==================================================================
-     Palette claire (valeur par defaut)
+     Palette claire — blanc, gris, noir
      ================================================================== */
 
-  --bg-app: oklch(97.5% 0.004 var(--hue-neutral));
-  --bg-rail: oklch(94% 0.006 var(--hue-neutral));
-  --bg-sidebar: oklch(96% 0.005 var(--hue-neutral));
+  --bg-app: oklch(97% 0 0);
+  --bg-rail: oklch(92% 0 0);
+  --bg-sidebar: oklch(95% 0 0);
   --bg-surface: oklch(100% 0 0);
-  --bg-raised: oklch(99% 0.002 var(--hue-neutral));
-  --bg-sunken: oklch(93.5% 0.006 var(--hue-neutral));
-  --bg-overlay: oklch(100% 0 0 / 0.8);
-  --bg-scrim: oklch(20% 0.02 var(--hue-neutral) / 0.4);
+  --bg-raised: oklch(99% 0 0);
+  --bg-sunken: oklch(93.5% 0 0);
+  --bg-overlay: oklch(100% 0 0 / 0.85);
+  --bg-scrim: oklch(0% 0 0 / 0.45);
 
-  --bg-hover: oklch(0% 0 0 / 0.045);
-  --bg-active: oklch(0% 0 0 / 0.075);
-  --bg-selected: oklch(from var(--accent) l c h / 0.12);
+  --bg-hover: oklch(0% 0 0 / 0.05);
+  --bg-active: oklch(0% 0 0 / 0.09);
+  --bg-selected: oklch(0% 0 0 / 0.08);
 
-  --text-primary: oklch(22% 0.012 var(--hue-neutral));
-  --text-secondary: oklch(45% 0.012 var(--hue-neutral));
-  --text-muted: oklch(58% 0.01 var(--hue-neutral));
-  --text-faint: oklch(70% 0.008 var(--hue-neutral));
+  --text-primary: oklch(15% 0 0);
+  --text-secondary: oklch(42% 0 0);
+  --text-muted: oklch(56% 0 0);
+  --text-faint: oklch(68% 0 0);
   --text-on-accent: oklch(100% 0 0);
 
-  --border-subtle: oklch(0% 0 0 / 0.07);
-  --border-default: oklch(0% 0 0 / 0.12);
-  --border-strong: oklch(0% 0 0 / 0.2);
+  --border-subtle: oklch(0% 0 0 / 0.09);
+  --border-default: oklch(0% 0 0 / 0.16);
+  --border-strong: oklch(0% 0 0 / 0.28);
 
-  --accent: oklch(56% 0.19 var(--hue-accent));
-  --accent-hover: oklch(50% 0.2 var(--hue-accent));
-  --accent-soft: oklch(from var(--accent) l c h / 0.14);
-  --accent-text: oklch(48% 0.19 var(--hue-accent));
+  /* En monochrome, l'accent est le contraste maximal disponible. */
+  --accent: oklch(18% 0 0);
+  --accent-hover: oklch(8% 0 0);
+  --accent-soft: oklch(0% 0 0 / 0.09);
+  --accent-text: oklch(20% 0 0);
 
-  --success: oklch(58% 0.16 150);
-  --warning: oklch(68% 0.16 75);
-  --danger: oklch(55% 0.21 25);
-  --danger-soft: oklch(from var(--danger) l c h / 0.12);
+  /* Etats : distingues par la luminosite et le remplissage, pas par la teinte. */
+  --success: oklch(38% 0 0);
+  --warning: oklch(52% 0 0);
+  --danger: oklch(22% 0 0);
+  --danger-soft: oklch(0% 0 0 / 0.08);
 
-  --mention-bg: oklch(from var(--warning) l c h / 0.13);
-  --mention-border: oklch(from var(--warning) l c h / 0.55);
+  --mention-bg: oklch(0% 0 0 / 0.06);
+  --mention-border: oklch(20% 0 0);
 
-  --shadow-sm: 0 1px 2px oklch(20% 0.02 var(--hue-neutral) / 0.08);
-  --shadow-md:
-    0 2px 4px oklch(20% 0.02 var(--hue-neutral) / 0.06),
-    0 6px 16px oklch(20% 0.02 var(--hue-neutral) / 0.1);
-  --shadow-lg:
-    0 4px 8px oklch(20% 0.02 var(--hue-neutral) / 0.08),
-    0 16px 40px oklch(20% 0.02 var(--hue-neutral) / 0.16);
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.09);
+  --shadow-md: 0 2px 4px oklch(0% 0 0 / 0.07), 0 8px 20px oklch(0% 0 0 / 0.1);
+  --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.1), 0 20px 48px oklch(0% 0 0 / 0.18);
 
   --focus-ring: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--accent);
 
@@ -142,95 +143,97 @@
 /* ==================================================================
    Palette sombre
 
-   Appliquee quand le systeme est en sombre, sauf si le clair a ete choisi
+   Appliquee quand le systeme est en sombre sauf si le clair a ete choisi
    explicitement, et quand le sombre est choisi explicitement. Les deux blocs
    sont necessaires pour que le reglage manuel l'emporte dans les deux sens.
    ================================================================== */
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg-app: oklch(17% 0.012 var(--hue-neutral));
-    --bg-rail: oklch(13.5% 0.012 var(--hue-neutral));
-    --bg-sidebar: oklch(15.5% 0.012 var(--hue-neutral));
-    --bg-surface: oklch(19.5% 0.013 var(--hue-neutral));
-    --bg-raised: oklch(23% 0.014 var(--hue-neutral));
-    --bg-sunken: oklch(12% 0.01 var(--hue-neutral));
-    --bg-overlay: oklch(19.5% 0.013 var(--hue-neutral) / 0.85);
-    --bg-scrim: oklch(8% 0.01 var(--hue-neutral) / 0.6);
+    --bg-app: oklch(16% 0 0);
+    --bg-rail: oklch(10% 0 0);
+    --bg-sidebar: oklch(13% 0 0);
+    --bg-surface: oklch(18% 0 0);
+    --bg-raised: oklch(23% 0 0);
+    --bg-sunken: oklch(11% 0 0);
+    --bg-overlay: oklch(18% 0 0 / 0.9);
+    --bg-scrim: oklch(0% 0 0 / 0.68);
 
-    --bg-hover: oklch(100% 0 0 / 0.045);
-    --bg-active: oklch(100% 0 0 / 0.08);
-    --bg-selected: oklch(from var(--accent) l c h / 0.2);
+    --bg-hover: oklch(100% 0 0 / 0.06);
+    --bg-active: oklch(100% 0 0 / 0.11);
+    --bg-selected: oklch(100% 0 0 / 0.1);
 
-    --text-primary: oklch(95% 0.006 var(--hue-neutral));
-    --text-secondary: oklch(76% 0.012 var(--hue-neutral));
-    --text-muted: oklch(62% 0.014 var(--hue-neutral));
-    --text-faint: oklch(48% 0.012 var(--hue-neutral));
+    --text-primary: oklch(97% 0 0);
+    --text-secondary: oklch(78% 0 0);
+    --text-muted: oklch(63% 0 0);
+    --text-faint: oklch(48% 0 0);
+    --text-on-accent: oklch(12% 0 0);
 
-    --border-subtle: oklch(100% 0 0 / 0.06);
-    --border-default: oklch(100% 0 0 / 0.11);
-    --border-strong: oklch(100% 0 0 / 0.2);
+    --border-subtle: oklch(100% 0 0 / 0.08);
+    --border-default: oklch(100% 0 0 / 0.15);
+    --border-strong: oklch(100% 0 0 / 0.28);
 
-    --accent: oklch(68% 0.17 var(--hue-accent));
-    --accent-hover: oklch(74% 0.17 var(--hue-accent));
-    --accent-soft: oklch(from var(--accent) l c h / 0.2);
-    --accent-text: oklch(78% 0.14 var(--hue-accent));
+    --accent: oklch(97% 0 0);
+    --accent-hover: oklch(100% 0 0);
+    --accent-soft: oklch(100% 0 0 / 0.12);
+    --accent-text: oklch(95% 0 0);
 
-    --success: oklch(72% 0.16 150);
-    --warning: oklch(80% 0.15 80);
-    --danger: oklch(66% 0.19 25);
-    --danger-soft: oklch(from var(--danger) l c h / 0.18);
+    --success: oklch(82% 0 0);
+    --warning: oklch(68% 0 0);
+    --danger: oklch(92% 0 0);
+    --danger-soft: oklch(100% 0 0 / 0.11);
 
-    --mention-bg: oklch(from var(--warning) l c h / 0.11);
-    --mention-border: oklch(from var(--warning) l c h / 0.6);
+    --mention-bg: oklch(100% 0 0 / 0.08);
+    --mention-border: oklch(95% 0 0);
 
-    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.4);
-    --shadow-md: 0 2px 6px oklch(0% 0 0 / 0.4), 0 8px 24px oklch(0% 0 0 / 0.35);
-    --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.45), 0 20px 48px oklch(0% 0 0 / 0.5);
+    --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.5);
+    --shadow-md: 0 2px 6px oklch(0% 0 0 / 0.5), 0 8px 24px oklch(0% 0 0 / 0.45);
+    --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.55), 0 20px 48px oklch(0% 0 0 / 0.6);
 
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg-app: oklch(17% 0.012 var(--hue-neutral));
-  --bg-rail: oklch(13.5% 0.012 var(--hue-neutral));
-  --bg-sidebar: oklch(15.5% 0.012 var(--hue-neutral));
-  --bg-surface: oklch(19.5% 0.013 var(--hue-neutral));
-  --bg-raised: oklch(23% 0.014 var(--hue-neutral));
-  --bg-sunken: oklch(12% 0.01 var(--hue-neutral));
-  --bg-overlay: oklch(19.5% 0.013 var(--hue-neutral) / 0.85);
-  --bg-scrim: oklch(8% 0.01 var(--hue-neutral) / 0.6);
+  --bg-app: oklch(16% 0 0);
+  --bg-rail: oklch(10% 0 0);
+  --bg-sidebar: oklch(13% 0 0);
+  --bg-surface: oklch(18% 0 0);
+  --bg-raised: oklch(23% 0 0);
+  --bg-sunken: oklch(11% 0 0);
+  --bg-overlay: oklch(18% 0 0 / 0.9);
+  --bg-scrim: oklch(0% 0 0 / 0.68);
 
-  --bg-hover: oklch(100% 0 0 / 0.045);
-  --bg-active: oklch(100% 0 0 / 0.08);
-  --bg-selected: oklch(from var(--accent) l c h / 0.2);
+  --bg-hover: oklch(100% 0 0 / 0.06);
+  --bg-active: oklch(100% 0 0 / 0.11);
+  --bg-selected: oklch(100% 0 0 / 0.1);
 
-  --text-primary: oklch(95% 0.006 var(--hue-neutral));
-  --text-secondary: oklch(76% 0.012 var(--hue-neutral));
-  --text-muted: oklch(62% 0.014 var(--hue-neutral));
-  --text-faint: oklch(48% 0.012 var(--hue-neutral));
+  --text-primary: oklch(97% 0 0);
+  --text-secondary: oklch(78% 0 0);
+  --text-muted: oklch(63% 0 0);
+  --text-faint: oklch(48% 0 0);
+  --text-on-accent: oklch(12% 0 0);
 
-  --border-subtle: oklch(100% 0 0 / 0.06);
-  --border-default: oklch(100% 0 0 / 0.11);
-  --border-strong: oklch(100% 0 0 / 0.2);
+  --border-subtle: oklch(100% 0 0 / 0.08);
+  --border-default: oklch(100% 0 0 / 0.15);
+  --border-strong: oklch(100% 0 0 / 0.28);
 
-  --accent: oklch(68% 0.17 var(--hue-accent));
-  --accent-hover: oklch(74% 0.17 var(--hue-accent));
-  --accent-soft: oklch(from var(--accent) l c h / 0.2);
-  --accent-text: oklch(78% 0.14 var(--hue-accent));
+  --accent: oklch(97% 0 0);
+  --accent-hover: oklch(100% 0 0);
+  --accent-soft: oklch(100% 0 0 / 0.12);
+  --accent-text: oklch(95% 0 0);
 
-  --success: oklch(72% 0.16 150);
-  --warning: oklch(80% 0.15 80);
-  --danger: oklch(66% 0.19 25);
-  --danger-soft: oklch(from var(--danger) l c h / 0.18);
+  --success: oklch(82% 0 0);
+  --warning: oklch(68% 0 0);
+  --danger: oklch(92% 0 0);
+  --danger-soft: oklch(100% 0 0 / 0.11);
 
-  --mention-bg: oklch(from var(--warning) l c h / 0.11);
-  --mention-border: oklch(from var(--warning) l c h / 0.6);
+  --mention-bg: oklch(100% 0 0 / 0.08);
+  --mention-border: oklch(95% 0 0);
 
-  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.4);
-  --shadow-md: 0 2px 6px oklch(0% 0 0 / 0.4), 0 8px 24px oklch(0% 0 0 / 0.35);
-  --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.45), 0 20px 48px oklch(0% 0 0 / 0.5);
+  --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.5);
+  --shadow-md: 0 2px 6px oklch(0% 0 0 / 0.5), 0 8px 24px oklch(0% 0 0 / 0.45);
+  --shadow-lg: 0 4px 10px oklch(0% 0 0 / 0.55), 0 20px 48px oklch(0% 0 0 / 0.6);
 
   color-scheme: dark;
 }
@@ -245,34 +248,19 @@
 :root[data-density='compact'] {
   --row-padding-y: var(--space-1);
   --row-gap: var(--space-3);
-  --avatar-size: 26px;
+  --avatar-size: 30px;
   --message-leading: var(--leading-normal);
 }
 
 :root[data-density='spacious'] {
   --row-padding-y: var(--space-5);
   --row-gap: var(--space-5);
-  --avatar-size: 42px;
+  --avatar-size: 48px;
   --message-leading: var(--leading-relaxed);
 }
 
 /* ==================================================================
-   Teinte d'accent choisie par l'utilisateur
-   ================================================================== */
-
-:root[data-accent='violet'] { --hue-accent: 296; }
-:root[data-accent='indigo'] { --hue-accent: 274; }
-:root[data-accent='bleu']   { --hue-accent: 250; }
-:root[data-accent='cyan']   { --hue-accent: 212; }
-:root[data-accent='vert']   { --hue-accent: 155; }
-:root[data-accent='ambre']  { --hue-accent: 70;  }
-:root[data-accent='rose']   { --hue-accent: 12;  }
-
-/* ==================================================================
    Accessibilite du mouvement
-
-   Respecte le reglage systeme, et permet aussi de couper les animations
-   depuis les preferences de l'application.
    ================================================================== */
 
 @media (prefers-reduced-motion: reduce) {

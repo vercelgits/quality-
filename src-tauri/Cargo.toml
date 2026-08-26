@@ -1,0 +1,30 @@
+[package]
+name = "orbit"
+version = "0.1.0"
+description = "Orbit - discussion d'equipe en temps reel"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+name = "orbit_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["tray-icon"] }
+tauri-plugin-notification = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[profile.release]
+# Taille du binaire plutot que vitesse brute : l'application passe son temps a
+# attendre le reseau, pas a calculer.
+opt-level = "s"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

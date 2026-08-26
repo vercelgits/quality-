@@ -9,12 +9,10 @@ import type { Profile, PresenceStatus } from '@/types/db';
 
 export type Theme = 'light' | 'dark' | 'system';
 export type Density = 'compact' | 'cozy' | 'spacious';
-export type AccentName = 'indigo' | 'violet' | 'bleu' | 'cyan' | 'vert' | 'ambre' | 'rose';
 
 export interface Preferences {
   theme: Theme;
   density: Density;
-  accent: AccentName;
   /** Coupe toutes les animations, au-dela du reglage systeme. */
   reduceMotion: boolean;
   /** Envoi du message avec Entree seule, sinon Ctrl+Entree. */
@@ -26,7 +24,6 @@ export interface Preferences {
 const DEFAULT_PREFERENCES: Preferences = {
   theme: 'system',
   density: 'cozy',
-  accent: 'indigo',
   reduceMotion: false,
   sendOnEnter: true,
   showTimestamps: true,
@@ -66,7 +63,6 @@ export function applyPreferences(preferences: Preferences): void {
   }
 
   root.setAttribute('data-density', preferences.density);
-  root.setAttribute('data-accent', preferences.accent);
 
   if (preferences.reduceMotion) {
     root.setAttribute('data-motion', 'reduced');

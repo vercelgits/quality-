@@ -37,6 +37,8 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
   const startThread = useChat((state) => state.startThread);
   const retryMessage = useChat((state) => state.retryMessage);
   const markRead = useChat((state) => state.markRead);
+  const toggleBookmark = useChat((state) => state.toggleBookmark);
+  const bookmarks = useChat((state) => state.bookmarks);
 
   const profile = useSession((state) => state.profile);
   const showTimestamps = useSession((state) => state.preferences.showTimestamps);
@@ -139,6 +141,11 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
   }, [members, profile, channel]);
 
   const byId = useMemo(() => new Map(list.map((item) => [item.id, item])), [list]);
+
+  const bookmarked = useMemo(
+    () => new Set(bookmarks.map((item) => item.message_id)),
+    [bookmarks],
+  );
 
   const jumpTo = useCallback((messageId: UUID) => {
     const node = document.getElementById(`message-${messageId}`);
@@ -263,6 +270,9 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
                   onStartThread={(id) => void handleStartThread(id)}
                   onRetry={(id) => void retryMessage(view, id)}
                   onJumpTo={jumpTo}
+                  onBookmark={(id) => void toggleBookmark(id)}
+                  onReport={(id) => openModal({ kind: 'report', messageId: id })}
+                  bookmarked={bookmarked.has(message.id)}
                 />
               </div>
             );

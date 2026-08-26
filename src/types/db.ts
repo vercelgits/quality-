@@ -13,7 +13,7 @@ export type UUID = string;
 export type ISODate = string;
 
 export type PresenceStatus = 'online' | 'idle' | 'dnd' | 'offline';
-export type SpaceRole = 'owner' | 'admin' | 'member';
+export type SpaceRole = 'owner' | 'admin' | 'moderator' | 'member';
 export type ChannelKind = 'text' | 'voice';
 
 export interface Profile {
@@ -64,6 +64,10 @@ export interface Channel {
   topic: string | null;
   position: number;
   created_at: ISODate;
+  /** Intervalle minimal entre deux messages d une meme personne, en secondes. */
+  slowmode_seconds: number;
+  /** Salon verrouille : seule l equipe de moderation peut encore ecrire. */
+  locked: boolean;
 }
 
 export interface Thread {
@@ -133,6 +137,8 @@ export interface Message extends MessageRow {
   attachments: Attachment[];
   /** Renseigne quand un fil a ete ouvert depuis ce message. */
   thread: Thread | null;
+  /** Renseigne quand un sondage est attache a ce message. */
+  poll: Poll | null;
   /**
    * Vrai tant que le serveur n'a pas confirme l'envoi. Le message est affiche
    * immediatement et se materialise une fois accuse.
@@ -155,6 +161,11 @@ export interface BootstrapPayload {
   profiles: Profile[];
   open_threads: Thread[];
   read_states: ReadState[];
+  /** Rang de l utilisateur par espace, indexe par identifiant d espace. */
+  ranks: Record<UUID, number>;
+  /** Exclusions de parole en cours qui le concernent. */
+  timeouts: SpaceTimeout[];
+  bookmarks: Bookmark[];
 }
 
 export interface SearchRow {
@@ -197,3 +208,111 @@ export type VoiceSignal =
   | { kind: 'offer'; from: UUID; to: UUID; sdp: string }
   | { kind: 'answer'; from: UUID; to: UUID; sdp: string }
   | { kind: 'ice'; from: UUID; to: UUID; candidate: RTCIceCandidateInit };
+
+/* -------------------------------------------------------------------------- */
+/* Moderation                                                                  */
+/* -------------------------------------------------------------------------- */
+
+/** Rang hierarchique. `member` vaut 0, `owner` vaut 3. */
+export const RANK = { member: 0, moderator: 1, admin: 2, owner: 3 } as const;
+
+export const ROLE_LABEL: Record<SpaceRole, string> = {
+  owner: 'Proprietaire',
+  admin: 'Administrateur',
+  moderator: 'Moderateur',
+  member: 'Membre',
+};
+
+export interface SpaceBan {
+  space_id: UUID;
+  user_id: UUID;
+  reason: string | null;
+  banned_by: UUID | null;
+  created_at: ISODate;
+  /** `null` vaut bannissement definitif. */
+  expires_at: ISODate | null;
+}
+
+export interface SpaceTimeout {
+  space_id: UUID;
+  user_id: UUID;
+  reason: string | null;
+  issued_by: UUID | null;
+  created_at: ISODate;
+  expires_at: ISODate;
+}
+
+export type ModerationAction =
+  | 'role_change'
+  | 'kick'
+  | 'ban'
+  | 'unban'
+  | 'timeout'
+  | 'timeout_cleared'
+  | 'channel_moderation'
+  | 'message_delete';
+
+export interface ModerationEntry {
+  id: UUID;
+  space_id: UUID;
+  actor_id: UUID | null;
+  target_id: UUID | null;
+  action: ModerationAction;
+  reason: string | null;
+  details: Record<string, unknown>;
+  created_at: ISODate;
+}
+
+export interface MessageReport {
+  id: UUID;
+  message_id: UUID;
+  space_id: UUID;
+  reporter_id: UUID;
+  reason: string;
+  status: 'open' | 'resolved' | 'dismissed';
+  handled_by: UUID | null;
+  handled_at: ISODate | null;
+  created_at: ISODate;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Sondages                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export interface Poll {
+  id: UUID;
+  message_id: UUID;
+  question: string;
+  multi_choice: boolean;
+  hide_results: boolean;
+  closes_at: ISODate | null;
+  closed: boolean;
+  created_by: UUID;
+  created_at: ISODate;
+}
+
+export interface PollResult {
+  option_id: UUID;
+  label: string;
+  position: number;
+  votes: number;
+  voted: boolean;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Messages sauvegardes et historique                                          */
+/* -------------------------------------------------------------------------- */
+
+export interface Bookmark {
+  user_id: UUID;
+  message_id: UUID;
+  note: string | null;
+  created_at: ISODate;
+}
+
+export interface MessageEdit {
+  id: UUID;
+  message_id: UUID;
+  previous: string;
+  edited_at: ISODate;
+}

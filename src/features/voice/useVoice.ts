@@ -13,9 +13,9 @@ import type { UUID, VoiceParticipant, VoiceSignal } from '@/types/db';
  *
  * Contrepartie a connaitre : en maillage, chacun envoie son flux a tous les
  * autres. Le cout monte au carre du nombre de personnes, ce qui reste
- * confortable jusqu'a six ou huit participants et devient lourd au-dela. Passer
- * cette limite demanderait un serveur de melange (SFU), qui n'a pas sa place
- * dans une architecture sans backend.
+ * confortable jusqu'a six ou huit participants et devient lourd au-dela.
+ * Passer cette limite demanderait un serveur de melange (SFU), qui n'a pas sa
+ * place dans une architecture sans backend.
  */
 
 const ICE_SERVERS: RTCIceServer[] = [
@@ -34,9 +34,13 @@ interface VoiceState {
   sharing: boolean;
 
   localStream: MediaStream | null;
-  /** Flux distants, indexes par identifiant d'utilisateur. */
-  remoteStreams: Record<UUID, MediaStream>;
-  /** Personnes qui parlent en ce moment, detectees par analyse du niveau sonore. */
+  /** Flux de partage d'ecran local, distinct du micro. */
+  localScreen: MediaStream | null;
+  /** Flux audio distants, indexes par identifiant d'utilisateur. */
+  remoteAudio: Record<UUID, MediaStream>;
+  /** Flux de partage d'ecran distants, indexes de la meme facon. */
+  remoteScreens: Record<UUID, MediaStream>;
+  /** Personnes qui parlent, detectees par analyse du niveau sonore. */
   speaking: Record<UUID, boolean>;
 
   participantsByChannel: Record<UUID, VoiceParticipant[]>;
@@ -52,93 +56,62 @@ interface VoiceState {
 /* Ressources hors etat React                                                  */
 /* -------------------------------------------------------------------------- */
 
+/** Tout ce qu'il faut retenir d'un pair pour negocier avec lui. */
+interface Peer {
+  connection: RTCPeerConnection;
+  /**
+   * Cote « poli » de la negociation parfaite : en cas de collision entre deux
+   * offres simultanees, c'est lui qui cede. Le depart est tranche par la
+   * comparaison des identifiants, connue des deux cotes sans echange.
+   */
+  polite: boolean;
+  makingOffer: boolean;
+  ignoreOffer: boolean;
+  micSender: RTCRtpSender | null;
+  screenSender: RTCRtpSender | null;
+}
+
 let room: RealtimeChannel | null = null;
-const peers = new Map<UUID, RTCPeerConnection>();
-const senders = new Map<UUID, RTCRtpSender[]>();
+const peers = new Map<UUID, Peer>();
 let audioContext: AudioContext | null = null;
 let speechTimer: number | null = null;
 const analysers = new Map<UUID, AnalyserNode>();
-
-function publishState(get: () => VoiceState): void {
-  const state = get();
-  if (!room || !state.channelId || !state.userId) return;
-
-  void room.track({
-    user_id: state.userId,
-    channel_id: state.channelId,
-    muted: state.muted,
-    deafened: state.deafened,
-    sharing: state.sharing,
-    video: false,
-    joined_at: Date.now(),
-  } satisfies VoiceParticipant);
-}
 
 function send(signal: VoiceSignal): void {
   if (!room) return;
   void room.send({ type: 'broadcast', event: 'voice-signal', payload: signal });
 }
 
-/** Detache et referme toutes les connexions pair a pair. */
 function teardownPeers(): void {
-  for (const connection of peers.values()) {
-    connection.onicecandidate = null;
-    connection.ontrack = null;
-    connection.onconnectionstatechange = null;
-    connection.close();
+  for (const peer of peers.values()) {
+    peer.connection.onicecandidate = null;
+    peer.connection.ontrack = null;
+    peer.connection.onnegotiationneeded = null;
+    peer.connection.onconnectionstatechange = null;
+    peer.connection.close();
   }
   peers.clear();
-  senders.clear();
   analysers.clear();
 }
 
 export const useVoice = create<VoiceState>((set, get) => {
-  /** Cree la connexion vers un pair et cable ses evenements. */
-  function createPeer(peerId: UUID, localStream: MediaStream): RTCPeerConnection {
-    const existing = peers.get(peerId);
-    if (existing) return existing;
+  function publishState(): void {
+    const state = get();
+    if (!room || !state.channelId || !state.userId) return;
 
-    const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
-
-    const attached: RTCRtpSender[] = [];
-    for (const track of localStream.getTracks()) {
-      attached.push(connection.addTrack(track, localStream));
-    }
-    senders.set(peerId, attached);
-
-    connection.onicecandidate = (event) => {
-      if (!event.candidate) return;
-      const me = get().userId;
-      if (!me) return;
-      send({ kind: 'ice', from: me, to: peerId, candidate: event.candidate.toJSON() });
-    };
-
-    connection.ontrack = (event) => {
-      const [stream] = event.streams;
-      if (!stream) return;
-
-      set((state) => ({ remoteStreams: { ...state.remoteStreams, [peerId]: stream } }));
-      attachAnalyser(peerId, stream);
-    };
-
-    connection.onconnectionstatechange = () => {
-      if (connection.connectionState === 'failed' || connection.connectionState === 'closed') {
-        connection.close();
-        peers.delete(peerId);
-        set((state) => {
-          const remoteStreams = { ...state.remoteStreams };
-          delete remoteStreams[peerId];
-          return { remoteStreams };
-        });
-      }
-    };
-
-    peers.set(peerId, connection);
-    return connection;
+    void room.track({
+      user_id: state.userId,
+      channel_id: state.channelId,
+      muted: state.muted,
+      deafened: state.deafened,
+      sharing: state.sharing,
+      video: false,
+      joined_at: Date.now(),
+    } satisfies VoiceParticipant);
   }
 
   /**
-   * Analyse le niveau sonore d'un flux pour allumer l'indicateur "parle".
+   * Analyse le niveau sonore d'un flux pour allumer l'indicateur « parle ».
    * Le seuil est volontairement haut afin qu'un bruit de clavier ne declenche
    * pas le halo.
    */
@@ -167,7 +140,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       for (const [peerId, analyser] of analysers) {
         analyser.getByteFrequencyData(buffer);
         let sum = 0;
-        for (let i = 0; i < buffer.length; i += 1) sum += buffer[i]!;
+        for (let index = 0; index < buffer.length; index += 1) sum += buffer[index]!;
         speaking[peerId] = sum / buffer.length > 18;
       }
       set({ speaking });
@@ -182,76 +155,181 @@ export const useVoice = create<VoiceState>((set, get) => {
     set({ speaking: {} });
   }
 
-  /** Traite un message de signalisation adresse a nous. */
+  function dropPeer(peerId: UUID): void {
+    const peer = peers.get(peerId);
+    if (peer) {
+      peer.connection.close();
+      peers.delete(peerId);
+    }
+    analysers.delete(peerId);
+
+    set((state) => {
+      const remoteAudio = { ...state.remoteAudio };
+      const remoteScreens = { ...state.remoteScreens };
+      delete remoteAudio[peerId];
+      delete remoteScreens[peerId];
+      return { remoteAudio, remoteScreens };
+    });
+  }
+
+  /**
+   * Cree la connexion vers un pair et cable la negociation parfaite.
+   *
+   * `onnegotiationneeded` remplace les offres declenchees a la main : ajouter ou
+   * retirer une piste de partage d'ecran suffit alors a relancer la
+   * negociation, sans code specifique a chaque cas.
+   */
+  function createPeer(peerId: UUID, localStream: MediaStream): Peer {
+    const existing = peers.get(peerId);
+    if (existing) return existing;
+
+    const me = get().userId ?? '';
+    const connection = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+
+    const peer: Peer = {
+      connection,
+      polite: me > peerId,
+      makingOffer: false,
+      ignoreOffer: false,
+      micSender: null,
+      screenSender: null,
+    };
+
+    for (const track of localStream.getAudioTracks()) {
+      peer.micSender = connection.addTrack(track, localStream);
+    }
+
+    // Si un partage est deja en cours, le nouvel arrivant doit le recevoir.
+    const screen = get().localScreen;
+    const screenTrack = screen?.getVideoTracks()[0];
+    if (screen && screenTrack) {
+      peer.screenSender = connection.addTrack(screenTrack, screen);
+    }
+
+    connection.onicecandidate = (event) => {
+      if (!event.candidate) return;
+      const self = get().userId;
+      if (self) {
+        send({ kind: 'ice', from: self, to: peerId, candidate: event.candidate.toJSON() });
+      }
+    };
+
+    connection.ontrack = (event) => {
+      const [stream] = event.streams;
+      if (!stream) return;
+
+      // Audio et video du meme pair arrivent sur deux flux distincts. Les
+      // ranger ensemble ferait qu'un partage d'ecran remplacerait la voix.
+      if (event.track.kind === 'video') {
+        set((state) => ({ remoteScreens: { ...state.remoteScreens, [peerId]: stream } }));
+
+        event.track.addEventListener('ended', () => {
+          set((state) => {
+            const remoteScreens = { ...state.remoteScreens };
+            delete remoteScreens[peerId];
+            return { remoteScreens };
+          });
+        });
+      } else {
+        set((state) => ({ remoteAudio: { ...state.remoteAudio, [peerId]: stream } }));
+        attachAnalyser(peerId, stream);
+      }
+    };
+
+    connection.onnegotiationneeded = async () => {
+      try {
+        peer.makingOffer = true;
+        await connection.setLocalDescription();
+        const self = get().userId;
+        if (self && connection.localDescription?.sdp) {
+          send({ kind: 'offer', from: self, to: peerId, sdp: connection.localDescription.sdp });
+        }
+      } catch {
+        // Une negociation avortee sera relancee par le prochain changement.
+      } finally {
+        peer.makingOffer = false;
+      }
+    };
+
+    connection.onconnectionstatechange = () => {
+      const state = connection.connectionState;
+      if (state === 'failed' || state === 'closed') dropPeer(peerId);
+    };
+
+    peers.set(peerId, peer);
+    return peer;
+  }
+
+  /** Traite un message de signalisation qui nous est adresse. */
   async function handleSignal(signal: VoiceSignal): Promise<void> {
     const localStream = get().localStream;
     if (!localStream) return;
 
-    const connection = createPeer(signal.from, localStream);
-
-    if (signal.kind === 'offer') {
-      await connection.setRemoteDescription({ type: 'offer', sdp: signal.sdp });
-      const answer = await connection.createAnswer();
-      await connection.setLocalDescription(answer);
-
-      const me = get().userId;
-      if (me && answer.sdp) {
-        send({ kind: 'answer', from: me, to: signal.from, sdp: answer.sdp });
-      }
-      return;
-    }
-
-    if (signal.kind === 'answer') {
-      // Une reponse qui arrive alors qu'on n'attend plus rien signale une
-      // negociation croisee : l'ignorer evite de casser la connexion en cours.
-      if (connection.signalingState !== 'have-local-offer') return;
-      await connection.setRemoteDescription({ type: 'answer', sdp: signal.sdp });
-      return;
-    }
+    const peer = createPeer(signal.from, localStream);
+    const { connection } = peer;
 
     try {
+      if (signal.kind === 'offer' || signal.kind === 'answer') {
+        const description: RTCSessionDescriptionInit = {
+          type: signal.kind,
+          sdp: signal.sdp,
+        };
+
+        // Collision : les deux cotes ont emis une offre en meme temps. Le cote
+        // impoli garde la sienne et ignore celle d'en face ; le cote poli
+        // abandonne la sienne par un rollback implicite.
+        const offerCollision =
+          signal.kind === 'offer' &&
+          (peer.makingOffer || connection.signalingState !== 'stable');
+
+        peer.ignoreOffer = !peer.polite && offerCollision;
+        if (peer.ignoreOffer) return;
+
+        await connection.setRemoteDescription(description);
+
+        if (signal.kind === 'offer') {
+          await connection.setLocalDescription();
+          const self = get().userId;
+          if (self && connection.localDescription?.sdp) {
+            send({
+              kind: 'answer',
+              from: self,
+              to: signal.from,
+              sdp: connection.localDescription.sdp,
+            });
+          }
+        }
+        return;
+      }
+
       await connection.addIceCandidate(signal.candidate);
     } catch {
-      // Un candidat peut arriver avant la description distante ; il sera
-      // remplace par les suivants.
+      // Un candidat arrive avant sa description distante est sans consequence :
+      // les suivants le remplaceront.
     }
   }
 
-  /** Ouvre une offre vers les pairs dont on est l'initiateur designe. */
-  async function syncPeers(participants: VoiceParticipant[]): Promise<void> {
+  /** Ouvre les connexions manquantes et ferme celles des partis. */
+  function syncPeers(participants: VoiceParticipant[]): void {
     const me = get().userId;
     const localStream = get().localStream;
     if (!me || !localStream) return;
 
     const others = participants.filter((participant) => participant.user_id !== me);
-    const presentIds = new Set(others.map((participant) => participant.user_id));
+    const present = new Set(others.map((participant) => participant.user_id));
 
-    // Ferme les connexions vers ceux qui sont partis.
-    for (const [peerId, connection] of peers) {
-      if (presentIds.has(peerId)) continue;
-      connection.close();
-      peers.delete(peerId);
-      analysers.delete(peerId);
-      set((state) => {
-        const remoteStreams = { ...state.remoteStreams };
-        delete remoteStreams[peerId];
-        return { remoteStreams };
-      });
+    for (const peerId of [...peers.keys()]) {
+      if (!present.has(peerId)) dropPeer(peerId);
     }
 
     for (const participant of others) {
       const peerId = participant.user_id;
       if (peers.has(peerId)) continue;
 
-      // Un seul des deux cotes emet l'offre, sinon les deux negocient en meme
-      // temps et la connexion echoue. La comparaison des identifiants donne un
-      // arbitre stable, connu des deux cotes sans echange supplementaire.
-      if (me < peerId) {
-        const connection = createPeer(peerId, localStream);
-        const offer = await connection.createOffer();
-        await connection.setLocalDescription(offer);
-        if (offer.sdp) send({ kind: 'offer', from: me, to: peerId, sdp: offer.sdp });
-      }
+      // Un seul cote amorce, sinon les deux negocient en meme temps. La
+      // comparaison des identifiants donne un arbitre stable ; l'autre attend
+      // l'offre. `onnegotiationneeded` se declenche a l'ajout des pistes.
+      if (me < peerId) createPeer(peerId, localStream);
     }
   }
 
@@ -266,7 +344,9 @@ export const useVoice = create<VoiceState>((set, get) => {
     sharing: false,
 
     localStream: null,
-    remoteStreams: {},
+    localScreen: null,
+    remoteAudio: {},
+    remoteScreens: {},
     speaking: {},
     participantsByChannel: {},
 
@@ -289,8 +369,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       } catch {
         set({
           connecting: false,
-          error:
-            "Micro inaccessible. Verifiez l'autorisation du navigateur, puis reessayez.",
+          error: "Micro inaccessible. Verifiez l'autorisation du navigateur, puis reessayez.",
         });
         return;
       }
@@ -318,22 +397,23 @@ export const useVoice = create<VoiceState>((set, get) => {
           set((state) => ({
             participantsByChannel: { ...state.participantsByChannel, [channelId]: participants },
           }));
-          void syncPeers(participants);
+          syncPeers(participants);
         })
         .subscribe((status) => {
-          if (status === 'SUBSCRIBED') publishState(get);
+          if (status === 'SUBSCRIBED') publishState();
         });
 
       startSpeechDetection();
     },
 
     leave: async () => {
-      const { localStream, channelId } = get();
+      const { localStream, localScreen, channelId } = get();
 
       stopSpeechDetection();
       teardownPeers();
 
       for (const track of localStream?.getTracks() ?? []) track.stop();
+      for (const track of localScreen?.getTracks() ?? []) track.stop();
 
       if (room) {
         await room.untrack();
@@ -347,7 +427,9 @@ export const useVoice = create<VoiceState>((set, get) => {
         return {
           channelId: null,
           localStream: null,
-          remoteStreams: {},
+          localScreen: null,
+          remoteAudio: {},
+          remoteScreens: {},
           speaking: {},
           sharing: false,
           muted: false,
@@ -358,16 +440,16 @@ export const useVoice = create<VoiceState>((set, get) => {
     },
 
     toggleMute: () => {
-      const { localStream, muted, deafened } = get();
+      const { localStream, muted } = get();
       const next = !muted;
 
       for (const track of localStream?.getAudioTracks() ?? []) {
         track.enabled = !next;
       }
-      // Reactiver le micro alors qu'on est sourd n'a pas de sens : on retablit
-      // le son en meme temps.
-      set({ muted: next, deafened: next ? deafened : false });
-      publishState(get);
+      // Reactiver le micro alors qu'on est sourd n'aurait pas de sens : on
+      // retablit le son en meme temps.
+      set({ muted: next, deafened: next ? get().deafened : false });
+      publishState();
     },
 
     toggleDeafen: () => {
@@ -379,57 +461,61 @@ export const useVoice = create<VoiceState>((set, get) => {
         track.enabled = !next;
       }
       set({ deafened: next, muted: next ? true : get().muted });
-      publishState(get);
+      publishState();
     },
 
     toggleScreenShare: async () => {
-      const { sharing, localStream } = get();
+      const { sharing, localScreen } = get();
 
       if (sharing) {
-        for (const [peerId, list] of senders) {
-          const connection = peers.get(peerId);
-          if (!connection) continue;
-          for (const sender of list) {
-            if (sender.track?.kind === 'video') {
-              connection.removeTrack(sender);
-            }
+        for (const peer of peers.values()) {
+          if (peer.screenSender) {
+            // `removeTrack` declenche `onnegotiationneeded` : la renegociation
+            // part toute seule, sans offre construite a la main.
+            peer.connection.removeTrack(peer.screenSender);
+            peer.screenSender = null;
           }
         }
-        set({ sharing: false });
-        publishState(get);
+        for (const track of localScreen?.getTracks() ?? []) track.stop();
+
+        set({ sharing: false, localScreen: null });
+        publishState();
         return;
       }
 
+      let display: MediaStream;
       try {
-        const display = await navigator.mediaDevices.getDisplayMedia({
+        display = await navigator.mediaDevices.getDisplayMedia({
           video: { frameRate: 30 },
           audio: false,
         });
-        const [videoTrack] = display.getVideoTracks();
-        if (!videoTrack || !localStream) return;
-
-        // Le partage s'arrete aussi depuis la barre du navigateur : il faut
-        // suivre cet evenement pour ne pas afficher un partage fantome.
-        videoTrack.addEventListener('ended', () => {
-          set({ sharing: false });
-          publishState(get);
-        });
-
-        for (const [peerId, connection] of peers) {
-          const sender = connection.addTrack(videoTrack, display);
-          senders.set(peerId, [...(senders.get(peerId) ?? []), sender]);
-
-          const offer = await connection.createOffer();
-          await connection.setLocalDescription(offer);
-          const me = get().userId;
-          if (me && offer.sdp) send({ kind: 'offer', from: me, to: peerId, sdp: offer.sdp });
-        }
-
-        set({ sharing: true });
-        publishState(get);
       } catch {
-        // L'utilisateur a annule le selecteur de fenetre : rien a signaler.
+        // Selecteur de fenetre annule : rien a signaler.
+        return;
       }
+
+      const [videoTrack] = display.getVideoTracks();
+      if (!videoTrack) return;
+
+      // Le partage s'arrete aussi depuis la barre du navigateur. Sans suivre cet
+      // evenement, l'interface afficherait un partage qui n'existe plus.
+      videoTrack.addEventListener('ended', () => {
+        for (const peer of peers.values()) {
+          if (peer.screenSender) {
+            peer.connection.removeTrack(peer.screenSender);
+            peer.screenSender = null;
+          }
+        }
+        set({ sharing: false, localScreen: null });
+        publishState();
+      });
+
+      for (const peer of peers.values()) {
+        peer.screenSender = peer.connection.addTrack(videoTrack, display);
+      }
+
+      set({ sharing: true, localScreen: display });
+      publishState();
     },
   };
 });

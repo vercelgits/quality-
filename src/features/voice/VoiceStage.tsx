@@ -16,7 +16,9 @@ export function VoiceStage({ channel }: { channel: Channel }) {
   const connecting = useVoice((state) => state.connecting);
   const error = useVoice((state) => state.error);
   const participants = useVoice((state) => state.participantsByChannel[channel.id] ?? []);
-  const remoteStreams = useVoice((state) => state.remoteStreams);
+  const remoteAudio = useVoice((state) => state.remoteAudio);
+  const remoteScreens = useVoice((state) => state.remoteScreens);
+  const localScreen = useVoice((state) => state.localScreen);
   const speaking = useVoice((state) => state.speaking);
   const muted = useVoice((state) => state.muted);
   const deafened = useVoice((state) => state.deafened);
@@ -38,7 +40,18 @@ export function VoiceStage({ channel }: { channel: Channel }) {
     return () => window.clearInterval(timer);
   }, [connected, joinedAt]);
 
-  const screenShares = participants.filter((participant) => participant.sharing);
+  // Les partages distants arrivent par WebRTC ; le sien vient de la capture
+  // locale, qui ne fait pas l'aller-retour reseau.
+  const screenShares = participants
+    .filter((participant) => participant.sharing)
+    .map((participant) => ({
+      userId: participant.user_id,
+      stream:
+        participant.user_id === profile?.id
+          ? (localScreen ?? undefined)
+          : remoteScreens[participant.user_id],
+    }))
+    .filter((entry) => entry.stream !== undefined);
 
   if (!connected) {
     return (
@@ -88,11 +101,15 @@ export function VoiceStage({ channel }: { channel: Channel }) {
     <div className="voice-stage">
       {screenShares.length > 0 ? (
         <div className="voice-stage__screens">
-          {screenShares.map((participant) => (
+          {screenShares.map((entry) => (
             <ScreenTile
-              key={participant.user_id}
-              stream={remoteStreams[participant.user_id]}
-              label={profiles[participant.user_id]?.display_name ?? 'Partage'}
+              key={entry.userId}
+              stream={entry.stream}
+              label={
+                entry.userId === profile?.id
+                  ? 'Votre ecran'
+                  : (profiles[entry.userId]?.display_name ?? 'Partage')
+              }
             />
           ))}
         </div>
@@ -123,7 +140,9 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                 {participant.deafened ? <Icon name="headphones-off" size={14} /> : null}
                 {participant.sharing ? <Icon name="screen" size={14} /> : null}
               </span>
-              {!isMe ? <RemoteAudio stream={remoteStreams[participant.user_id]} muted={deafened} /> : null}
+              {!isMe ? (
+                <RemoteAudio stream={remoteAudio[participant.user_id]} muted={deafened} />
+              ) : null}
             </li>
           );
         })}

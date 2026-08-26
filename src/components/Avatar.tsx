@@ -1,4 +1,4 @@
-import { initialsFor } from '@/constants';
+import { initialsFor, monoFor, monoInk } from '@/constants';
 import type { PresenceStatus, Profile } from '@/types/db';
 
 const STATUS_LABEL: Record<PresenceStatus, string> = {
@@ -9,7 +9,7 @@ const STATUS_LABEL: Record<PresenceStatus, string> = {
 };
 
 interface AvatarProps {
-  profile: Pick<Profile, 'display_name' | 'accent' | 'avatar_url'> | undefined;
+  profile: Pick<Profile, 'id' | 'display_name' | 'avatar_url'> | undefined;
   size?: number;
   status?: PresenceStatus;
   /** Affiche la pastille de presence. */
@@ -25,7 +25,9 @@ interface AvatarProps {
  */
 export function Avatar({ profile, size = 38, status, showStatus = false }: AvatarProps) {
   const name = profile?.display_name ?? '?';
-  const accent = profile?.accent ?? 'var(--accent)';
+  // La teinte vient de l'identifiant et non du nom : renommer quelqu'un ne
+  // change donc pas la nuance a laquelle on l'a associe.
+  const seed = profile?.id ?? name;
 
   return (
     <span className="avatar" style={{ width: size, height: size }}>
@@ -35,7 +37,8 @@ export function Avatar({ profile, size = 38, status, showStatus = false }: Avata
         <span
           className="avatar__initials"
           style={{
-            background: accent,
+            background: monoFor(seed),
+            color: monoInk(seed),
             fontSize: Math.max(9, Math.round(size * 0.36)),
           }}
           aria-hidden="true"
