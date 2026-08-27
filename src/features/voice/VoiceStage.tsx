@@ -26,6 +26,12 @@ export function VoiceStage({ channel }: { channel: Channel }) {
   const remoteAudio = useVoice((state) => state.remoteAudio);
   const remoteScreens = useVoice((state) => state.remoteScreens);
   const localScreen = useVoice((state) => state.localScreen);
+  const localCamera = useVoice((state) => state.localCamera);
+  const remoteCameras = useVoice((state) => state.remoteCameras);
+  const cameraOn = useVoice((state) => state.cameraOn);
+  const focusedShare = useVoice((state) => state.focusedShare);
+  const focusShare = useVoice((state) => state.focusShare);
+  const toggleCamera = useVoice((state) => state.toggleCamera);
   const speaking = useVoice((state) => state.speaking);
   const muted = useVoice((state) => state.muted);
   const deafened = useVoice((state) => state.deafened);
@@ -59,6 +65,12 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           : remoteScreens[participant.user_id],
     }))
     .filter((entry) => entry.stream !== undefined);
+
+  // Un partage mis en avant occupe seul la zone : les autres passent en
+  // vignettes sous les participants.
+  const focused = focusedShare
+    ? screenShares.find((entry) => entry.userId === focusedShare)
+    : undefined;
 
   if (!connected) {
     return (
@@ -106,7 +118,20 @@ export function VoiceStage({ channel }: { channel: Channel }) {
 
   return (
     <div className="voice-stage">
-      {screenShares.length > 0 ? (
+      {focused ? (
+        <div className="voice-stage__focus">
+          <ScreenTile
+            stream={focused.stream}
+            label={
+              focused.userId === profile?.id
+                ? 'Votre ecran'
+                : (profiles[focused.userId]?.display_name ?? 'Partage')
+            }
+            focused
+            onToggleFocus={() => focusShare(null)}
+          />
+        </div>
+      ) : screenShares.length > 0 ? (
         <div className="voice-stage__screens">
           {screenShares.map((entry) => (
             <ScreenTile
@@ -117,6 +142,7 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                   ? 'Votre ecran'
                   : (profiles[entry.userId]?.display_name ?? 'Partage')
               }
+              onToggleFocus={() => focusShare(entry.userId)}
             />
           ))}
         </div>
@@ -137,7 +163,14 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                 (participant.muted ? ' is-muted' : '')
               }
             >
-              <Avatar profile={person} size={64} />
+              {participant.video ? (
+                <CameraTile
+                  stream={isMe ? (localCamera ?? undefined) : remoteCameras[participant.user_id]}
+                  mirrored={isMe}
+                />
+              ) : (
+                <Avatar profile={person} size={64} />
+              )}
               <span className="voice-tile__name truncate">
                 {person?.display_name ?? 'Quelqu’un'}
                 {isMe ? ' (vous)' : ''}
@@ -179,6 +212,16 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           title={deafened ? 'Reactiver le son' : 'Couper le son'}
         >
           <Icon name={deafened ? 'headphones-off' : 'headphones'} size={18} />
+        </button>
+
+        <button
+          type="button"
+          className={'icon-btn' + (cameraOn ? ' is-active' : '')}
+          onClick={() => void toggleCamera()}
+          aria-pressed={cameraOn}
+          title={cameraOn ? 'Couper la camera' : 'Activer la camera'}
+        >
+          <Icon name="video" size={18} />
         </button>
 
         <button
@@ -228,7 +271,17 @@ function RemoteAudio({ stream, muted }: { stream: MediaStream | undefined; muted
   return <audio ref={ref} autoPlay muted={muted} />;
 }
 
-function ScreenTile({ stream, label }: { stream: MediaStream | undefined; label: string }) {
+function ScreenTile({
+  stream,
+  label,
+  focused = false,
+  onToggleFocus,
+}: {
+  stream: MediaStream | undefined;
+  label: string;
+  focused?: boolean;
+  onToggleFocus?: () => void;
+}) {
   const ref = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -239,12 +292,68 @@ function ScreenTile({ stream, label }: { stream: MediaStream | undefined; label:
   }, [stream]);
 
   return (
-    <figure className="screen-tile">
+    <figure className={'screen-tile' + (focused ? ' is-focused' : '')}>
       <video ref={ref} className="screen-tile__video" autoPlay playsInline muted />
+
       <figcaption className="screen-tile__label">
         <Icon name="screen" size={13} />
         {label}
       </figcaption>
+
+      <div className="screen-tile__actions">
+        {onToggleFocus ? (
+          <button
+            type="button"
+            className="screen-tile__action"
+            onClick={onToggleFocus}
+            title={focused ? 'Reduire' : 'Agrandir'}
+            aria-label={focused ? 'Reduire le partage' : 'Agrandir le partage'}
+          >
+            <Icon name={focused ? 'minus' : 'plus'} size={15} />
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          className="screen-tile__action"
+          onClick={() => void ref.current?.requestFullscreen?.().catch(() => undefined)}
+          title="Plein ecran"
+          aria-label="Afficher en plein ecran"
+        >
+          <Icon name="monitor" size={15} />
+        </button>
+      </div>
     </figure>
+  );
+}
+
+/**
+ * Vignette de camera.
+ *
+ * Le flux local est renverse horizontalement : on s'attend a se voir comme
+ * dans un miroir, et l'image non inversee desoriente.
+ */
+function CameraTile({ stream, mirrored }: { stream: MediaStream | undefined; mirrored: boolean }) {
+  const ref = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node || !stream) return;
+    node.srcObject = stream;
+    void node.play().catch(() => undefined);
+  }, [stream]);
+
+  if (!stream) {
+    return <span className="camera-tile camera-tile--empty" aria-hidden="true" />;
+  }
+
+  return (
+    <video
+      ref={ref}
+      className={'camera-tile' + (mirrored ? ' is-mirrored' : '')}
+      autoPlay
+      playsInline
+      muted
+    />
   );
 }

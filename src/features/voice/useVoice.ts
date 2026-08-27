@@ -4,6 +4,25 @@ import { supabase } from '@/lib/supabase';
 import type { UUID, VoiceParticipant, VoiceSignal } from '@/types/db';
 
 /**
+ * Role d'un flux video.
+ *
+ * Camera et partage d'ecran arrivent tous deux comme des pistes `video` :
+ * rien dans WebRTC ne les distingue. Chaque emetteur annonce donc le role de
+ * son flux par son identifiant, et le recepteur fait la correspondance.
+ */
+type StreamPurpose = 'camera' | 'screen';
+
+interface StreamInfo {
+  kind: 'stream-info';
+  from: UUID;
+  to: UUID;
+  streamId: string;
+  purpose: StreamPurpose;
+}
+
+type VoiceMessage = VoiceSignal | StreamInfo;
+
+/**
  * Salons vocaux en WebRTC maille.
  *
  * Chaque participant ouvre une connexion directe vers chacun des autres. Le
@@ -36,6 +55,14 @@ interface VoiceState {
   localStream: MediaStream | null;
   /** Flux de partage d'ecran local, distinct du micro. */
   localScreen: MediaStream | null;
+  /** Flux de camera local. */
+  localCamera: MediaStream | null;
+  /** Camera activee. */
+  cameraOn: boolean;
+  /** Flux de camera distants. */
+  remoteCameras: Record<UUID, MediaStream>;
+  /** Partage affiche en grand, s'il y en a un. */
+  focusedShare: UUID | null;
   /** Flux audio distants, indexes par identifiant d'utilisateur. */
   remoteAudio: Record<UUID, MediaStream>;
   /** Flux de partage d'ecran distants, indexes de la meme facon. */
@@ -50,6 +77,8 @@ interface VoiceState {
   toggleMute: () => void;
   toggleDeafen: () => void;
   toggleScreenShare: () => Promise<void>;
+  toggleCamera: () => Promise<void>;
+  focusShare: (userId: UUID | null) => void;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -69,17 +98,29 @@ interface Peer {
   ignoreOffer: boolean;
   micSender: RTCRtpSender | null;
   screenSender: RTCRtpSender | null;
+  cameraSender: RTCRtpSender | null;
 }
 
 let room: RealtimeChannel | null = null;
 const peers = new Map<UUID, Peer>();
+
+/**
+ * Role de chaque flux distant, indexe par identifiant de flux.
+ *
+ * L'annonce et la piste voyagent par deux canaux differents et arrivent dans
+ * un ordre imprevisible : on garde donc les deux, et l'on resout des que les
+ * deux moities sont la.
+ */
+const streamPurposes = new Map<string, StreamPurpose>();
+/** Pistes recues avant leur annonce, a reclasser une fois celle-ci arrivee. */
+const pendingStreams = new Map<string, { peerId: UUID; stream: MediaStream }>();
 let audioContext: AudioContext | null = null;
 let speechTimer: number | null = null;
 const analysers = new Map<UUID, AnalyserNode>();
 
-function send(signal: VoiceSignal): void {
+function send(message: VoiceMessage): void {
   if (!room) return;
-  void room.send({ type: 'broadcast', event: 'voice-signal', payload: signal });
+  void room.send({ type: 'broadcast', event: 'voice-signal', payload: message });
 }
 
 function teardownPeers(): void {
@@ -105,7 +146,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       muted: state.muted,
       deafened: state.deafened,
       sharing: state.sharing,
-      video: false,
+      video: state.cameraOn,
       joined_at: Date.now(),
     } satisfies VoiceParticipant);
   }
@@ -155,6 +196,13 @@ export const useVoice = create<VoiceState>((set, get) => {
     set({ speaking: {} });
   }
 
+  /** Fait savoir a un pair a quoi correspond un flux qu'on lui envoie. */
+  function announceStream(peerId: UUID, streamId: string, purpose: StreamPurpose): void {
+    const me = get().userId;
+    if (!me) return;
+    send({ kind: 'stream-info', from: me, to: peerId, streamId, purpose });
+  }
+
   function dropPeer(peerId: UUID): void {
     const peer = peers.get(peerId);
     if (peer) {
@@ -166,10 +214,41 @@ export const useVoice = create<VoiceState>((set, get) => {
     set((state) => {
       const remoteAudio = { ...state.remoteAudio };
       const remoteScreens = { ...state.remoteScreens };
+      const remoteCameras = { ...state.remoteCameras };
       delete remoteAudio[peerId];
       delete remoteScreens[peerId];
-      return { remoteAudio, remoteScreens };
+      delete remoteCameras[peerId];
+      return {
+        remoteAudio,
+        remoteScreens,
+        remoteCameras,
+        focusedShare: state.focusedShare === peerId ? null : state.focusedShare,
+      };
     });
+  }
+
+  /**
+   * Range un flux video recu dans la bonne categorie.
+   *
+   * Si l'annonce n'est pas encore arrivee, le flux est mis en attente plutot
+   * que devine : classer une camera comme partage d'ecran l'afficherait en
+   * grand au milieu de la fenetre.
+   */
+  function placeVideoStream(peerId: UUID, stream: MediaStream): void {
+    const purpose = streamPurposes.get(stream.id);
+
+    if (!purpose) {
+      pendingStreams.set(stream.id, { peerId, stream });
+      return;
+    }
+
+    pendingStreams.delete(stream.id);
+
+    if (purpose === 'screen') {
+      set((state) => ({ remoteScreens: { ...state.remoteScreens, [peerId]: stream } }));
+    } else {
+      set((state) => ({ remoteCameras: { ...state.remoteCameras, [peerId]: stream } }));
+    }
   }
 
   /**
@@ -193,17 +272,27 @@ export const useVoice = create<VoiceState>((set, get) => {
       ignoreOffer: false,
       micSender: null,
       screenSender: null,
+      cameraSender: null,
     };
 
     for (const track of localStream.getAudioTracks()) {
       peer.micSender = connection.addTrack(track, localStream);
     }
 
-    // Si un partage est deja en cours, le nouvel arrivant doit le recevoir.
+    // Si un partage ou une camera sont deja actifs, le nouvel arrivant doit
+    // les recevoir, et connaitre leur role.
     const screen = get().localScreen;
     const screenTrack = screen?.getVideoTracks()[0];
     if (screen && screenTrack) {
       peer.screenSender = connection.addTrack(screenTrack, screen);
+      announceStream(peerId, screen.id, 'screen');
+    }
+
+    const camera = get().localCamera;
+    const cameraTrack = camera?.getVideoTracks()[0];
+    if (camera && cameraTrack) {
+      peer.cameraSender = connection.addTrack(cameraTrack, camera);
+      announceStream(peerId, camera.id, 'camera');
     }
 
     connection.onicecandidate = (event) => {
@@ -218,16 +307,24 @@ export const useVoice = create<VoiceState>((set, get) => {
       const [stream] = event.streams;
       if (!stream) return;
 
-      // Audio et video du meme pair arrivent sur deux flux distincts. Les
+      // Audio et video du meme pair arrivent sur des flux distincts. Les
       // ranger ensemble ferait qu'un partage d'ecran remplacerait la voix.
       if (event.track.kind === 'video') {
-        set((state) => ({ remoteScreens: { ...state.remoteScreens, [peerId]: stream } }));
+        placeVideoStream(peerId, stream);
 
         event.track.addEventListener('ended', () => {
+          streamPurposes.delete(stream.id);
+          pendingStreams.delete(stream.id);
           set((state) => {
             const remoteScreens = { ...state.remoteScreens };
+            const remoteCameras = { ...state.remoteCameras };
             delete remoteScreens[peerId];
-            return { remoteScreens };
+            delete remoteCameras[peerId];
+            return {
+              remoteScreens,
+              remoteCameras,
+              focusedShare: state.focusedShare === peerId ? null : state.focusedShare,
+            };
           });
         });
       } else {
@@ -261,9 +358,18 @@ export const useVoice = create<VoiceState>((set, get) => {
   }
 
   /** Traite un message de signalisation qui nous est adresse. */
-  async function handleSignal(signal: VoiceSignal): Promise<void> {
+  async function handleSignal(signal: VoiceMessage): Promise<void> {
     const localStream = get().localStream;
     if (!localStream) return;
+
+    // Annonce du role d'un flux : on l'enregistre, puis on reclasse la piste
+    // si elle etait deja arrivee.
+    if (signal.kind === 'stream-info') {
+      streamPurposes.set(signal.streamId, signal.purpose);
+      const waiting = pendingStreams.get(signal.streamId);
+      if (waiting) placeVideoStream(waiting.peerId, waiting.stream);
+      return;
+    }
 
     const peer = createPeer(signal.from, localStream);
     const { connection } = peer;
@@ -345,8 +451,12 @@ export const useVoice = create<VoiceState>((set, get) => {
 
     localStream: null,
     localScreen: null,
+    localCamera: null,
+    cameraOn: false,
     remoteAudio: {},
     remoteScreens: {},
+    remoteCameras: {},
+    focusedShare: null,
     speaking: {},
     participantsByChannel: {},
 
@@ -407,13 +517,16 @@ export const useVoice = create<VoiceState>((set, get) => {
     },
 
     leave: async () => {
-      const { localStream, localScreen, channelId } = get();
+      const { localStream, localScreen, localCamera, channelId } = get();
 
       stopSpeechDetection();
       teardownPeers();
+      streamPurposes.clear();
+      pendingStreams.clear();
 
       for (const track of localStream?.getTracks() ?? []) track.stop();
       for (const track of localScreen?.getTracks() ?? []) track.stop();
+      for (const track of localCamera?.getTracks() ?? []) track.stop();
 
       if (room) {
         await room.untrack();
@@ -428,8 +541,12 @@ export const useVoice = create<VoiceState>((set, get) => {
           channelId: null,
           localStream: null,
           localScreen: null,
+          localCamera: null,
+          cameraOn: false,
           remoteAudio: {},
           remoteScreens: {},
+          remoteCameras: {},
+          focusedShare: null,
           speaking: {},
           sharing: false,
           muted: false,
@@ -510,12 +627,77 @@ export const useVoice = create<VoiceState>((set, get) => {
         publishState();
       });
 
-      for (const peer of peers.values()) {
+      for (const [peerId, peer] of peers) {
         peer.screenSender = peer.connection.addTrack(videoTrack, display);
+        announceStream(peerId, display.id, 'screen');
       }
 
       set({ sharing: true, localScreen: display });
       publishState();
     },
+
+    /**
+     * Camera.
+     *
+     * Le flux part sur une piste distincte de celle du partage d'ecran, et son
+     * role est annonce a chaque pair : sans cela, le recepteur ne saurait pas
+     * lequel des deux flux video afficher en vignette et lequel en grand.
+     */
+    toggleCamera: async () => {
+      const { cameraOn, localCamera } = get();
+
+      if (cameraOn) {
+        for (const peer of peers.values()) {
+          if (peer.cameraSender) {
+            // `removeTrack` declenche `onnegotiationneeded` : la renegociation
+            // part seule.
+            peer.connection.removeTrack(peer.cameraSender);
+            peer.cameraSender = null;
+          }
+        }
+        for (const track of localCamera?.getTracks() ?? []) track.stop();
+
+        set({ cameraOn: false, localCamera: null });
+        publishState();
+        return;
+      }
+
+      let camera: MediaStream;
+      try {
+        camera = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+          audio: false,
+        });
+      } catch {
+        set({ error: 'Camera inaccessible. Verifiez l’autorisation du navigateur.' });
+        return;
+      }
+
+      const [videoTrack] = camera.getVideoTracks();
+      if (!videoTrack) return;
+
+      // La camera peut etre coupee depuis le systeme : sans suivre cet
+      // evenement, l'interface afficherait une video qui n'existe plus.
+      videoTrack.addEventListener('ended', () => {
+        for (const peer of peers.values()) {
+          if (peer.cameraSender) {
+            peer.connection.removeTrack(peer.cameraSender);
+            peer.cameraSender = null;
+          }
+        }
+        set({ cameraOn: false, localCamera: null });
+        publishState();
+      });
+
+      for (const [peerId, peer] of peers) {
+        peer.cameraSender = peer.connection.addTrack(videoTrack, camera);
+        announceStream(peerId, camera.id, 'camera');
+      }
+
+      set({ cameraOn: true, localCamera: camera });
+      publishState();
+    },
+
+    focusShare: (userId) => set({ focusedShare: userId }),
   };
 });

@@ -15,7 +15,7 @@ test.describe('Navigation mobile', () => {
   test.skip(!email || !password, 'Definissez E2E_EMAIL et E2E_PASSWORD.');
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/connexion');
     await page.getByLabel('Adresse e-mail').fill(email!);
     await page.getByLabel('Mot de passe').fill(password!);
     await page.getByRole('button', { name: 'Entrer' }).click();

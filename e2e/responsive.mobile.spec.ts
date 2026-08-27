@@ -10,7 +10,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Petit ecran', () => {
   test('l ecran d accueil reste utilisable', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/connexion');
 
     await expect(page.getByLabel('Adresse e-mail')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Entrer' })).toBeVisible();
@@ -21,7 +21,7 @@ test.describe('Petit ecran', () => {
   });
 
   test('la page ne defile jamais horizontalement', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/connexion');
 
     const overflow = await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -31,7 +31,7 @@ test.describe('Petit ecran', () => {
   });
 
   test('les cibles tactiles font au moins 40 px', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/connexion');
 
     const boxes = await page.locator('button:visible').evaluateAll((nodes) =>
       nodes.map((node) => {
@@ -45,7 +45,7 @@ test.describe('Petit ecran', () => {
   });
 
   test('le champ e-mail declenche le bon clavier', async ({ page }) => {
-    await page.goto('/');
+    await page.goto('/connexion');
 
     // `type="email"` ouvre le clavier avec l'arobase sur mobile.
     await expect(page.getByLabel('Adresse e-mail')).toHaveAttribute('type', 'email');

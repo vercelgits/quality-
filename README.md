@@ -256,6 +256,41 @@ publique sans rien configurer.
 
 ---
 
+## Surfaces publiques
+
+| Adresse | Contenu |
+| --- | --- |
+| `/` | Présentation du produit |
+| `/connexion` | Connexion, inscription, mot de passe oublié |
+| `/app` | L'application |
+
+Le routage tient en une cinquantaine de lignes sans dépendance : trois surfaces
+ne justifient pas un chargeur de routes, des routes imbriquées et un système de
+paramètres.
+
+L'aperçu d'interface de la page d'accueil est dessiné en HTML et non capturé en
+image — une capture se périmerait à la première retouche de style, alors que cet
+aperçu suit les jetons de design et reste juste.
+
+---
+
+## Vocal
+
+Les participants se connectent directement les uns aux autres. Le serveur ne
+relaie que la mise en relation : ni la voix, ni l'image ne passent par lui.
+
+Micro avec réduction de bruit, caméra, partage d'écran à 30 images/s, mise en
+avant d'un partage et plein écran.
+
+Un détail qui demandait une décision : caméra et partage d'écran arrivent tous
+deux comme des pistes `video`, et **rien dans WebRTC ne les distingue**. Chaque
+émetteur annonce donc le rôle de son flux par son identifiant. L'annonce et la
+piste voyagent par deux canaux différents et arrivent dans un ordre imprévisible,
+donc une piste reçue avant son annonce est mise en attente plutôt que devinée :
+classer une caméra comme partage l'afficherait en grand au milieu de la fenêtre.
+
+---
+
 ## Mobile
 
 Sous 860 px, la navigation ne côtoie plus la conversation : elle la recouvre.

@@ -609,3 +609,87 @@ a.attachment:hover {
   background: var(--accent-soft);
   color: var(--accent-text);
 }
+
+/* ==========================================================================
+   Vocal : camera et mise en avant
+   ========================================================================== */
+
+.camera-tile {
+  width: 100%;
+  max-width: 160px;
+  aspect-ratio: 4 / 3;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  background: oklch(12% 0 0);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Se voir a l'endroit est desorientant : on attend un miroir. */
+.camera-tile.is-mirrored {
+  transform: scaleX(-1);
+}
+
+.camera-tile--empty {
+  display: block;
+  background: var(--bg-sunken);
+}
+
+.voice-stage__focus {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.voice-stage__focus .screen-tile {
+  flex: 1;
+  min-height: 0;
+}
+
+.screen-tile {
+  position: relative;
+}
+
+.screen-tile.is-focused .screen-tile__video {
+  aspect-ratio: auto;
+  height: 100%;
+}
+
+/* Les commandes du partage n'apparaissent qu'au survol : affichees en
+   permanence, elles masqueraient une partie de ce qui est partage. */
+.screen-tile__actions {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.screen-tile:hover .screen-tile__actions,
+.screen-tile:focus-within .screen-tile__actions {
+  opacity: 1;
+}
+
+.screen-tile__action {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: oklch(0% 0 0 / 0.62);
+  color: #fff;
+  backdrop-filter: blur(8px);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.screen-tile__action:hover {
+  background: oklch(0% 0 0 / 0.82);
+}
+
+/* Sans survol, les commandes doivent rester atteignables. */
+@media (hover: none) {
+  .screen-tile__actions {
+    opacity: 1;
+  }
+}

@@ -22,7 +22,7 @@ test.describe('Parcours authentifies', () => {
   );
 
   async function signIn(page: Page): Promise<void> {
-    await page.goto('/');
+    await page.goto('/connexion');
     await page.getByLabel('Adresse e-mail').fill(email!);
     await page.getByLabel('Mot de passe').fill(password!);
     await page.getByRole('button', { name: 'Entrer' }).click();
@@ -152,6 +152,19 @@ test.describe('Parcours authentifies', () => {
     await page.getByLabel('Rechercher dans les messages').fill(needle);
 
     await expect(page.locator('.search-hit').first()).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('le lien d evitement mene a la conversation', async ({ page }) => {
+    await signIn(page);
+
+    await page.evaluate(() => document.body.focus());
+    await page.keyboard.press('Tab');
+
+    const skip = page.getByRole('link', { name: 'Aller a la conversation' });
+    await expect(skip).toBeFocused();
+
+    // La cible doit exister, sinon le lien ne mene nulle part.
+    await expect(page.locator('#conversation')).toBeAttached();
   });
 
   test('bascule vers les messages prives', async ({ page }) => {

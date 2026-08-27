@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
+import { navigate } from '@/lib/router';
 
 type Mode = 'signin' | 'signup' | 'forgot';
 
@@ -91,12 +92,17 @@ export function AuthScreen() {
   return (
     <div className="auth">
       <section className="auth__pitch">
-        <div className="auth__brand">
+        <button
+          type="button"
+          className="auth__brand auth__brand--link"
+          onClick={() => navigate('/')}
+          aria-label="Revenir a la presentation"
+        >
           <span className="auth__logo" aria-hidden="true">
             <Icon name="compass" size={22} />
           </span>
           <span className="auth__wordmark">Orbit</span>
-        </div>
+        </button>
 
         <h1 className="auth__headline">
           La discussion d’equipe,
@@ -256,6 +262,14 @@ export function AuthScreen() {
               Revenir a la connexion
             </button>
           ) : null}
+
+          <button
+            type="button"
+            className="auth__link auth__link--centered"
+            onClick={() => navigate('/')}
+          >
+            Decouvrir Orbit
+          </button>
 
           <p className="auth__legal">
             En continuant, vous acceptez que vos messages soient stockes sur le projet

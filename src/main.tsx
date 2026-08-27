@@ -7,6 +7,7 @@ import './styles/app.css';
 import './styles/surfaces.css';
 import './styles/features.css';
 import './styles/dm.css';
+import './styles/landing.css';
 // En dernier : les regles mobiles surchargent celles des grands ecrans.
 import './styles/mobile.css';
 
