@@ -1,6 +1,13 @@
 import { Theme } from "theme.slint";
 import { EcranConnexion } from "connexion.slint";
 
+// Ce que Rust transmet a l'interface. Les champs portent les memes noms que
+// dans la base : une traduction supplementaire serait un endroit de plus ou se
+// tromper.
+export struct EspaceVu { id: string, nom: string, initiales: string, actif: bool }
+export struct SalonVu { id: string, nom: string, vocal: bool, actif: bool }
+export struct MessageVu { auteur: string, heure: string, corps: string, groupe: bool }
+
 // Bouton du rail des espaces : cercle qui se carre au survol.
 component BoutonRail inherits Rectangle {
     in property <string> initiales;
@@ -14,6 +21,8 @@ component BoutonRail inherits Rectangle {
 
     animate border-radius, background { duration: 180ms; easing: ease-out; }
 
+    callback clic();
+
     Text {
         text: root.initiales;
         color: Theme.texte;
@@ -21,7 +30,7 @@ component BoutonRail inherits Rectangle {
         font-weight: 600;
     }
 
-    zone := TouchArea {}
+    zone := TouchArea { clicked => { root.clic(); } }
 }
 
 // Ligne de salon dans la liste laterale.
@@ -58,7 +67,8 @@ component LigneSalon inherits Rectangle {
         }
     }
 
-    zone := TouchArea {}
+    callback clic();
+    zone := TouchArea { clicked => { root.clic(); } }
 }
 
 // En-tete de categorie.
@@ -171,6 +181,16 @@ export component Coquille inherits Window {
     in-out property <string> email;
     in-out property <string> mot-de-passe;
 
+    in property <[EspaceVu]> espaces;
+    in property <[SalonVu]> salons;
+    in property <[MessageVu]> messages;
+    in property <string> espace-actif;
+    in property <string> salon-actif;
+    in property <string> sujet-salon;
+
+    callback choisir-espace(string);
+    callback choisir-salon(string);
+
     VerticalLayout {
         spacing: 0px;
 
@@ -242,10 +262,11 @@ export component Coquille inherits Window {
                     spacing: 8px;
                     alignment: start;
 
-                    BoutonRail { initiales: "OR"; actif: true; }
-                    Rectangle { height: 2px; width: 32px; background: Theme.bordure; }
-                    BoutonRail { initiales: "EQ"; teinte: Theme.succes; }
-                    BoutonRail { initiales: "PR"; teinte: #eb459e; }
+                    for espace in root.espaces: BoutonRail {
+                        initiales: espace.initiales;
+                        actif: espace.actif;
+                        clic => { root.choisir-espace(espace.id); }
+                    }
                 }
             }
 
@@ -263,7 +284,7 @@ export component Coquille inherits Window {
                             padding-left: 16px;
                             alignment: start;
                             Text {
-                                text: "Espace Orbit";
+                                text: root.espace-actif;
                                 color: Theme.texte;
                                 font-size: 15px;
                                 font-weight: 700;
@@ -278,15 +299,14 @@ export component Coquille inherits Window {
                         spacing: 2px;
                         alignment: start;
 
-                        TitreCategorie { titre: "SALONS TEXTUELS"; }
-                        LigneSalon { nom: "general"; actif: true; }
-                        LigneSalon { nom: "idees"; }
-                        LigneSalon { nom: "annonces"; }
+                        TitreCategorie { titre: "SALONS"; }
 
-                        Rectangle { height: 8px; }
-
-                        TitreCategorie { titre: "VOCAL"; }
-                        LigneSalon { nom: "Salon vocal"; vocal: true; }
+                        for salon in root.salons: LigneSalon {
+                            nom: salon.nom;
+                            vocal: salon.vocal;
+                            actif: salon.actif;
+                            clic => { root.choisir-salon(salon.id); }
+                        }
                     }
                 }
             }
@@ -306,14 +326,14 @@ export component Coquille inherits Window {
                             spacing: 10px;
                             alignment: start;
                             Text {
-                                text: "#  general";
+                                text: root.salon-actif;
                                 color: Theme.texte;
                                 font-size: 15px;
                                 font-weight: 700;
                                 vertical-alignment: center;
                             }
                             Text {
-                                text: "Le salon principal de votre espace.";
+                                text: root.sujet-salon;
                                 color: Theme.texte-faible;
                                 font-size: 13px;
                                 vertical-alignment: center;
@@ -327,21 +347,11 @@ export component Coquille inherits Window {
                         spacing: 2px;
                         alignment: start;
 
-                        Message {
-                            auteur: "EX";
-                            heure: "22:41";
-                            corps: "Rendu natif : aucun moteur web ici.";
-                            teinte: Theme.succes;
-                        }
-                        Message { groupe: true; corps: "La fenetre est dessinee par le systeme."; }
-                        Message { groupe: true; corps: "Les couleurs viennent du meme theme que le web."; }
-
-                        Rectangle { height: 8px; }
-
-                        Message {
-                            auteur: "OR";
-                            heure: "22:42";
-                            corps: "Etape 1 : la coquille. Le reste suit.";
+                        for message in root.messages: Message {
+                            auteur: message.auteur;
+                            heure: message.heure;
+                            corps: message.corps;
+                            groupe: message.groupe;
                         }
                     }
 
@@ -362,7 +372,7 @@ export component Coquille inherits Window {
                                 padding-left: 16px;
                                 alignment: start;
                                 Text {
-                                    text: "Ecrire dans #general";
+                                    text: "Ecrire dans " + root.salon-actif;
                                     color: Theme.texte-faible;
                                     font-size: 15px;
                                     vertical-alignment: center;

@@ -234,3 +234,124 @@ pub fn oublier_session() {
         let _ = std::fs::remove_file(chemin);
     }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Espaces, salons et messages                                                 */
+/* -------------------------------------------------------------------------- */
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Espace {
+    pub id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct Salon {
+    pub id: String,
+    pub space_id: Option<String>,
+    pub name: String,
+    pub kind: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[allow(dead_code, reason = "l'identifiant servira aux reactions et a l'edition")]
+pub struct MessageBrut {
+    pub id: String,
+    pub author_id: String,
+    pub content: String,
+    pub created_at: String,
+}
+
+/// Charge utile de `bootstrap()`, la meme fonction que celle du client web.
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct Amorce {
+    #[serde(default)]
+    pub spaces: Vec<Espace>,
+    #[serde(default)]
+    pub channels: Vec<Salon>,
+    #[serde(default)]
+    pub profiles: Vec<ProfilPublic>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct ProfilPublic {
+    pub id: String,
+    pub display_name: String,
+}
+
+impl Client {
+    /// En-tetes communs a tout appel authentifie.
+    fn authentifie(
+        &self,
+        requete: reqwest::blocking::RequestBuilder,
+        session: &Session,
+    ) -> reqwest::blocking::RequestBuilder {
+        requete
+            .header("apikey", &self.config.key)
+            .header("Authorization", format!("Bearer {}", session.access_token))
+    }
+
+    /// Espaces, salons et profils, en un seul appel.
+    ///
+    /// La meme fonction SQL que celle du client web : la reecrire cote natif
+    /// donnerait deux definitions de « ce qu'on voit en arrivant », qui
+    /// finiraient par diverger.
+    pub fn amorcer(&self, session: &Session) -> Result<Amorce, String> {
+        let reponse = self
+            .authentifie(
+                self.http.post(format!("{}/rest/v1/rpc/bootstrap", self.config.url)),
+                session,
+            )
+            .json(&serde_json::json!({}))
+            .send()
+            .map_err(|_| "Serveur injoignable.".to_string())?;
+
+        let statut = reponse.status();
+        let corps = reponse.text().unwrap_or_default();
+
+        if !statut.is_success() {
+            return Err(Self::expliquer(&corps, statut.as_u16()));
+        }
+
+        serde_json::from_str(&corps).map_err(|e| format!("Amorce illisible : {e}"))
+    }
+
+    /// Derniers messages d'un salon, du plus ancien au plus recent.
+    ///
+    /// PostgREST trie du plus recent au plus ancien pour que la limite garde
+    /// les derniers ; l'ordre est retabli ensuite, l'affichage allant du haut
+    /// vers le bas.
+    pub fn messages(
+        &self,
+        session: &Session,
+        salon: &str,
+        limite: usize,
+    ) -> Result<Vec<MessageBrut>, String> {
+        let reponse = self
+            .authentifie(
+                self.http.get(format!("{}/rest/v1/messages", self.config.url)),
+                session,
+            )
+            .query(&[
+                ("channel_id", format!("eq.{salon}")),
+                ("thread_id", "is.null".into()),
+                ("select", "id,author_id,content,created_at".into()),
+                ("order", "created_at.desc".into()),
+                ("limit", limite.to_string()),
+            ])
+            .send()
+            .map_err(|_| "Serveur injoignable.".to_string())?;
+
+        let statut = reponse.status();
+        let corps = reponse.text().unwrap_or_default();
+
+        if !statut.is_success() {
+            return Err(Self::expliquer(&corps, statut.as_u16()));
+        }
+
+        let mut messages: Vec<MessageBrut> =
+            serde_json::from_str(&corps).map_err(|e| format!("Messages illisibles : {e}"))?;
+        messages.reverse();
+        Ok(messages)
+    }
+}

@@ -16,7 +16,9 @@
     "desktop:build": "tauri build",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
-    "test:report": "playwright show-report"
+    "test:report": "playwright show-report",
+    "natif": "cargo run --release --manifest-path native/Cargo.toml",
+    "natif:test": "cargo test --release --manifest-path native/Cargo.toml -- --nocapture"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.1",

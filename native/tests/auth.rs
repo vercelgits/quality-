@@ -6,6 +6,7 @@
 //! pouvoir lancer `cargo test` sans configuration.
 
 use std::path::PathBuf;
+use std::sync::OnceLock;
 
 /// Lit une variable dans `.env.e2e`, en remontant depuis le dossier courant.
 fn depuis_env_e2e(cle: &str) -> Option<String> {
@@ -42,22 +43,35 @@ fn depuis_env_e2e(cle: &str) -> Option<String> {
     None
 }
 
+/// Session ouverte une seule fois, partagee par tous les tests.
+///
+/// Les tests Rust s'executent en parallele : trois connexions simultanees
+/// heurtent la limite d'authentification de Supabase, et l'echec qui en decoule
+/// n'apprend rien sur le code.
+fn session_partagee() -> Option<&'static (orbit_natif::api::Client, orbit_natif::api::Session)> {
+    static SESSION: OnceLock<Option<(orbit_natif::api::Client, orbit_natif::api::Session)>> =
+        OnceLock::new();
+
+    SESSION
+        .get_or_init(|| {
+            let email = depuis_env_e2e("E2E_EMAIL")?;
+            let mot_de_passe = depuis_env_e2e("E2E_PASSWORD")?;
+
+            let config = orbit_natif::config::Config::charger().ok()?;
+            let client = orbit_natif::api::Client::nouveau(config).ok()?;
+            let session = client.connexion(&email, &mot_de_passe).ok()?;
+
+            Some((client, session))
+        })
+        .as_ref()
+}
+
 #[test]
 fn connexion_puis_profil() {
-    let (Some(email), Some(mot_de_passe)) = (
-        depuis_env_e2e("E2E_EMAIL"),
-        depuis_env_e2e("E2E_PASSWORD"),
-    ) else {
+    let Some((client, session)) = session_partagee() else {
         eprintln!("ignore : E2E_EMAIL et E2E_PASSWORD absents");
         return;
     };
-
-    let config = orbit_natif::config::Config::charger().expect("configuration Supabase");
-    let client = orbit_natif::api::Client::nouveau(config).expect("client HTTP");
-
-    let session = client
-        .connexion(&email, &mot_de_passe)
-        .expect("la connexion doit aboutir");
 
     assert!(!session.access_token.is_empty(), "jeton d'acces vide");
     assert!(!session.refresh_token.is_empty(), "jeton de rafraichissement vide");
@@ -65,7 +79,7 @@ fn connexion_puis_profil() {
 
     // Le profil passe par PostgREST et par les politiques RLS : le lire prouve
     // que le jeton est accepte au-dela de l'authentification elle-meme.
-    let profil = client.profil(&session).expect("le profil doit etre lisible");
+    let profil = client.profil(session).expect("le profil doit etre lisible");
     assert!(!profil.username.is_empty(), "pseudo vide");
 
     // Le rafraichissement est ce qui evite de redemander le mot de passe a
@@ -98,4 +112,47 @@ fn identifiants_faux_donnent_une_phrase_lisible() {
     assert!(erreur.len() > 8, "message trop court : {erreur}");
 
     eprintln!("refus annonce : {erreur}");
+}
+
+#[test]
+fn amorce_puis_messages() {
+    let Some((client, session)) = session_partagee() else {
+        eprintln!("ignore : identifiants absents");
+        return;
+    };
+
+    // `bootstrap()` est la meme fonction SQL que celle du client web : ce test
+    // verifie donc que la reutilisation tient, pas seulement que l'appel passe.
+    let amorce = client.amorcer(session).expect("l'amorce doit aboutir");
+
+    assert!(!amorce.spaces.is_empty(), "aucun espace : le compte devrait en avoir un");
+    assert!(!amorce.channels.is_empty(), "aucun salon");
+
+    let espace = &amorce.spaces[0];
+    let salon = amorce
+        .channels
+        .iter()
+        .find(|c| c.space_id.as_deref() == Some(espace.id.as_str()) && c.kind == "text")
+        .expect("un salon textuel dans le premier espace");
+
+    let messages = client
+        .messages(session, &salon.id, 20)
+        .expect("les messages doivent etre lisibles");
+
+    // L'ordre compte : l'affichage va du haut vers le bas, donc du plus ancien
+    // au plus recent. PostgREST trie a l'envers pour que la limite garde les
+    // derniers, et on retablit ensuite.
+    if messages.len() > 1 {
+        let premier = &messages[0].created_at;
+        let dernier = &messages[messages.len() - 1].created_at;
+        assert!(premier <= dernier, "les messages doivent aller du plus ancien au plus recent");
+    }
+
+    eprintln!(
+        "amorce : {} espace(s), {} salon(s), {} message(s) dans #{}",
+        amorce.spaces.len(),
+        amorce.channels.len(),
+        messages.len(),
+        salon.name
+    );
 }

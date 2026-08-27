@@ -18,6 +18,10 @@ l'application de référence tant que la parité n'est pas atteinte.
   politiques RLS, rafraîchissement du jeton, session conservée entre deux
   lancements
 - Écran de connexion, avec les erreurs traduites en français
+- **Vos vraies données** : espaces, salons et messages, chargés par la même
+  fonction SQL `bootstrap()` que le client web
+- Navigation entre espaces et salons
+- Messages groupés par auteur, comme sur le web
 - Compile et s'exécute sur Windows
 
 ### Vérification
@@ -84,9 +88,24 @@ C'est là que se joue la réussite ou l'échec de la réécriture. Le partage
 d'écran en 1080p60 avec son, qui fonctionne aujourd'hui, demanderait plusieurs
 semaines à lui seul.
 
-## Lancer
+## Suivre l'avancée
+
+Depuis la racine du dépôt :
 
 ```
-cd native
-cargo run --release
+npm run natif
 ```
+
+La première compilation prend deux à trois minutes ; les suivantes quelques
+secondes. La fenêtre s'ouvre sur l'écran de connexion, puis affiche vos espaces
+et vos salons réels — c'est le même compte et la même base que le client web.
+
+Pour vérifier que l'accès aux données tient sans lancer l'interface :
+
+```
+npm run natif:test
+```
+
+Trois tests ouvrent une vraie session, lisent le profil à travers les politiques
+RLS, chargent l'amorce et les messages. Ils s'ignorent proprement si `.env.e2e`
+est absent.
