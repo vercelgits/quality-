@@ -150,6 +150,10 @@
   --mention-bg: rgba(88, 101, 242, 0.1);
   --mention-border: #5865f2;
 
+  /* Survol d'un message : plus marque que `--bg-hover`, qui sert aux boutons.
+     Une ligne de conversation est large, et une teinte trop faible s'y perd. */
+  --message-hover: rgba(6, 6, 7, 0.045);
+
   --gradient-accent: linear-gradient(135deg, #5865f2, #7289da);
   --gradient-aurora: linear-gradient(135deg, #5865f2, #eb459e);
   --gradient-surface: none;
@@ -213,6 +217,7 @@
     --warning: #f0b232;
     --danger: #da373c;
     --danger-hover: #a12d2f;
+    --message-hover: rgba(255, 255, 255, 0.035);
     --danger-soft: rgba(218, 55, 60, 0.15);
 
     --mention-bg: rgba(240, 178, 50, 0.1);
@@ -273,6 +278,77 @@
   --warning: #f0b232;
   --danger: #da373c;
   --danger-hover: #a12d2f;
+  --message-hover: rgba(255, 255, 255, 0.035);
+  --danger-soft: rgba(218, 55, 60, 0.15);
+
+  --mention-bg: rgba(240, 178, 50, 0.1);
+  --mention-border: #f0b232;
+
+  --gradient-surface: none;
+
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: none;
+
+  --edge-light: none;
+
+  color-scheme: dark;
+}
+
+/*
+ * Theme noir.
+ *
+ * Un vrai noir, pas un gris tres sombre : sur un ecran OLED les pixels
+ * s'eteignent, ce qui economise la batterie et donne un contraste que le
+ * theme sombre n'atteint pas.
+ *
+ * Il herite du sombre pour tout le reste — textes, accents, etats. Deux
+ * palettes completes a maintenir finiraient par diverger.
+ */
+:root[data-theme='black'] {
+  --bg-app: #000000;
+  --bg-sidebar: #000000;
+  --bg-rail: #000000;
+  --bg-surface: #000000;
+  --bg-raised: #0d0d0f;
+  --bg-sunken: #050506;
+  --bg-overlay: #000000;
+  --bg-scrim: rgba(0, 0, 0, 0.92);
+  --bg-floating: #000000;
+
+  --glass-bg: #000000;
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-blur: 0px;
+
+  --bg-hover: rgba(255, 255, 255, 0.05);
+  --bg-active: rgba(255, 255, 255, 0.08);
+  --bg-selected: rgba(255, 255, 255, 0.1);
+
+  --text-primary: #f2f3f5;
+  --text-secondary: #dbdee1;
+  --text-muted: #b5bac1;
+  --text-faint: #949ba4;
+  --text-on-accent: #ffffff;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: #1c1c20;
+  --border-strong: #2a2a30;
+
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --accent-soft: rgba(88, 101, 242, 0.18);
+  --accent-text: #949cf7;
+
+  --secondary: #00a8fc;
+  --tertiary: #eb459e;
+
+  --success: #23a559;
+  --warning: #f0b232;
+  --danger: #da373c;
+  --danger-hover: #a12d2f;
+  --message-hover: rgba(255, 255, 255, 0.045);
   --danger-soft: rgba(218, 55, 60, 0.15);
 
   --mention-bg: rgba(240, 178, 50, 0.1);

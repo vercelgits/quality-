@@ -179,6 +179,9 @@ interface ChatState {
   createSpace: (name: string, description?: string) => Promise<Space | null>;
   joinSpace: (inviteCode: string) => Promise<Space | null>;
   createChannel: (spaceId: UUID, name: string, kind: 'text' | 'voice') => Promise<void>;
+  /** Supprime un salon ; renvoie l'espace ou se replier, ou `null` en cas d'echec. */
+  deleteChannel: (channelId: UUID) => Promise<UUID | null>;
+  renameChannel: (channelId: UUID, name: string, topic?: string | null) => Promise<boolean>;
 
   /* Points d'entree utilises par la couche temps reel. */
   applyIncomingMessage: (raw: MessageRow, currentUserId: UUID) => Promise<void>;
@@ -188,9 +191,42 @@ interface ChatState {
   applyThread: (thread: Thread) => void;
   applyProfile: (profile: Profile) => void;
   applyChannel: (channel: Channel) => void;
+  applyChannelDelete: (channelId: UUID) => void;
   setTyping: (view: ViewKey, userId: UUID) => void;
   pruneTyping: () => void;
   reset: () => void;
+}
+
+/**
+ * Messages supprimes tout recemment.
+ *
+ * La suppression est optimiste, mais l'echo temps reel de l'insertion peut
+ * arriver apres elle : sans ce garde-fou, un message efface reapparait tout
+ * seul quelques instants plus tard.
+ *
+ * Les entrees s'effacent au bout d'une minute — bien au-dela du delai d'un
+ * echo en retard, et assez court pour que la table ne grossisse pas.
+ */
+const recentlyDeleted = new Map<UUID, number>();
+const DELETION_MEMORY_MS = 60_000;
+
+function rememberDeletion(messageId: UUID): void {
+  const now = Date.now();
+  recentlyDeleted.set(messageId, now);
+
+  for (const [id, at] of recentlyDeleted) {
+    if (now - at > DELETION_MEMORY_MS) recentlyDeleted.delete(id);
+  }
+}
+
+function wasJustDeleted(messageId: UUID): boolean {
+  const at = recentlyDeleted.get(messageId);
+  if (at === undefined) return false;
+  if (Date.now() - at > DELETION_MEMORY_MS) {
+    recentlyDeleted.delete(messageId);
+    return false;
+  }
+  return true;
 }
 
 const MESSAGE_SELECT_FULL =
@@ -510,6 +546,8 @@ export const useChat = create<ChatState>((set, get) => ({
   deleteMessage: async (view, messageId) => {
     const previous = get().messages[view] ?? [];
 
+    rememberDeletion(messageId);
+
     set((state) => ({
       messages: {
         ...state.messages,
@@ -519,6 +557,9 @@ export const useChat = create<ChatState>((set, get) => ({
 
     const { error } = await supabase.from('messages').delete().eq('id', messageId);
     if (error) {
+      // La suppression a echoue : le message revient, donc le garde-fou n'a
+      // plus lieu d'etre.
+      recentlyDeleted.delete(messageId);
       set((state) => ({ messages: { ...state.messages, [view]: previous }, error: errorMessage(error) }));
     }
   },
@@ -813,9 +854,44 @@ export const useChat = create<ChatState>((set, get) => ({
     get().applyChannel(data as Channel);
   },
 
+  deleteChannel: async (channelId) => {
+    const { data, error } = await supabase.rpc('delete_channel', {
+      p_channel_id: channelId,
+    });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return null;
+    }
+
+    // Retire tout de suite plutot que d'attendre l'echo : on va quitter ce
+    // salon, et l'y voir encore une seconde de plus n'a pas de sens.
+    get().applyChannelDelete(channelId);
+    return data as UUID;
+  },
+
+  renameChannel: async (channelId, name, topic) => {
+    const { data, error } = await supabase.rpc('rename_channel', {
+      p_channel_id: channelId,
+      p_name: name,
+      p_topic: topic ?? null,
+    });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      return false;
+    }
+
+    get().applyChannel(data as Channel);
+    return true;
+  },
+
   /* --------------------------------------------------------------- Temps reel */
 
   applyIncomingMessage: async (raw, currentUserId) => {
+    // Un echo en retard ne doit pas faire revenir ce qu'on vient d'effacer.
+    if (wasJustDeleted(raw.id)) return;
+
     const view = viewKeyFor(raw.channel_id, raw.thread_id);
     const state = get();
 
@@ -913,6 +989,31 @@ export const useChat = create<ChatState>((set, get) => ({
 
   applyProfile: (profile) => {
     set((state) => ({ profiles: { ...state.profiles, [profile.id]: profile } }));
+  },
+
+  /**
+   * Retire un salon et tout ce qui s'y rattachait.
+   *
+   * Les messages et l'etat de lecture partent avec lui : les garder ferait
+   * grossir la memoire pour des vues qu'on ne peut plus ouvrir, et un compteur
+   * de non-lus survivrait a un salon disparu.
+   */
+  applyChannelDelete: (channelId) => {
+    set((state) => {
+      const messages = { ...state.messages };
+      for (const view of Object.keys(messages)) {
+        if (view === channelId || view.startsWith(`${channelId}:`)) delete messages[view];
+      }
+
+      const readStates = { ...state.readStates };
+      delete readStates[channelId];
+
+      return {
+        channels: state.channels.filter((item) => item.id !== channelId),
+        messages,
+        readStates,
+      };
+    });
   },
 
   applyChannel: (channel) => {

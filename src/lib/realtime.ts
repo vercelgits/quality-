@@ -84,7 +84,13 @@ export function startRealtime(userId: UUID): () => void {
       'postgres_changes',
       { event: '*', schema: 'public', table: 'channels' },
       (payload) => {
-        if (payload.eventType === 'DELETE') return;
+        if (payload.eventType === 'DELETE') {
+          // `replica identity full` fournit l'ancienne ligne entiere : sans
+          // elle, un salon supprime par quelqu'un d'autre resterait affiche.
+          const gone = payload.old as Partial<Channel>;
+          if (gone.id) useChat.getState().applyChannelDelete(gone.id);
+          return;
+        }
         useChat.getState().applyChannel(payload.new as Channel);
       },
     )

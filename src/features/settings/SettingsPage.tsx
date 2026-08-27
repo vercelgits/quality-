@@ -544,6 +544,7 @@ function PrivacySection() {
 const THEMES: { value: Theme; label: string; icon: IconName }[] = [
   { value: 'light', label: 'Clair', icon: 'sun' },
   { value: 'dark', label: 'Sombre', icon: 'moon' },
+  { value: 'black', label: 'Noir', icon: 'circle' },
   { value: 'system', label: 'Systeme', icon: 'monitor' },
 ];
 
@@ -633,6 +634,40 @@ function AppearanceSection() {
               <span className="settings__card-hint">{option.hint}</span>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Images animees</h2>
+
+        <div className="settings__field">
+          <span className="settings__label">Avatars et bannieres</span>
+          <div className="settings__segmented">
+            {(
+              [
+                { value: 'always', label: 'Toujours' },
+                { value: 'hover', label: 'Au survol' },
+                { value: 'never', label: 'Jamais' },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={
+                  'settings__seg' +
+                  (preferences.animateAvatars === option.value ? ' is-active' : '')
+                }
+                aria-pressed={preferences.animateAvatars === option.value}
+                onClick={() => setPreference('animateAvatars', option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="settings__hint">
+            Une liste ou dix images bougent en permanence est fatigante a lire.
+            « Reduire les animations » impose « Jamais », quel que soit ce choix.
+          </p>
         </div>
       </section>
 

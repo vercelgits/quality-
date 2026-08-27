@@ -1,7 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
-import { useSession } from '@/store/session';
+
+/** Cycle des themes, et leur nom tel qu'il est annonce dans la palette. */
+const NEXT_THEME: Record<Theme, Theme> = {
+  light: 'dark',
+  dark: 'black',
+  black: 'system',
+  system: 'light',
+};
+
+const THEME_LABELS: Record<Theme, string> = {
+  light: 'clair',
+  dark: 'sombre',
+  black: 'noir',
+  system: 'du systeme',
+};
+import { useSession, type Theme } from '@/store/session';
 import { Icon, type IconName } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 
@@ -116,20 +131,13 @@ export function CommandPalette() {
       },
       {
         id: 'action:theme',
-        label:
-          preferences.theme === 'dark'
-            ? 'Passer au theme clair'
-            : preferences.theme === 'light'
-              ? 'Suivre le theme du systeme'
-              : 'Passer au theme sombre',
-        icon: preferences.theme === 'dark' ? 'sun' : 'moon',
+        // Le cycle annonce ou il mene : « changer de theme » obligerait a
+        // cliquer pour savoir ce qu'on obtient.
+        label: `Passer au theme ${THEME_LABELS[NEXT_THEME[preferences.theme]]}`,
+        icon: preferences.theme === 'light' ? 'moon' : 'sun',
         group: 'Actions',
-        keywords: 'theme sombre clair apparence',
-        run: () =>
-          setPreference(
-            'theme',
-            preferences.theme === 'dark' ? 'light' : preferences.theme === 'light' ? 'system' : 'dark',
-          ),
+        keywords: 'theme sombre clair noir systeme apparence',
+        run: () => setPreference('theme', NEXT_THEME[preferences.theme]),
       },
       {
         id: 'action:density',

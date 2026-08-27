@@ -1,4 +1,6 @@
 import { hueFor, initialsFor } from '@/constants';
+import { AnimatedImage, isAnimatable } from '@/components/AnimatedImage';
+import { useSession } from '@/store/session';
 import type { PresenceStatus, Profile } from '@/types/db';
 
 const STATUS_LABEL: Record<PresenceStatus, string> = {
@@ -24,6 +26,7 @@ interface AvatarProps {
  * reconnaitre quelqu'un du coin de l'oeil.
  */
 export function Avatar({ profile, size = 38, status, showStatus = false }: AvatarProps) {
+  const animate = useSession((state) => state.preferences.animateAvatars);
   const name = profile?.display_name ?? '?';
   // La teinte vient de l'identifiant et non du nom : renommer quelqu'un ne
   // change donc pas la nuance a laquelle on l'a associe.
@@ -32,7 +35,18 @@ export function Avatar({ profile, size = 38, status, showStatus = false }: Avata
   return (
     <span className="avatar" style={{ width: size, height: size }}>
       {profile?.avatar_url ? (
-        <img className="avatar__image" src={profile.avatar_url} alt="" loading="lazy" />
+        // Le composant anime ne sert que pour un format qui peut l'etre :
+        // pour un PNG il ajouterait un canevas et un rendu pour rien.
+        isAnimatable(profile.avatar_url) ? (
+          <AnimatedImage
+            className="avatar__image"
+            src={profile.avatar_url}
+            alt=""
+            mode={animate}
+          />
+        ) : (
+          <img className="avatar__image" src={profile.avatar_url} alt="" loading="lazy" />
+        )
       ) : (
         <span
           className="avatar__initials"

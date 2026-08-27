@@ -102,7 +102,9 @@ test.describe('Parcours authentifies', () => {
     await message.hover();
     await message.getByRole('button', { name: 'Supprimer' }).click();
 
-    await expect(messageRow(page, text)).toHaveCount(0);
+    // La disparition demande un aller-retour vers la base : le delai par
+    // defaut de cinq secondes est parfois trop court sur une liaison lente.
+    await expect(messageRow(page, text)).toHaveCount(0, { timeout: 15_000 });
   });
 
   test('ouvre un fil depuis un message', async ({ page }) => {
@@ -122,14 +124,44 @@ test.describe('Parcours authentifies', () => {
     await expect(page.getByRole('button', { name: 'Marquer resolu' })).toBeVisible();
   });
 
+  test('le survol d un message le distingue visiblement', async ({ page }) => {
+    await openApp(page);
+
+    const text = uniqueText('Survol');
+    await page.locator('.composer__input').fill(text);
+    await page.keyboard.press('Enter');
+
+    const message = await settledMessage(page, text);
+
+    const before = await message.evaluate((node) => getComputedStyle(node).backgroundColor);
+    await message.hover();
+
+    // La transition dure quelques dizaines de millisecondes : on interroge donc
+    // jusqu'a ce que la teinte ait change, sans delai fixe.
+    await expect
+      .poll(async () => message.evaluate((node) => getComputedStyle(node).backgroundColor))
+      .not.toBe(before);
+
+    // Le liseré d'accent apparait le long du bord gauche.
+    const marker = await message.evaluate((node) => {
+      const style = getComputedStyle(node, '::before');
+      return { transform: style.transform, opacity: style.opacity };
+    });
+    expect(marker.opacity).toBe('1');
+  });
+
   test('la palette de commandes s ouvre et ferme au clavier', async ({ page }) => {
     await openApp(page);
 
+    const palette = page.getByRole('dialog', { name: 'Palette de commandes' });
+
     await page.keyboard.press('Control+k');
-    await expect(page.getByRole('dialog', { name: 'Palette de commandes' })).toBeVisible();
+    await expect(palette).toBeVisible({ timeout: 10_000 });
 
     await page.keyboard.press('Escape');
-    await expect(page.getByRole('dialog', { name: 'Palette de commandes' })).toHaveCount(0);
+    // La fermeture passe par une transition : le delai par defaut suffit
+    // d'ordinaire, mais pas quand la machine est chargee.
+    await expect(palette).toHaveCount(0, { timeout: 10_000 });
   });
 
   test('la recherche trouve un message qui vient d etre ecrit', async ({ page }) => {

@@ -128,4 +128,16 @@ export async function openApp(page: Page): Promise<void> {
   await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible({
     timeout: 20_000,
   });
+
+  // Le rail parait avant que le salon par defaut soit choisi : agir a ce
+  // moment-la revient a taper dans un compositeur qui n'existe pas encore.
+  // On attend donc l'un des etats stables de la zone principale.
+  await expect(
+    page
+      .locator('.composer__input')
+      .or(page.locator('.voice-stage'))
+      .or(page.locator('.friends'))
+      .or(page.locator('.main__empty'))
+      .first(),
+  ).toBeVisible({ timeout: 20_000 });
 }

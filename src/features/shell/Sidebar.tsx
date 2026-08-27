@@ -185,6 +185,7 @@ export function Sidebar() {
                   mentions={readStates[channel.id]?.mention_count ?? 0}
                   onSelect={selectChannel}
                   profiles={profiles}
+                  canManage={myRank >= 2}
                 />
               ))}
             </ul>
@@ -219,6 +220,7 @@ export function Sidebar() {
                       mentions={readStates[channel.id]?.mention_count ?? 0}
                       onSelect={selectChannel}
                       profiles={profiles}
+                      canManage={myRank >= 2}
                     />
                   ))}
                 </ul>
@@ -251,6 +253,7 @@ function ChannelItem({
   mentions,
   onSelect,
   profiles,
+  canManage,
 }: {
   channel: Channel;
   active: boolean;
@@ -258,10 +261,13 @@ function ChannelItem({
   mentions: number;
   onSelect: (id: UUID) => void;
   profiles: Record<UUID, import('@/types/db').Profile>;
+  /** Rang dans l'espace : les reglages n'ont de sens qu'a partir d'admin. */
+  canManage: boolean;
 }) {
   const participants = useVoice((state) =>
     channel.kind === 'voice' ? state.participantsByChannel[channel.id] : undefined,
   );
+  const openModal = useUI((state) => state.openModal);
 
   const hasUnread = unread > 0 && !active;
 
@@ -289,6 +295,30 @@ function ChannelItem({
           </span>
         ) : hasUnread ? (
           <span className="channel__dot" aria-label={`${unread} messages non lus`} />
+        ) : null}
+        {canManage ? (
+          // Un `span` et non un `button` : imbriquer deux boutons est invalide,
+          // et le navigateur en fait ce qu'il veut. Le role et le clavier sont
+          // rendus explicitement.
+          <span
+            role="button"
+            tabIndex={0}
+            className="channel__manage"
+            title={`Reglages de ${channel.name}`}
+            aria-label={`Reglages de ${channel.name}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              openModal({ kind: 'channel-settings', channelId: channel.id });
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter' && event.key !== ' ') return;
+              event.preventDefault();
+              event.stopPropagation();
+              openModal({ kind: 'channel-settings', channelId: channel.id });
+            }}
+          >
+            <Icon name="settings" size={14} />
+          </span>
         ) : null}
       </button>
 

@@ -141,7 +141,11 @@ export async function uploadProfileImage(
   userId: UUID,
   kind: 'avatar' | 'banner',
 ): Promise<{ url: string } | { error: string }> {
-  const limit = kind === 'avatar' ? 2 * 1024 * 1024 : 4 * 1024 * 1024;
+  // Une image animee pese bien plus qu'une image fixe a dimensions egales :
+  // garder la meme limite reviendrait a refuser des avatars animes ordinaires.
+  const animated = /gif|webp|apng|avif/.test(file.type);
+  const base = kind === 'avatar' ? 2 : 4;
+  const limit = (animated ? base * 4 : base) * 1024 * 1024;
 
   if (file.size > limit) {
     return { error: `L'image depasse ${Math.round(limit / 1024 / 1024)} Mo.` };

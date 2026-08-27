@@ -9,6 +9,7 @@ export type Modal =
   | { kind: 'create-space' }
   | { kind: 'join-space' }
   | { kind: 'create-channel'; spaceId: UUID }
+  | { kind: 'channel-settings'; channelId: UUID }
   | { kind: 'invite'; spaceId: UUID }
   | { kind: 'profile'; userId: UUID }
   | { kind: 'moderation'; spaceId: UUID }

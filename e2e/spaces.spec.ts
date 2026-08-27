@@ -79,7 +79,9 @@ test.describe('Espaces et salons', () => {
     await openDialog(page).getByLabel('Nom').fill(channelName);
     await openDialog(page).getByRole('button', { name: 'Creer', exact: true }).click();
 
-    await expect(page.getByRole('button', { name: new RegExp(channelName) })).toBeVisible({
+    // La ligne du salon, pas son bouton de reglages : ce dernier porte aussi le
+    // nom du salon dans son etiquette.
+    await expect(page.locator('.channel', { hasText: channelName })).toBeVisible({
       timeout: 15_000,
     });
   });
@@ -125,6 +127,51 @@ test.describe('Espaces et salons', () => {
 
     await moderation.click();
     await expect(openDialog(page)).toBeVisible();
+  });
+
+  test('les reglages d un salon s ouvrent depuis sa ligne', async ({ page }) => {
+    await openApp(page);
+
+    const row = page.locator('.channel[data-kind="text"]').first();
+    await row.hover();
+
+    const manage = row.locator('.channel__manage');
+    if ((await manage.count()) === 0) {
+      test.skip(true, 'Ce compte n administre aucun espace.');
+      return;
+    }
+
+    await manage.click();
+    await expect(openDialog(page)).toBeVisible();
+    await expect(openDialog(page).getByLabel('Nom')).toBeVisible();
+  });
+
+  test('la suppression d un salon exige d en retaper le nom', async ({ page }) => {
+    await openApp(page);
+
+    const row = page.locator('.channel[data-kind="text"]').first();
+    const name = ((await row.locator('.channel__name').textContent()) ?? '').trim();
+
+    await row.hover();
+    const manage = row.locator('.channel__manage');
+    if ((await manage.count()) === 0) {
+      test.skip(true, 'Ce compte n administre aucun espace.');
+      return;
+    }
+    await manage.click();
+
+    const dialog = openDialog(page);
+    const remove = dialog.getByRole('button', { name: 'Supprimer' });
+
+    // Rien ne part sur un clic distrait : la suppression emporte tous les
+    // messages du salon.
+    await expect(remove).toBeDisabled();
+
+    await dialog.getByRole('textbox', { name: /Tapez .* pour confirmer/ }).fill('nimporte quoi');
+    await expect(remove).toBeDisabled();
+
+    await dialog.getByRole('textbox', { name: /Tapez .* pour confirmer/ }).fill(name);
+    await expect(remove).toBeEnabled();
   });
 
   test('Echap referme la fenetre ouverte', async ({ page }) => {

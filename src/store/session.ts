@@ -7,7 +7,11 @@ import type { Profile, PresenceStatus } from '@/types/db';
 /* Preferences d'affichage                                                     */
 /* -------------------------------------------------------------------------- */
 
-export type Theme = 'light' | 'dark' | 'system';
+/**
+ * `black` est un vrai noir, distinct de `dark` : sur un ecran OLED les pixels
+ * s'eteignent vraiment. Ce n'est pas la meme demande qu'un fond sombre.
+ */
+export type Theme = 'light' | 'dark' | 'black' | 'system';
 export type Density = 'compact' | 'cozy' | 'spacious';
 export type AccentName =
   | 'indigo'
@@ -30,6 +34,13 @@ export interface Preferences {
   sendOnEnter: boolean;
   /** Affiche l'heure de chaque message plutot que seulement des groupes. */
   showTimestamps: boolean;
+  /**
+   * Quand jouer les avatars et bannieres animes.
+   *
+   * `hover` par defaut, comme ailleurs : une liste de messages ou dix images
+   * bougent en permanence est fatigante a lire, et coute cher en decodage.
+   */
+  animateAvatars: 'always' | 'hover' | 'never';
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -39,6 +50,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   reduceMotion: false,
   sendOnEnter: true,
   showTimestamps: true,
+  animateAvatars: 'hover',
 };
 
 const STORAGE_KEY = 'orbit:preferences';
@@ -76,9 +88,13 @@ export function applyPreferences(preferences: Preferences): void {
 
   root.setAttribute('data-density', preferences.density);
   root.setAttribute('data-accent', preferences.accent);
+  root.setAttribute('data-animate', preferences.animateAvatars);
 
   if (preferences.reduceMotion) {
     root.setAttribute('data-motion', 'reduced');
+    // Couper les transitions sans figer les images animees serait incoherent :
+    // ce sont elles qui bougent le plus.
+    root.setAttribute('data-animate', 'never');
   } else {
     root.removeAttribute('data-motion');
   }

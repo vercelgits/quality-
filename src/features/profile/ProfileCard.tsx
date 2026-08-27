@@ -8,6 +8,7 @@ import { Avatar } from '@/components/Avatar';
 import { Icon, type IconName } from '@/components/Icon';
 import { hueFor } from '@/constants';
 import { ROLE_LABEL, type Profile, type ProfileStats, type SpaceRole, type UUID } from '@/types/db';
+import { AnimatedImage, isAnimatable } from '@/components/AnimatedImage';
 
 /**
  * Carte de profil.
@@ -35,6 +36,7 @@ export function ProfileCard({ userId }: { userId: UUID }) {
   const profiles = useChat((state) => state.profiles);
   const openDm = useChat((state) => state.openDm);
   const me = useSession((state) => state.profile);
+  const animate = useSession((state) => state.preferences.animateAvatars);
   const openModal = useUI((state) => state.openModal);
   const closeModal = useUI((state) => state.closeModal);
   const selectChannel = useUI((state) => state.selectChannel);
@@ -87,7 +89,16 @@ export function ProfileCard({ userId }: { userId: UUID }) {
       <TiltCard className="profile__card" glare>
         <div className="profile__banner">
           {profile.banner_url ? (
-            <img src={profile.banner_url} alt="" className="profile__banner-image" />
+            isAnimatable(profile.banner_url) ? (
+              <AnimatedImage
+                src={profile.banner_url}
+                alt=""
+                className="profile__banner-image"
+                mode={animate}
+              />
+            ) : (
+              <img src={profile.banner_url} alt="" className="profile__banner-image" />
+            )
           ) : (
             <span className="profile__banner-fallback" aria-hidden="true" />
           )}

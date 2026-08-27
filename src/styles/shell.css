@@ -334,6 +334,44 @@
 
 /* ------------------------------------------------------------------- Salons */
 
+/* Bouton de reglages, revele au survol de la ligne. Toujours present dans le
+   parcours clavier : le masquer au point de le rendre inatteignable priverait
+   d'un acces qui n'existe nulle part ailleurs. */
+.channel__manage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-left: auto;
+  flex-shrink: 0;
+  border-radius: var(--radius-xs);
+  color: var(--text-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.channel:hover .channel__manage,
+.channel__manage:focus-visible {
+  opacity: 1;
+}
+
+.channel__manage:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+/* Au doigt, il n'y a pas de survol : le bouton reste visible en permanence. */
+@media (hover: none) {
+  .channel__manage {
+    opacity: 1;
+  }
+}
+
 .channel {
   display: flex;
   align-items: center;
@@ -858,7 +896,90 @@
 }
 
 .message:hover {
-  background: rgba(2, 2, 2, 0.06);
+  background: var(--message-hover);
+}
+
+/*
+ * Un liseré qui parait au survol, plutot qu'un deplacement du contenu.
+ *
+ * Il est dessine par un pseudo-element de largeur nulle qui s'etire : animer
+ * une bordure reelle changerait la largeur du texte a chaque passage de souris,
+ * et toute la ligne tressauterait.
+ */
+.message::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 2px;
+  background: var(--accent);
+  transform: scaleY(0);
+  transform-origin: center;
+  opacity: 0;
+  transition:
+    transform var(--duration-fast) var(--ease-out),
+    opacity var(--duration-fast) var(--ease-out);
+}
+
+.message:hover::before {
+  transform: scaleY(1);
+  opacity: 1;
+}
+
+/* L'horodatage des messages groupes n'apparait qu'au survol : il glisse depuis
+   la gauche au lieu de surgir. */
+.message.is-grouped .message__time {
+  opacity: 0;
+  transform: translateX(-2px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.message.is-grouped:hover .message__time {
+  opacity: 1;
+  transform: none;
+}
+
+/* La barre d'actions monte de deux pixels en apparaissant. */
+.message__actions {
+  transform: translateY(2px);
+}
+
+.message:hover .message__actions,
+.message:focus-within .message__actions {
+  transform: none;
+}
+
+.message__action {
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring);
+}
+
+.message__action:hover {
+  transform: translateY(-1px) scale(1.08);
+}
+
+/* L'avatar reagit lui aussi, discretement : c'est ce qui donne l'impression
+   que la ligne entiere repond au curseur. */
+.message__gutter .avatar {
+  transition: transform var(--duration-fast) var(--spring);
+}
+
+.message:hover .message__gutter .avatar {
+  transform: scale(1.06);
+}
+
+[data-motion='reduced'] .message::before,
+[data-motion='reduced'] .message__actions,
+[data-motion='reduced'] .message__action,
+[data-motion='reduced'] .message__gutter .avatar,
+[data-motion='reduced'] .message.is-grouped .message__time {
+  transition: none;
+  transform: none;
 }
 
 .message.is-mention {

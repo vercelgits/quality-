@@ -12,6 +12,7 @@ import { Icon } from '@/components/Icon';
 import { useUI } from '@/store/ui';
 import { useChat } from '@/store/chat';
 import { supabase } from '@/lib/supabase';
+import type { UUID } from '@/types/db';
 import { LIMITS } from '@/constants';
 
 /** Point d'entree unique : affiche la boite de dialogue demandee par l'etat. */
@@ -52,6 +53,11 @@ export function Modals() {
         open={modal.kind === 'poll'}
         channelId={modal.kind === 'poll' ? modal.channelId : null}
         threadId={modal.kind === 'poll' ? modal.threadId : null}
+        onClose={closeModal}
+      />
+      <ChannelSettingsModal
+        open={modal.kind === 'channel-settings'}
+        channelId={modal.kind === 'channel-settings' ? modal.channelId : null}
         onClose={closeModal}
       />
       <BookmarksModal open={modal.kind === 'bookmarks'} onClose={closeModal} />
@@ -443,3 +449,152 @@ function ProfileModal({
 /* ========================================================================== */
 /* Notifications                                                              */
 /* ========================================================================== */
+
+
+/* ========================================================================== */
+/* Reglages d'un salon                                                        */
+/* ========================================================================== */
+
+/**
+ * Renommer ou supprimer un salon.
+ *
+ * La suppression demande de retaper le nom du salon. C'est une friction
+ * volontaire : elle emporte tous les messages et rien ne les ramene, alors
+ * qu'une simple confirmation se clique sans lire.
+ */
+function ChannelSettingsModal({
+  open,
+  channelId,
+  onClose,
+}: {
+  open: boolean;
+  channelId: UUID | null;
+  onClose: () => void;
+}) {
+  const channels = useChat((state) => state.channels);
+  const renameChannel = useChat((state) => state.renameChannel);
+  const deleteChannel = useChat((state) => state.deleteChannel);
+  const selectSpace = useUI((state) => state.selectSpace);
+
+  const channel = channels.find((item) => item.id === channelId) ?? null;
+
+  const [name, setName] = useState('');
+  const [topic, setTopic] = useState('');
+  const [confirmation, setConfirmation] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open || !channel) return;
+    setName(channel.name);
+    setTopic(channel.topic ?? '');
+    setConfirmation('');
+  }, [open, channel?.id]);
+
+  if (!channel) return null;
+
+  const renamed = name.trim() !== '' && (name.trim() !== channel.name || topic !== (channel.topic ?? ''));
+  const confirmed = confirmation.trim() === channel.name;
+
+  const save = async () => {
+    setBusy(true);
+    const done = await renameChannel(channel.id, name.trim(), topic.trim() || null);
+    setBusy(false);
+    if (done) onClose();
+  };
+
+  const remove = async () => {
+    setBusy(true);
+    const spaceId = await deleteChannel(channel.id);
+    setBusy(false);
+
+    if (spaceId) {
+      // Le salon vient de disparaitre : rester dessus laisserait une vue vide.
+      selectSpace(spaceId);
+      onClose();
+    }
+  };
+
+  return (
+    <Modal
+      open={open}
+      title={`Reglages de ${channel.name}`}
+      onClose={onClose}
+      width={520}
+      footer={
+        <>
+          <button type="button" className="btn" onClick={onClose}>
+            Fermer
+          </button>
+          <div className="spacer" />
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={!renamed || busy}
+            onClick={() => void save()}
+          >
+            {busy ? <span className="spinner" /> : null}
+            Enregistrer
+          </button>
+        </>
+      }
+    >
+      <div className="field">
+        <label className="field__label" htmlFor="channel-rename">
+          Nom
+        </label>
+        <input
+          id="channel-rename"
+          className="input"
+          value={name}
+          maxLength={LIMITS.channelNameLength}
+          onChange={(event) => setName(event.target.value)}
+        />
+      </div>
+
+      {channel.kind === 'text' ? (
+        <div className="field">
+          <label className="field__label" htmlFor="channel-topic">
+            Sujet
+          </label>
+          <input
+            id="channel-topic"
+            className="input"
+            value={topic}
+            maxLength={LIMITS.topicLength}
+            placeholder="De quoi parle-t-on ici ?"
+            onChange={(event) => setTopic(event.target.value)}
+          />
+        </div>
+      ) : null}
+
+      <hr className="divider" />
+
+      <section className="danger-zone">
+        <h3 className="danger-zone__title">Supprimer ce salon</h3>
+        <p className="danger-zone__body">
+          Tous les messages, fichiers et fils de ce salon partent avec lui, sans
+          retour possible. Tapez <strong>{channel.name}</strong> pour confirmer.
+        </p>
+
+        <div className="danger-zone__row">
+          <input
+            className="input"
+            value={confirmation}
+            placeholder={channel.name}
+            aria-label={`Tapez ${channel.name} pour confirmer la suppression`}
+            onChange={(event) => setConfirmation(event.target.value)}
+          />
+          <button
+            type="button"
+            className="btn btn--danger"
+            disabled={!confirmed || busy}
+            onClick={() => void remove()}
+          >
+            <Icon name="trash" size={14} />
+            Supprimer
+          </button>
+        </div>
+      </section>
+    </Modal>
+  );
+}
