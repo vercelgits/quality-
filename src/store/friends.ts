@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase, errorMessage } from '@/lib/supabase';
 import type { FriendLink, FriendsOverview, Profile, UUID } from '@/types/db';
 
@@ -38,6 +39,10 @@ interface FriendsState {
   clearNotice: () => void;
   reset: () => void;
 }
+
+/** Abonnement en cours, hors de l'etat React : il n'entre dans aucun rendu. */
+let liveChannel: RealtimeChannel | null = null;
+let subscriptionCount = 0;
 
 const EMPTY = {
   friends: [] as FriendLink[],
@@ -85,8 +90,21 @@ export const useFriends = create<FriendsState>((set, get) => ({
    * coute moins cher que la synchronisation partielle a maintenir.
    */
   subscribe: (userId) => {
+    // Un abonnement precedent peut ne pas etre entierement retire : sa
+    // suppression est asynchrone, alors que React peut remonter le composant
+    // dans la foulee. On le libere donc explicitement, et le sujet porte un
+    // numero d'ordre pour qu'une suppression encore en vol ne puisse pas nous
+    // rendre l'ancien canal — deja abonne, il refuserait les gestionnaires et
+    // l'exception viderait toute l'application.
+    if (liveChannel) {
+      void supabase.removeChannel(liveChannel);
+      liveChannel = null;
+    }
+
+    subscriptionCount += 1;
+
     const channel = supabase
-      .channel(`orbit:friends:${userId}`)
+      .channel(`orbit:friends:${userId}:${subscriptionCount}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'friendships' },
@@ -94,7 +112,10 @@ export const useFriends = create<FriendsState>((set, get) => ({
       )
       .subscribe();
 
+    liveChannel = channel;
+
     return () => {
+      if (liveChannel === channel) liveChannel = null;
       void supabase.removeChannel(channel);
     };
   },

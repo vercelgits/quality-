@@ -1,39 +1,64 @@
-import { test, expect } from '@playwright/test';
-import { signIn, uniqueText, withoutCredentials, skipReason } from './session';
+import { test, expect, type Page } from '@playwright/test';
+import { openApp, uniqueText, withoutCredentials, skipReason } from './session';
 
 /** Parcours critiques avec une session ouverte. */
+
+/**
+ * Designe la ligne d'un message par son contenu.
+ *
+ * Le texte ne peut pas servir de reperage direct : le bloc de texte enrichi et
+ * le paragraphe qu'il contient portent la meme chaine, et Playwright refuse une
+ * correspondance ambigue.
+ */
+function messageRow(page: Page, text: string) {
+  return page.locator('.message', { hasText: text });
+}
+
+/**
+ * Attend qu'un message soit confirme par le serveur avant d'agir dessus.
+ *
+ * Un message envoye s'affiche d'abord de maniere optimiste, puis l'echo du
+ * temps reel le remplace. Agir entre les deux vise un noeud sur le point de
+ * disparaitre : le survol se perd et le clic n'aboutit jamais.
+ */
+async function settledMessage(page: Page, text: string) {
+  const row = page.locator('.message:not(.is-pending)', { hasText: text }).last();
+  await expect(row).toBeVisible({ timeout: 15_000 });
+  await row.scrollIntoViewIfNeeded();
+  return row;
+}
 
 test.describe('Parcours authentifies', () => {
   test.skip(withoutCredentials, skipReason);
 
   test('se connecte et atteint un salon', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     await expect(page.getByRole('button', { name: 'Messages prives' })).toBeVisible();
     await expect(page.locator('.composer__input')).toBeVisible();
   });
 
   test('envoie un message et le voit apparaitre', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     const text = uniqueText('Test envoi');
     await page.locator('.composer__input').fill(text);
     await page.keyboard.press('Enter');
 
-    await expect(page.getByText(text)).toBeVisible({ timeout: 10_000 });
+    await expect(messageRow(page, text)).toBeVisible({ timeout: 10_000 });
     // Le compositeur se vide : sans cela on renverrait le meme texte au clic suivant.
     await expect(page.locator('.composer__input')).toHaveValue('');
   });
 
   test('modifie un message deja envoye', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     const original = uniqueText('Avant modification');
     await page.locator('.composer__input').fill(original);
     await page.keyboard.press('Enter');
-    await expect(page.getByText(original)).toBeVisible({ timeout: 10_000 });
+    await expect(messageRow(page, original)).toBeVisible({ timeout: 10_000 });
 
-    const message = page.locator('.message', { hasText: original }).last();
+    const message = await settledMessage(page, original);
     await message.hover();
     await message.getByRole('button', { name: 'Modifier' }).click();
 
@@ -41,21 +66,21 @@ test.describe('Parcours authentifies', () => {
     await editor.fill(`${original} — corrige`);
     await editor.press('Enter');
 
-    await expect(page.getByText(`${original} — corrige`)).toBeVisible();
+    await expect(messageRow(page, `${original} — corrige`)).toBeVisible();
     await expect(page.getByText('(modifie)').last()).toBeVisible();
   });
 
   test('ajoute une reaction puis la retire', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     const text = uniqueText('Test reaction');
     await page.locator('.composer__input').fill(text);
     await page.keyboard.press('Enter');
-    await expect(page.getByText(text)).toBeVisible({ timeout: 10_000 });
+    await expect(messageRow(page, text)).toBeVisible({ timeout: 10_000 });
 
-    const message = page.locator('.message', { hasText: text }).last();
+    const message = await settledMessage(page, text);
     await message.hover();
-    await message.getByRole('button', { name: 'Reagir avec 👍' }).click();
+    await message.getByTitle('Reagir avec 👍').click();
 
     const reaction = message.locator('.reaction', { hasText: '👍' });
     await expect(reaction).toBeVisible();
@@ -66,29 +91,29 @@ test.describe('Parcours authentifies', () => {
   });
 
   test('supprime un message', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     const text = uniqueText('A supprimer');
     await page.locator('.composer__input').fill(text);
     await page.keyboard.press('Enter');
-    await expect(page.getByText(text)).toBeVisible({ timeout: 10_000 });
+    await expect(messageRow(page, text)).toBeVisible({ timeout: 10_000 });
 
-    const message = page.locator('.message', { hasText: text }).last();
+    const message = await settledMessage(page, text);
     await message.hover();
     await message.getByRole('button', { name: 'Supprimer' }).click();
 
-    await expect(page.getByText(text)).toHaveCount(0);
+    await expect(messageRow(page, text)).toHaveCount(0);
   });
 
   test('ouvre un fil depuis un message', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     const text = uniqueText('Question a suivre');
     await page.locator('.composer__input').fill(text);
     await page.keyboard.press('Enter');
-    await expect(page.getByText(text)).toBeVisible({ timeout: 10_000 });
+    await expect(messageRow(page, text)).toBeVisible({ timeout: 10_000 });
 
-    const message = page.locator('.message', { hasText: text }).last();
+    const message = await settledMessage(page, text);
     await message.hover();
     await message.getByRole('button', { name: 'Ouvrir un fil' }).click();
 
@@ -98,7 +123,7 @@ test.describe('Parcours authentifies', () => {
   });
 
   test('la palette de commandes s ouvre et ferme au clavier', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     await page.keyboard.press('Control+k');
     await expect(page.getByRole('dialog', { name: 'Palette de commandes' })).toBeVisible();
@@ -108,34 +133,41 @@ test.describe('Parcours authentifies', () => {
   });
 
   test('la recherche trouve un message qui vient d etre ecrit', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     const needle = `sentinelle${Date.now().toString(36)}`;
     await page.locator('.composer__input').fill(`Message contenant ${needle}`);
     await page.keyboard.press('Enter');
-    await expect(page.getByText(needle)).toBeVisible({ timeout: 10_000 });
+    await expect(messageRow(page, needle)).toBeVisible({ timeout: 10_000 });
 
     await page.keyboard.press('Control+f');
     await page.getByLabel('Rechercher dans les messages').fill(needle);
 
-    await expect(page.locator('.search-hit').first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('.search-hit', { hasText: needle }).first()).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test('le lien d evitement mene a la conversation', async ({ page }) => {
-    await signIn(page);
-
-    await page.evaluate(() => document.body.focus());
-    await page.keyboard.press('Tab');
+    await openApp(page);
 
     const skip = page.getByRole('link', { name: 'Aller a la conversation' });
+
+    // La tabulation ne peut pas servir de point de depart : le compositeur
+    // prend le focus au chargement, et l'ordre de tabulation repart donc de
+    // lui. On verifie ce qui compte vraiment — que le lien se prend au clavier
+    // et mene quelque part.
+    await skip.focus();
     await expect(skip).toBeFocused();
 
-    // La cible doit exister, sinon le lien ne mene nulle part.
     await expect(page.locator('#conversation')).toBeAttached();
+
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#conversation')).toBeInViewport();
   });
 
   test('bascule vers les messages prives', async ({ page }) => {
-    await signIn(page);
+    await openApp(page);
 
     await page.getByRole('button', { name: 'Messages prives' }).click();
 

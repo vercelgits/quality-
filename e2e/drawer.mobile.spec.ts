@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { openApp, withoutCredentials, skipReason } from './session';
 
 /**
  * Tiroir de navigation sur petit ecran.
@@ -8,18 +9,15 @@ import { test, expect } from '@playwright/test';
  * sans eux.
  */
 
-const email = process.env['E2E_EMAIL'];
-const password = process.env['E2E_PASSWORD'];
-
 test.describe('Navigation mobile', () => {
-  test.skip(!email || !password, 'Definissez E2E_EMAIL et E2E_PASSWORD.');
+  test.skip(withoutCredentials, skipReason);
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/connexion');
-    await page.getByLabel('Adresse e-mail').fill(email!);
-    await page.getByLabel('Mot de passe').fill(password!);
-    await page.getByRole('button', { name: 'Entrer' }).click();
-    await expect(page.locator('.workspace')).toBeVisible({ timeout: 20_000 });
+    await openApp(page);
+
+    // La coquille parait avant que le salon par defaut soit choisi : sans
+    // attendre l'en-tete, on cherche un bouton qui n'est pas encore monte.
+    await expect(page.locator('.channel-header__toggle')).toBeVisible({ timeout: 20_000 });
   });
 
   test('la conversation occupe tout l ecran, le tiroir est hors champ', async ({ page }) => {
@@ -59,7 +57,13 @@ test.describe('Navigation mobile', () => {
     await page.getByRole('button', { name: 'Ouvrir la navigation' }).click();
     await expect(page.locator('.workspace')).toHaveClass(/is-nav-open/);
 
-    await page.getByRole('button', { name: 'Fermer la navigation' }).click();
+    // Le voile couvre tout l'ecran, mais le tiroir en masque le centre : on
+    // vise la bande restee visible a droite, la ou l'on appuie reellement.
+    const viewport = page.viewportSize()!;
+    await page
+      .getByRole('button', { name: 'Fermer la navigation' })
+      .click({ position: { x: viewport.width - 20, y: 80 } });
+
     await expect(page.locator('.workspace')).not.toHaveClass(/is-nav-open/);
   });
 

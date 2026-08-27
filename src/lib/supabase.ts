@@ -87,6 +87,20 @@ function translate(message: string): string {
       'identifiants et enregistrez.'
     );
   }
+  // Une fonction absente du schema signifie presque toujours une migration
+  // qui n'a pas ete appliquee. Le message brut de PostgREST est en anglais et
+  // parle de « schema cache » : incomprehensible pour qui utilise
+  // l'application, et trompeur pour qui l'installe.
+  if (
+    lowered.includes('schema cache') ||
+    lowered.includes('could not find the function') ||
+    lowered.includes('does not exist')
+  ) {
+    return (
+      'Cette fonctionnalite n’est pas encore disponible sur ce projet : ' +
+      'une migration de la base reste a appliquer.'
+    );
+  }
   if (lowered.includes('redirect_uri_mismatch')) {
     return (
       'L’adresse de retour ne correspond pas a celle declaree chez Google. ' +

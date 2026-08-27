@@ -108,7 +108,9 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           type="button"
           className="btn btn--primary"
           onClick={() => profile && void join(channel.id, profile.id)}
-          disabled={connecting}
+          // Sans `profile`, le clic ne declenchait rien du tout : le bouton
+          // restait actif et paraissait ignore.
+          disabled={connecting || !profile}
         >
           {connecting ? <span className="spinner" /> : <Icon name="volume" size={15} />}
           Rejoindre le salon vocal

@@ -1,4 +1,46 @@
 import { expect, type Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+/**
+ * Charge `.env.e2e` avant toute lecture de l'environnement.
+ *
+ * L'appel vit ici et non dans la configuration : les imports d'un module sont
+ * evalues avant son corps, si bien qu'un chargement place dans la configuration
+ * arrivait apres la lecture faite par ce fichier — et tous les parcours
+ * authentifies se declaraient ignores.
+ */
+function loadTestCredentials(): void {
+  let raw: string;
+  try {
+    raw = readFileSync(new URL('../.env.e2e', import.meta.url), 'utf8');
+  } catch {
+    return; // Absent : les parcours authentifies se declareront ignores.
+  }
+
+  const NEWLINE = String.fromCharCode(10);
+
+  for (const line of raw.split(NEWLINE)) {
+    const trimmed = line.trim();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+
+    const separator = trimmed.indexOf('=');
+    if (separator === -1) continue;
+
+    const key = trimmed.slice(0, separator).trim();
+    // Les guillemets sont retires : on en met par reflexe autour d'un mot de
+    // passe, et ils partiraient sinon tels quels dans le formulaire.
+    const value = trimmed
+      .slice(separator + 1)
+      .trim()
+      .replace(/^["']|["']$/g, '');
+
+    // L'environnement reel garde la priorite : une commande explicite doit
+    // pouvoir surcharger le fichier.
+    if (value !== '' && process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+loadTestCredentials();
 
 /**
  * Ouverture de session partagee par les parcours authentifies.
@@ -68,4 +110,22 @@ async function passOnboarding(page: Page): Promise<void> {
 /** Texte unique par execution, pour ne jamais confondre deux essais. */
 export function uniqueText(prefix: string): string {
   return `${prefix} ${Date.now().toString(36)}`;
+}
+
+/** Session enregistree par le projet d'amorcage, rejouee par les autres. */
+export const STATE_FILE = 'playwright/.auth/user.json';
+
+/**
+ * Ouvre l'application avec la session deja etablie.
+ *
+ * Les parcours authentifies rejouent l'etat enregistre au lieu de repasser par
+ * le formulaire : une cinquantaine de connexions en quelques secondes finit par
+ * se heurter aux limites d'authentification de Supabase, et les echecs qui en
+ * decoulent n'apprennent rien sur l'application.
+ */
+export async function openApp(page: Page): Promise<void> {
+  await page.goto('/');
+  await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible({
+    timeout: 20_000,
+  });
 }

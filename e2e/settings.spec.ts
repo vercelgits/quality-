@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signIn, withoutCredentials, skipReason } from './session';
+import { openApp, withoutCredentials, skipReason } from './session';
 
 /**
  * Parametres en pleine page.
@@ -13,7 +13,7 @@ test.describe('Parametres', () => {
   test.skip(withoutCredentials, skipReason);
 
   async function openSettings(page: import('@playwright/test').Page): Promise<void> {
-    await signIn(page);
+    await openApp(page);
     await page.getByRole('button', { name: 'Preferences' }).click();
     await expect(page.getByRole('dialog', { name: 'Parametres' })).toBeVisible({
       timeout: 10_000,

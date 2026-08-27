@@ -795,11 +795,22 @@ export const useChat = create<ChatState>((set, get) => ({
   createChannel: async (spaceId, name, kind) => {
     const position = get().channels.filter((channel) => channel.space_id === spaceId).length;
 
-    const { error } = await supabase
+    // La ligne creee est relue et appliquee tout de suite : s'en remettre au
+    // seul echo du temps reel laisserait le salon absent de la liste tant que
+    // l'evenement n'arrive pas, et la creation paraitrait sans effet.
+    // `applyChannel` etant idempotent, l'echo qui suivra ne fera rien de plus.
+    const { data, error } = await supabase
       .from('channels')
-      .insert({ space_id: spaceId, name, kind, position });
+      .insert({ space_id: spaceId, name, kind, position })
+      .select()
+      .single();
 
-    if (error) set({ error: errorMessage(error) });
+    if (error) {
+      set({ error: errorMessage(error) });
+      return;
+    }
+
+    get().applyChannel(data as Channel);
   },
 
   /* --------------------------------------------------------------- Temps reel */

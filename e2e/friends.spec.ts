@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signIn, withoutCredentials, skipReason } from './session';
+import { openApp, withoutCredentials, skipReason } from './session';
 
 /**
  * Page des amis.
@@ -15,11 +15,29 @@ test.describe('Amis', () => {
   test.skip(withoutCredentials, skipReason);
 
   async function openFriends(page: import('@playwright/test').Page): Promise<void> {
-    await signIn(page);
+    await openApp(page);
     await page.getByRole('button', { name: 'Messages prives' }).click();
     await expect(page.getByRole('tablist', { name: /Listes d.amis/ })).toBeVisible({
       timeout: 15_000,
     });
+
+    // Sans la migration des amis, la page s'affiche mais toutes les listes
+    // restent vides : les tests passeraient sans rien prouver. Se declarer
+    // ignore dit la verite ; passer serait un mensonge.
+    //
+    // L'erreur arrive apres la barre d'onglets, le chargement etant lance au
+    // montage : la chercher immediatement ne la trouverait jamais.
+    const failure = page.locator('.friends__error');
+    await failure.waitFor({ state: 'visible', timeout: 4_000 }).catch(() => {
+      // Aucune erreur : la migration est en place.
+    });
+
+    if (await failure.isVisible().catch(() => false)) {
+      const text = (await failure.textContent()) ?? '';
+      // Le message reste lisible meme dans ce cas : c'est verifiable ici.
+      expect(text).not.toMatch(/schema cache|PGRST|could not find/i);
+      test.skip(true, 'Migration des amis non appliquee sur ce projet Supabase.');
+    }
   }
 
   test('le bouton des messages prives ouvre la page des amis', async ({ page }) => {

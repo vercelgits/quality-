@@ -1023,9 +1023,12 @@
 
 /* ------------------------------------------------------- Actions au survol */
 
+/* La barre deborde vers le haut, mais pas au point que le centre des boutons
+   sorte de la ligne : au-dela, le survol se perd en chemin vers eux et la barre
+   disparait sous le curseur. */
 .message__actions {
   position: absolute;
-  top: -16px;
+  top: -8px;
   right: 16px;
   display: flex;
   align-items: center;

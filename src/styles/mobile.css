@@ -24,6 +24,14 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* Le seul moyen d'atteindre la navigation : elle est hors champ, et sans ce
+     bouton la barre laterale devient inaccessible sur telephone. */
+  .channel-header__toggle {
+    display: grid;
+    place-items: center;
+    flex-shrink: 0;
+  }
+
   /* --------------------------------------------------------------- Tiroir */
 
   .workspace__nav {

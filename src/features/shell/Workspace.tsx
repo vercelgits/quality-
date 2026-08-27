@@ -77,7 +77,16 @@ export function Workspace() {
     // demandes recues doit etre juste des l'ouverture de l'application, pas
     // seulement quand on pense a aller voir.
     void useFriends.getState().load();
-    const stopFriends = useFriends.getState().subscribe(userId);
+
+    // Un abonnement qui echoue ne doit pas emporter l'application : sans cette
+    // garde, une exception ici vide l'arbre React et l'ecran devient blanc,
+    // alors que seule la pastille des demandes serait concernee.
+    let stopFriends = () => {};
+    try {
+      stopFriends = useFriends.getState().subscribe(userId);
+    } catch {
+      // Les amis resteront charges au montage, sans mise a jour en direct.
+    }
 
     return () => {
       cancelled = true;
