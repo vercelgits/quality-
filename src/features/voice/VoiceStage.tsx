@@ -160,10 +160,18 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           return (
             <li
               key={participant.user_id}
+              // Un seul etat porte l'anneau a la fois, du plus grave au plus
+              // anodin : sourd, puis micro coupe, puis en train de parler.
+              // Les cumuler donnerait deux couleurs sur le meme bord.
               className={
                 'voice-tile' +
-                (isSpeaking && !participant.muted ? ' is-speaking' : '') +
-                (participant.muted ? ' is-muted' : '')
+                (participant.deafened
+                  ? ' is-deafened'
+                  : participant.muted
+                    ? ' is-muted'
+                    : isSpeaking
+                      ? ' is-speaking'
+                      : '')
               }
             >
               {participant.video ? (

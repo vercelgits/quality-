@@ -55,20 +55,59 @@
 }
 
 /*
- * L'anneau de parole est dessine en ombre interieure, pas en bordure.
+ * Anneau d'etat.
  *
- * Une bordure modifierait la taille de la tuile a chaque prise de parole, et
- * toute la grille tressauterait des que quelqu'un ouvre la bouche.
+ * Il est dessine en ombre interieure, pas en bordure : une bordure
+ * modifierait la taille de la tuile a chaque changement, et toute la grille
+ * tressauterait des que quelqu'un ouvre la bouche.
+ *
+ * Trois couleurs, du plus anodin au plus grave — vert, on parle ; orange, le
+ * micro est coupe ; rouge, on n'entend rien. La couleur n'est jamais seule a
+ * porter l'information : chaque etat a aussi son icone dans la pastille du
+ * coin, sans quoi rien ne serait lisible pour qui ne distingue pas le rouge
+ * du vert.
  */
 .voice-tile.is-speaking {
   box-shadow:
     inset 0 0 0 3px var(--success),
-    0 0 0 1px var(--success),
-    0 8px 28px color-mix(in oklab, var(--success) 30%, transparent);
+    0 0 24px color-mix(in oklab, var(--success) 34%, transparent);
+  animation: voice-parle 1.7s var(--ease-in-out) infinite;
 }
 
-.voice-tile.is-muted .avatar {
-  opacity: 0.55;
+.voice-tile.is-muted {
+  box-shadow:
+    inset 0 0 0 3px var(--warning),
+    0 0 20px color-mix(in oklab, var(--warning) 26%, transparent);
+}
+
+.voice-tile.is-deafened {
+  box-shadow:
+    inset 0 0 0 3px var(--danger),
+    0 0 20px color-mix(in oklab, var(--danger) 28%, transparent);
+}
+
+.voice-tile.is-muted .avatar,
+.voice-tile.is-deafened .avatar {
+  opacity: 0.5;
+}
+
+/* Le halo respire pendant qu'on parle. L'anneau, lui, ne bouge pas : c'est
+   la lueur exterieure qui varie, donc aucune mise en page n'est recalculee. */
+@keyframes voice-parle {
+  0%, 100% {
+    box-shadow:
+      inset 0 0 0 3px var(--success),
+      0 0 20px color-mix(in oklab, var(--success) 26%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 0 0 0 3px var(--success),
+      0 0 34px color-mix(in oklab, var(--success) 48%, transparent);
+  }
+}
+
+[data-motion='reduced'] .voice-tile.is-speaking {
+  animation: none;
 }
 
 /* La photo occupe la carte sans la remplir : assez grande pour reconnaitre

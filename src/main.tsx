@@ -1,6 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App';
+import { useDevices } from './store/devices';
+import { setCueVolume } from './lib/sounds';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/app.css';
@@ -19,6 +21,10 @@ import './styles/voice.css';
 import './styles/depth.css';
 // En dernier : les regles mobiles surchargent celles des grands ecrans.
 import './styles/mobile.css';
+
+// Le volume des signaux est lu au demarrage : sans cela, le reglage
+// enregistre ne prendrait effet qu'apres avoir rouvert les parametres.
+setCueVolume(useDevices.getState().media.cueVolume);
 
 const container = document.getElementById('root');
 if (!container) throw new Error('Element racine introuvable.');

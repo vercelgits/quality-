@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { setCueVolume } from '@/lib/sounds';
 
 /**
  * Choix de micro, de haut-parleur et de camera.
@@ -43,6 +44,8 @@ export interface MediaPreferences {
    * reste lisible, au prix de saccades.
    */
   screenPriority: 'motion' | 'detail';
+  /** Volume des signaux sonores — micro coupe, arrivee, depart. */
+  cueVolume: number;
 }
 
 const DEFAULTS: MediaPreferences = {
@@ -58,6 +61,7 @@ const DEFAULTS: MediaPreferences = {
   screenQuality: '1080p',
   screenFrameRate: 60,
   screenPriority: 'motion',
+  cueVolume: 0.6,
 };
 
 const STORAGE_KEY = 'orbit:media';
@@ -166,6 +170,10 @@ export const useDevices = create<DeviceState>((set, get) => ({
     const media = { ...get().media, [key]: value };
     set({ media });
     persist(media);
+
+    // Le generateur de signaux vit hors du magasin : il faut le tenir informe,
+    // sinon le curseur bouge sans que rien ne change a l'oreille.
+    if (key === 'cueVolume') setCueVolume(media.cueVolume);
   },
 
   refreshDevices: async (prompt = false) => {

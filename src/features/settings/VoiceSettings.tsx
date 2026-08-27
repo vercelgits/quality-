@@ -8,6 +8,7 @@ import {
 } from '@/store/devices';
 import { byteToDecibels, ANALYSER_FLOOR, ANALYSER_CEILING } from '@/features/voice/useVoice';
 import { Icon } from '@/components/Icon';
+import { playCue } from '@/lib/sounds';
 
 /**
  * Reglages voix et video.
@@ -132,6 +133,25 @@ export function VoiceSettings() {
           suffix=" dB"
           hint="Au-dessus de ce niveau, votre pastille s’allume. Montez-le si un bruit de fond la declenche."
           onChange={(value) => setMedia('speakingThreshold', value)}
+        />
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Signaux sonores</h2>
+
+        <Slider
+          label="Volume des signaux"
+          value={Math.round(media.cueVolume * 100)}
+          min={0}
+          max={100}
+          step={5}
+          suffix=" %"
+          hint="Micro coupe, arrivee et depart de quelqu'un, debut de partage. A zero, l'application reste silencieuse."
+          onChange={(value) => {
+            setMedia('cueVolume', value / 100);
+            // Jouer le signal a chaque cran : on regle au son, pas au chiffre.
+            playCue('unmute');
+          }}
         />
       </section>
 

@@ -109,6 +109,35 @@ test.describe('Salon vocal', () => {
       .toBeGreaterThan(1);
   });
 
+  test('l anneau change de couleur selon l etat', async ({ page }) => {
+    if (!(await openVoiceChannel(page))) return;
+    await page.getByRole('button', { name: 'Rejoindre le salon vocal' }).click();
+
+    const tuile = page.locator('.voice-tile').first();
+    await expect(tuile).toBeVisible({ timeout: 20_000 });
+
+    const anneau = async () =>
+      tuile.evaluate((n) => getComputedStyle(n).boxShadow);
+
+    // Micro coupe : orange.
+    await stage(page).getByRole('button', { name: 'Couper le micro' }).click();
+    await expect.poll(anneau).toContain('rgb(240, 178, 50)');
+
+    // Sourd : rouge, et l'etat le plus grave l'emporte sur le micro coupe.
+    await stage(page).getByRole('button', { name: 'Couper le son' }).click();
+    await expect.poll(anneau).toContain('rgb(218, 55, 60)');
+
+    await stage(page).getByRole('button', { name: 'Reactiver le son' }).click();
+    await stage(page).getByRole('button', { name: 'Reactiver le micro' }).click();
+
+    // Ni coupe ni sourd : plus d'anneau colore tant qu'on ne parle pas.
+    await expect
+      .poll(anneau)
+      .not.toMatch(/rgb\(240, 178, 50\)|rgb\(218, 55, 60\)/);
+
+    await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
+  });
+
   test('le test du micro demarre et s arrete', async ({ page }) => {
     await openApp(page);
 

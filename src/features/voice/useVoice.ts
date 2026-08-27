@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { playCue } from '@/lib/sounds';
 import {
   useDevices,
   audioConstraints,
@@ -46,10 +47,45 @@ type VoiceMessage = VoiceSignal | StreamInfo;
  * place dans une architecture sans backend.
  */
 
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-];
+/**
+ * Serveurs de decouverte reseau.
+ *
+ * Un serveur STUN ne transporte ni son ni image : il sert uniquement a
+ * decouvrir son adresse publique pour percer les box et les pare-feux. La voix
+ * et l'ecran, eux, vont directement d'une machine a l'autre.
+ *
+ * Ils restent une dependance : celui qu'on interroge voit l'adresse IP de qui
+ * rejoint un salon. D'ou la configuration par l'environnement — renseigner
+ * `VITE_ICE_SERVERS` avec son propre serveur (coturn, par exemple) rend
+ * l'ensemble reellement autonome. Les serveurs publics de Google ne servent
+ * que de repli, pour que l'application marche sans rien installer.
+ *
+ * Format attendu : un JSON, ou une liste d'adresses separees par des virgules.
+ */
+function readIceServers(): RTCIceServer[] {
+  const brut = import.meta.env['VITE_ICE_SERVERS'];
+  if (typeof brut !== 'string' || brut.trim() === '') {
+    return [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+    ];
+  }
+
+  try {
+    const analyse: unknown = JSON.parse(brut);
+    if (Array.isArray(analyse)) return analyse as RTCIceServer[];
+  } catch {
+    // Pas du JSON : on accepte aussi la forme courte, une liste d'adresses.
+  }
+
+  return brut
+    .split(',')
+    .map((adresse) => adresse.trim())
+    .filter(Boolean)
+    .map((urls) => ({ urls }));
+}
+
+const ICE_SERVERS: RTCIceServer[] = readIceServers();
 
 interface VoiceState {
   channelId: UUID | null;
@@ -465,12 +501,17 @@ export const useVoice = create<VoiceState>((set, get) => {
     const present = new Set(others.map((participant) => participant.user_id));
 
     for (const peerId of [...peers.keys()]) {
-      if (!present.has(peerId)) dropPeer(peerId);
+      if (!present.has(peerId)) {
+        dropPeer(peerId);
+        playCue('peer-leave');
+      }
     }
 
     for (const participant of others) {
       const peerId = participant.user_id;
       if (peers.has(peerId)) continue;
+
+      playCue('peer-join');
 
       // Un seul cote amorce, sinon les deux negocient en meme temps. La
       // comparaison des identifiants donne un arbitre stable ; l'autre attend
@@ -521,6 +562,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       }
 
       set({ channelId, userId, localStream, connecting: false });
+      playCue('join');
 
       room = supabase.channel(`orbit:voice:${channelId}`, {
         config: { presence: { key: userId }, broadcast: { self: false } },
@@ -553,6 +595,7 @@ export const useVoice = create<VoiceState>((set, get) => {
     },
 
     leave: async () => {
+      if (get().channelId) playCue('leave');
       const { localStream, localScreen, localCamera, channelId } = get();
 
       stopSpeechDetection();
@@ -602,6 +645,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       // Reactiver le micro alors qu'on est sourd n'aurait pas de sens : on
       // retablit le son en meme temps.
       set({ muted: next, deafened: next ? get().deafened : false });
+      playCue(next ? 'mute' : 'unmute');
       publishState();
     },
 
@@ -614,6 +658,7 @@ export const useVoice = create<VoiceState>((set, get) => {
         track.enabled = !next;
       }
       set({ deafened: next, muted: next ? true : get().muted });
+      playCue(next ? 'deafen' : 'undeafen');
       publishState();
     },
 
@@ -632,6 +677,7 @@ export const useVoice = create<VoiceState>((set, get) => {
         for (const track of localScreen?.getTracks() ?? []) track.stop();
 
         set({ sharing: false, localScreen: null });
+        playCue('share-stop');
         publishState();
         return;
       }
@@ -678,6 +724,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       }
 
       set({ sharing: true, localScreen: display });
+      playCue('share-start');
       publishState();
     },
 
