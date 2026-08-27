@@ -1,0 +1,42 @@
+// Palette et mesures, reprises du client web.
+//
+// Un seul endroit pour les couleurs, comme les variables CSS de l'autre
+// version : les deux clients doivent se ressembler, et deux palettes tenues
+// separement finiraient par diverger.
+
+export global Theme {
+    // Surfaces, du plus profond au plus proche.
+    out property <brush> fond-rail: #0a0a0c;
+    out property <brush> fond-lateral: #121215;
+    out property <brush> fond-app: #1a1a1e;
+    out property <brush> fond-creux: #0f0f12;
+    out property <brush> fond-releve: #1e1e23;
+
+    // Texte.
+    out property <brush> texte: #f2f3f5;
+    out property <brush> texte-second: #b5bac1;
+    out property <brush> texte-faible: #80848e;
+
+    out property <brush> accent: #5865f2;
+    out property <brush> accent-clair: #949cf7;
+    out property <brush> succes: #23a559;
+    out property <brush> alerte: #f0b232;
+    out property <brush> danger: #da373c;
+
+    out property <brush> bordure: #2a2a30;
+    out property <brush> survol: #ffffff0a;
+    out property <brush> actif: #ffffff14;
+
+    // Mesures. Les memes que la version web, pour que passer de l'une a
+    // l'autre ne demande pas de reapprendre ou se trouvent les choses.
+    out property <length> rail: 72px;
+    out property <length> lateral: 240px;
+    out property <length> entete: 48px;
+    out property <length> membres: 240px;
+
+    // Rayons : la meme echelle elargie que sur le web.
+    out property <length> rayon-xs: 8px;
+    out property <length> rayon-sm: 10px;
+    out property <length> rayon-md: 14px;
+    out property <length> rayon-lg: 18px;
+}

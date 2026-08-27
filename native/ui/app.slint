@@ -1,0 +1,428 @@
+import { Theme } from "theme.slint";
+
+// Bouton du rail des espaces : cercle qui se carre au survol.
+component BoutonRail inherits Rectangle {
+    in property <string> initiales;
+    in property <bool> actif: false;
+    in property <brush> teinte: Theme.accent;
+
+    width: 48px;
+    height: 48px;
+    border-radius: root.actif || zone.has-hover ? Theme.rayon-md : 24px;
+    background: root.actif ? root.teinte : Theme.fond-releve;
+
+    animate border-radius, background { duration: 180ms; easing: ease-out; }
+
+    Text {
+        text: root.initiales;
+        color: Theme.texte;
+        font-size: 15px;
+        font-weight: 600;
+    }
+
+    zone := TouchArea {}
+}
+
+// Ligne de salon dans la liste laterale.
+component LigneSalon inherits Rectangle {
+    in property <string> nom;
+    in property <bool> vocal: false;
+    in property <bool> actif: false;
+
+    height: 34px;
+    border-radius: Theme.rayon-xs;
+    background: root.actif ? Theme.actif : (zone.has-hover ? Theme.survol : transparent);
+
+    animate background { duration: 120ms; }
+
+    HorizontalLayout {
+        padding-left: 8px;
+        padding-right: 8px;
+        spacing: 6px;
+        alignment: start;
+
+        Text {
+            text: root.vocal ? "♪" : "#";
+            color: Theme.texte-faible;
+            font-size: 15px;
+            vertical-alignment: center;
+        }
+
+        Text {
+            text: root.nom;
+            color: root.actif ? Theme.texte : Theme.texte-second;
+            font-size: 14px;
+            font-weight: root.actif ? 600 : 500;
+            vertical-alignment: center;
+        }
+    }
+
+    zone := TouchArea {}
+}
+
+// En-tete de categorie.
+component TitreCategorie inherits Rectangle {
+    in property <string> titre;
+    height: 28px;
+
+    HorizontalLayout {
+        padding-left: 8px;
+        alignment: start;
+        Text {
+            text: root.titre;
+            color: Theme.texte-faible;
+            font-size: 11px;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+    }
+}
+
+// Un message, groupe ou non.
+component Message inherits Rectangle {
+    in property <string> auteur;
+    in property <string> heure;
+    in property <string> corps;
+    in property <bool> groupe: false;
+    in property <brush> teinte: Theme.accent;
+
+    height: root.groupe ? 24px : 60px;
+    background: zone.has-hover ? Theme.survol : transparent;
+    border-radius: Theme.rayon-sm;
+
+    animate background { duration: 100ms; }
+
+    HorizontalLayout {
+        padding-left: 16px;
+        padding-right: 16px;
+        padding-top: root.groupe ? 0px : 8px;
+        spacing: 16px;
+        alignment: start;
+
+        // Gouttiere de 40 px, comme sur le web : le texte reste aligne que le
+        // message porte un avatar ou non.
+        Rectangle {
+            width: 40px;
+            height: root.groupe ? 0px : 40px;
+            border-radius: 20px;
+            background: root.groupe ? transparent : root.teinte;
+
+            Text {
+                text: root.groupe ? "" : root.auteur;
+                color: Theme.texte;
+                font-size: 14px;
+                font-weight: 600;
+            }
+        }
+
+        VerticalLayout {
+            spacing: 2px;
+            alignment: start;
+
+            if !root.groupe: HorizontalLayout {
+                spacing: 8px;
+                alignment: start;
+
+                Text {
+                    text: root.auteur;
+                    color: Theme.texte;
+                    font-size: 15px;
+                    font-weight: 600;
+                }
+                Text {
+                    text: root.heure;
+                    color: Theme.texte-faible;
+                    font-size: 11px;
+                    vertical-alignment: bottom;
+                }
+            }
+
+            Text {
+                text: root.corps;
+                color: Theme.texte-second;
+                font-size: 15px;
+            }
+        }
+    }
+
+    zone := TouchArea {}
+}
+
+export component Coquille inherits Window {
+    title: "Orbit";
+    background: Theme.fond-creux;
+    default-font-family: "Inter";
+    preferred-width: 1280px;
+    preferred-height: 820px;
+
+    callback fermer();
+    callback reduire();
+    callback agrandir();
+
+    VerticalLayout {
+        spacing: 0px;
+
+        // Barre de titre dessinee par l'application : le bandeau gris du
+        // systeme au-dessus d'une interface sombre trahit tout de suite un
+        // habillage pose sur autre chose.
+        Rectangle {
+            height: 32px;
+            background: Theme.fond-rail;
+
+            HorizontalLayout {
+                padding-left: 12px;
+                spacing: 0px;
+
+                Text {
+                    text: "Orbit";
+                    color: Theme.texte-faible;
+                    font-size: 12px;
+                    vertical-alignment: center;
+                }
+
+                Rectangle {}
+
+                Rectangle {
+                    width: 44px;
+                    background: zone-r.has-hover ? Theme.survol : transparent;
+                    Text { text: "—"; color: Theme.texte-second; font-size: 11px; }
+                    zone-r := TouchArea { clicked => { root.reduire(); } }
+                }
+
+                Rectangle {
+                    width: 44px;
+                    background: zone-a.has-hover ? Theme.survol : transparent;
+                    Text { text: "▢"; color: Theme.texte-second; font-size: 11px; }
+                    zone-a := TouchArea { clicked => { root.agrandir(); } }
+                }
+
+                Rectangle {
+                    width: 44px;
+                    background: zone-f.has-hover ? Theme.danger : transparent;
+                    Text { text: "✕"; color: Theme.texte-second; font-size: 11px; }
+                    zone-f := TouchArea { clicked => { root.fermer(); } }
+                }
+            }
+        }
+
+        // Quatre colonnes.
+        HorizontalLayout {
+            spacing: 0px;
+
+            // 1. Rail des espaces.
+            Rectangle {
+                width: Theme.rail;
+                background: Theme.fond-rail;
+
+                VerticalLayout {
+                    padding-top: 12px;
+                    spacing: 8px;
+                    alignment: start;
+
+                    BoutonRail { initiales: "OR"; actif: true; }
+                    Rectangle { height: 2px; width: 32px; background: Theme.bordure; }
+                    BoutonRail { initiales: "EQ"; teinte: Theme.succes; }
+                    BoutonRail { initiales: "PR"; teinte: #eb459e; }
+                }
+            }
+
+            // 2. Salons.
+            Rectangle {
+                width: Theme.lateral;
+                background: Theme.fond-lateral;
+
+                VerticalLayout {
+                    spacing: 0px;
+
+                    Rectangle {
+                        height: Theme.entete;
+                        HorizontalLayout {
+                            padding-left: 16px;
+                            alignment: start;
+                            Text {
+                                text: "Espace Orbit";
+                                color: Theme.texte;
+                                font-size: 15px;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                    Rectangle { height: 1px; background: Theme.bordure; }
+
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 2px;
+                        alignment: start;
+
+                        TitreCategorie { titre: "SALONS TEXTUELS"; }
+                        LigneSalon { nom: "general"; actif: true; }
+                        LigneSalon { nom: "idees"; }
+                        LigneSalon { nom: "annonces"; }
+
+                        Rectangle { height: 8px; }
+
+                        TitreCategorie { titre: "VOCAL"; }
+                        LigneSalon { nom: "Salon vocal"; vocal: true; }
+                    }
+                }
+            }
+
+            // 3. Conversation.
+            Rectangle {
+                background: Theme.fond-app;
+                horizontal-stretch: 1;
+
+                VerticalLayout {
+                    spacing: 0px;
+
+                    Rectangle {
+                        height: Theme.entete;
+                        HorizontalLayout {
+                            padding-left: 16px;
+                            spacing: 10px;
+                            alignment: start;
+                            Text {
+                                text: "#  general";
+                                color: Theme.texte;
+                                font-size: 15px;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+                            Text {
+                                text: "Le salon principal de votre espace.";
+                                color: Theme.texte-faible;
+                                font-size: 13px;
+                                vertical-alignment: center;
+                            }
+                        }
+                    }
+                    Rectangle { height: 1px; background: Theme.bordure; }
+
+                    VerticalLayout {
+                        padding-top: 12px;
+                        spacing: 2px;
+                        alignment: start;
+
+                        Message {
+                            auteur: "EX";
+                            heure: "22:41";
+                            corps: "Rendu natif : aucun moteur web ici.";
+                            teinte: Theme.succes;
+                        }
+                        Message { groupe: true; corps: "La fenetre est dessinee par le systeme."; }
+                        Message { groupe: true; corps: "Les couleurs viennent du meme theme que le web."; }
+
+                        Rectangle { height: 8px; }
+
+                        Message {
+                            auteur: "OR";
+                            heure: "22:42";
+                            corps: "Etape 1 : la coquille. Le reste suit.";
+                        }
+                    }
+
+                    Rectangle {}
+
+                    HorizontalLayout {
+                        padding-left: 16px;
+                        padding-right: 16px;
+
+                        Rectangle {
+                            height: 44px;
+                            background: Theme.fond-releve;
+                            border-radius: Theme.rayon-lg;
+                            border-width: 1px;
+                            border-color: Theme.bordure;
+
+                            HorizontalLayout {
+                                padding-left: 16px;
+                                alignment: start;
+                                Text {
+                                    text: "Ecrire dans #general";
+                                    color: Theme.texte-faible;
+                                    font-size: 15px;
+                                    vertical-alignment: center;
+                                }
+                            }
+                        }
+                    }
+                    Rectangle { height: 16px; }
+                }
+            }
+
+            // 4. Membres.
+            Rectangle {
+                width: Theme.membres;
+                background: Theme.fond-lateral;
+
+                VerticalLayout {
+                    padding: 8px;
+                    padding-top: 16px;
+                    spacing: 4px;
+                    alignment: start;
+
+                    TitreCategorie { titre: "EN LIGNE — 2"; }
+
+                    Rectangle {
+                        height: 42px;
+                        border-radius: Theme.rayon-xs;
+                        background: zone-m1.has-hover ? Theme.survol : transparent;
+                        animate background { duration: 120ms; }
+
+                        HorizontalLayout {
+                            padding-left: 8px;
+                            spacing: 10px;
+                            alignment: start;
+
+                            Rectangle {
+                                width: 32px;
+                                height: 32px;
+                                border-radius: 16px;
+                                background: Theme.succes;
+                            }
+                            Text {
+                                text: "ex";
+                                color: Theme.texte-second;
+                                font-size: 14px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        zone-m1 := TouchArea {}
+                    }
+
+                    Rectangle {
+                        height: 42px;
+                        border-radius: Theme.rayon-xs;
+                        background: zone-m2.has-hover ? Theme.survol : transparent;
+                        animate background { duration: 120ms; }
+
+                        HorizontalLayout {
+                            padding-left: 8px;
+                            spacing: 10px;
+                            alignment: start;
+
+                            Rectangle {
+                                width: 32px;
+                                height: 32px;
+                                border-radius: 16px;
+                                background: Theme.accent;
+                            }
+                            Text {
+                                text: "orbit";
+                                color: Theme.texte-second;
+                                font-size: 14px;
+                                font-weight: 500;
+                                vertical-alignment: center;
+                            }
+                        }
+
+                        zone-m2 := TouchArea {}
+                    }
+                }
+            }
+        }
+    }
+}

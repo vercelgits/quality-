@@ -25,3 +25,7 @@ apercu-*.png
 
 # Captures de verification.
 vue-*.png
+
+# Compilation du client natif.
+native/target/
+natif-apercu.png
