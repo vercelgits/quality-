@@ -46,6 +46,13 @@ export interface MediaPreferences {
   screenPriority: 'motion' | 'detail';
   /** Volume des signaux sonores — micro coupe, arrivee, depart. */
   cueVolume: number;
+  /**
+   * Envoie le son de ce qui est partage, en plus de l'image.
+   *
+   * Windows le permet pour un ecran entier comme pour un onglet ; sur d'autres
+   * systemes la capture est refusee et le partage part sans son, sans echouer.
+   */
+  shareSystemAudio: boolean;
 }
 
 const DEFAULTS: MediaPreferences = {
@@ -62,6 +69,7 @@ const DEFAULTS: MediaPreferences = {
   screenFrameRate: 60,
   screenPriority: 'motion',
   cueVolume: 0.6,
+  shareSystemAudio: true,
 };
 
 const STORAGE_KEY = 'orbit:media';

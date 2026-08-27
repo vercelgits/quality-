@@ -204,6 +204,39 @@ interface SessionState {
   clearError: () => void;
 }
 
+/**
+ * Marque le compte hors ligne au moment de la fermeture.
+ *
+ * Une requete ordinaire est annulee des que la page se decharge : c'est pour
+ * cela qu'on restait affiche « en ligne » apres avoir quitte. `keepalive` dit
+ * au navigateur de la mener a terme meme si le document disparait — c'est le
+ * seul mode qui survit a une fermeture de fenetre.
+ *
+ * Le client Supabase ne l'expose pas, d'ou l'appel direct.
+ */
+export function markOfflineOnExit(userId: string, accessToken: string): void {
+  const url = import.meta.env['VITE_SUPABASE_URL'];
+  const key = import.meta.env['VITE_SUPABASE_PUBLISHABLE_KEY'];
+  if (!url || !key) return;
+
+  try {
+    void fetch(`${url}/rest/v1/profiles?id=eq.${userId}`, {
+      method: 'PATCH',
+      keepalive: true,
+      headers: {
+        apikey: key,
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({ status: 'offline' }),
+    });
+  } catch {
+    // La presence Realtime prend le relais a la fermeture du socket : le
+    // statut se corrigera de lui-meme, avec un peu de retard.
+  }
+}
+
 export const useSession = create<SessionState>((set, get) => ({
   session: null,
   profile: null,

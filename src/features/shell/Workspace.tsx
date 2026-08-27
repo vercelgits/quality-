@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useChat } from '@/store/chat';
+import { useVoice } from '@/features/voice/useVoice';
 import { useUI } from '@/store/ui';
-import { useSession } from '@/store/session';
+import { useSession, markOfflineOnExit } from '@/store/session';
 import { startRealtime } from '@/lib/realtime';
 import { supabase } from '@/lib/supabase';
 import { SpaceRail } from './SpaceRail';
@@ -127,11 +128,24 @@ export function Workspace() {
       void setStatus(document.hidden ? 'idle' : 'online');
     };
 
-    // Le navigateur ne garantit pas l'execution d'une requete pendant la
-    // fermeture : on tente le passage hors ligne sans compter dessus, la
-    // presence Realtime prenant le relais en cas d'echec.
+    /*
+     * Fermeture de la fenetre.
+     *
+     * Une requete ordinaire serait annulee par le dechargement : c'est ce qui
+     * laissait le compte affiche « en ligne » apres avoir quitte. On passe
+     * donc par une requete en mode `keepalive`, que le navigateur mene a
+     * terme meme si le document disparait.
+     *
+     * Le salon vocal est quitte avant : la presence Realtime finirait par
+     * expirer, mais entre-temps on reste affiche dans le vocal, comme un
+     * fantome.
+     */
     const handleUnload = () => {
-      void setStatus('offline');
+      const jeton = useSession.getState().session?.access_token;
+      const moi = useSession.getState().session?.user.id;
+
+      if (useVoice.getState().channelId) void useVoice.getState().leave();
+      if (jeton && moi) markOfflineOnExit(moi, jeton);
     };
 
     document.addEventListener('visibilitychange', handleVisibility);
@@ -180,12 +194,87 @@ export function Workspace() {
       if (modifier && event.key === ',') {
         event.preventDefault();
         useUI.getState().openSettings();
+        return;
+      }
+
+      /*
+       * Raccourcis du vocal.
+       *
+       * Ils n'ont de sens qu'une fois connecte, et ne doivent jamais partir
+       * pendant qu'on ecrit — le test de saisie plus haut s'en charge.
+       * Maj+Ctrl pour couper le micro et le son : ce sont les combinaisons
+       * qu'on trouve ailleurs, et les reapprendre serait une perte seche.
+       */
+      const enVocal = useVoice.getState().channelId !== null;
+
+      if (modifier && event.shiftKey && event.key.toLowerCase() === 'm' && enVocal) {
+        event.preventDefault();
+        useVoice.getState().toggleMute();
+        return;
+      }
+
+      if (modifier && event.shiftKey && event.key.toLowerCase() === 'd' && enVocal) {
+        event.preventDefault();
+        useVoice.getState().toggleDeafen();
+        return;
+      }
+
+      if (modifier && event.shiftKey && event.key.toLowerCase() === 'v' && enVocal) {
+        event.preventDefault();
+        void useVoice.getState().toggleCamera();
+        return;
+      }
+
+      if (modifier && event.shiftKey && event.key.toLowerCase() === 's' && enVocal) {
+        event.preventDefault();
+        void useVoice.getState().toggleScreenShare();
+        return;
+      }
+
+      // Quitter le vocal demande Maj : une frappe isolee couperait un appel
+      // par accident, et il n'y a pas de retour en arriere.
+      if (modifier && event.shiftKey && event.key.toLowerCase() === 'h' && enVocal) {
+        event.preventDefault();
+        void useVoice.getState().leave();
+        return;
+      }
+
+      // Navigation entre salons, sans quitter le clavier.
+      if (event.altKey && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+        event.preventDefault();
+        stepChannel(event.key === 'ArrowDown' ? 1 : -1);
+        return;
+      }
+
+      if (modifier && event.key.toLowerCase() === 'j') {
+        event.preventDefault();
+        useUI.getState().showFriends();
       }
     };
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [paletteOpen, setPaletteOpen, togglePanel]);
+
+  /**
+   * Passe au salon suivant ou precedent de l'espace ouvert.
+   *
+   * Le parcours boucle : arrive au dernier, la touche suivante ramene au
+   * premier, ce qui evite de buter sans rien comprendre.
+   */
+  const stepChannel = (pas: 1 | -1) => {
+    const { activeSpaceId, activeChannelId } = useUI.getState();
+    const liste = useChat
+      .getState()
+      .channels.filter((salon) => salon.space_id === activeSpaceId)
+      .sort((a, b) => a.position - b.position || a.name.localeCompare(b.name));
+
+    if (liste.length === 0) return;
+
+    const index = liste.findIndex((salon) => salon.id === activeChannelId);
+    const suivant = liste[(index + pas + liste.length) % liste.length];
+    if (suivant) useUI.getState().selectChannel(suivant.id);
+  };
 
   /* ---------------------------------------------------------------- Rendu */
 

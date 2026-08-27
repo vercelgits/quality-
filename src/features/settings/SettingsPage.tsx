@@ -807,14 +807,24 @@ function NotificationsSection() {
 /* Raccourcis                                                                 */
 /* ========================================================================== */
 
-const SHORTCUTS: { keys: string[]; label: string }[] = [
-  { keys: ['Ctrl', 'K'], label: 'Ouvrir la palette de commandes' },
-  { keys: ['Ctrl', 'F'], label: 'Rechercher dans les messages' },
-  { keys: ['Ctrl', ','], label: 'Ouvrir les parametres' },
-  { keys: ['Echap'], label: 'Fermer le panneau ou la fenetre en cours' },
-  { keys: ['Entree'], label: 'Envoyer le message' },
-  { keys: ['Maj', 'Entree'], label: 'Retour a la ligne' },
-  { keys: ['Haut'], label: 'Modifier son dernier message' },
+const SHORTCUTS: { groupe: string; keys: string[]; label: string }[] = [
+  { groupe: 'Navigation', keys: ['Ctrl', 'K'], label: 'Ouvrir la palette de commandes' },
+  { groupe: 'Navigation', keys: ['Ctrl', 'F'], label: 'Rechercher dans les messages' },
+  { groupe: 'Navigation', keys: ['Ctrl', 'J'], label: 'Aller aux amis' },
+  { groupe: 'Navigation', keys: ['Ctrl', ','], label: 'Ouvrir les parametres' },
+  { groupe: 'Navigation', keys: ['Alt', 'Bas'], label: 'Salon suivant' },
+  { groupe: 'Navigation', keys: ['Alt', 'Haut'], label: 'Salon precedent' },
+  { groupe: 'Navigation', keys: ['Echap'], label: 'Fermer le panneau ou la fenetre en cours' },
+
+  { groupe: 'Messages', keys: ['Entree'], label: 'Envoyer le message' },
+  { groupe: 'Messages', keys: ['Maj', 'Entree'], label: 'Retour a la ligne' },
+  { groupe: 'Messages', keys: ['Haut'], label: 'Modifier son dernier message' },
+
+  { groupe: 'Vocal', keys: ['Ctrl', 'Maj', 'M'], label: 'Couper ou reactiver le micro' },
+  { groupe: 'Vocal', keys: ['Ctrl', 'Maj', 'D'], label: 'Couper ou reactiver le son' },
+  { groupe: 'Vocal', keys: ['Ctrl', 'Maj', 'V'], label: 'Activer ou couper la camera' },
+  { groupe: 'Vocal', keys: ['Ctrl', 'Maj', 'S'], label: 'Partager ou arreter l’ecran' },
+  { groupe: 'Vocal', keys: ['Ctrl', 'Maj', 'H'], label: 'Quitter le salon vocal' },
 ];
 
 function ShortcutsSection() {
@@ -822,22 +832,30 @@ function ShortcutsSection() {
     <div className="settings__page">
       <h1 className="settings__title">Raccourcis</h1>
 
-      <section className="settings__group">
-        <ul className="shortcuts">
-          {SHORTCUTS.map((entry) => (
-            <li key={entry.label} className="shortcuts__row">
-              <span className="shortcuts__label">{entry.label}</span>
-              <span className="shortcuts__keys">
-                {entry.keys.map((key) => (
-                  <kbd key={key} className="shortcuts__key">
-                    {key}
-                  </kbd>
-                ))}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+      {['Navigation', 'Messages', 'Vocal'].map((groupe) => (
+        <section className="settings__group" key={groupe}>
+          <h2 className="settings__group-title">{groupe}</h2>
+          <ul className="shortcuts">
+            {SHORTCUTS.filter((entry) => entry.groupe === groupe).map((entry) => (
+              <li key={entry.label} className="shortcuts__row">
+                <span className="shortcuts__label">{entry.label}</span>
+                <span className="shortcuts__keys">
+                  {entry.keys.map((key) => (
+                    <kbd key={key} className="shortcuts__key">
+                      {key}
+                    </kbd>
+                  ))}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+
+      <p className="settings__hint">
+        Les raccourcis vocaux ne repondent qu'une fois connecte a un salon, et
+        jamais pendant qu'on ecrit un message.
+      </p>
     </div>
   );
 }

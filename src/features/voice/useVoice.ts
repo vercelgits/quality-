@@ -143,6 +143,8 @@ interface Peer {
   ignoreOffer: boolean;
   micSender: RTCRtpSender | null;
   screenSender: RTCRtpSender | null;
+  /** Son du partage, quand la source en fournit un. */
+  screenAudioSender: RTCRtpSender | null;
   cameraSender: RTCRtpSender | null;
 }
 
@@ -343,6 +345,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       ignoreOffer: false,
       micSender: null,
       screenSender: null,
+      screenAudioSender: null,
       cameraSender: null,
     };
 
@@ -565,6 +568,14 @@ export const useVoice = create<VoiceState>((set, get) => {
       }
 
       set({ channelId, userId, localStream, connecting: false });
+
+      // Son propre micro passe par le meme analyseur que ceux des autres.
+      // Sans cela, la pastille de parole ne s'allumait jamais pour soi : on
+      // voyait les autres parler, jamais soi, et rien n'indiquait si le micro
+      // captait quoi que ce soit.
+      attachAnalyser(userId, localStream);
+      startSpeechDetection();
+
       playCue('join');
 
       room = supabase.channel(`orbit:voice:${channelId}`, {
@@ -702,9 +713,30 @@ export const useVoice = create<VoiceState>((set, get) => {
       let display: MediaStream;
       try {
         display = await navigator.mediaDevices.getDisplayMedia({
-          video: screenConstraints(useDevices.getState().media),
-          audio: false,
-        });
+          video: {
+            ...screenConstraints(useDevices.getState().media),
+            // Le selecteur s'ouvre sur l'ecran entier, ce qu'on partage le
+            // plus souvent.
+            displaySurface: 'monitor',
+          },
+
+          // Le son de ce qui est partage part avec l'image. Sans lui, montrer
+          // une video ou un jeu revient a mimer. Les traitements du micro sont
+          // desactives : ils sont faits pour une voix, et ils ecraseraient de
+          // la musique.
+          audio: useDevices.getState().media.shareSystemAudio
+            ? { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+            : false,
+
+          // Notre propre fenetre est retiree de la liste : la partager
+          // afficherait le partage a l'interieur de lui-meme, en miroir sans
+          // fin. C'est une erreur qu'on ne fait qu'une fois, mais qu'on fait.
+          selfBrowserSurface: 'exclude',
+
+          // On peut changer de source sans couper : sinon il faut arreter,
+          // rouvrir le selecteur, et tout le monde voit l'ecran disparaitre.
+          surfaceSwitching: 'include',
+        } as DisplayMediaStreamOptions);
       } catch {
         // Selecteur de fenetre annule : rien a signaler.
         return;
@@ -727,6 +759,10 @@ export const useVoice = create<VoiceState>((set, get) => {
             peer.connection.removeTrack(peer.screenSender);
             peer.screenSender = null;
           }
+          if (peer.screenAudioSender) {
+            peer.connection.removeTrack(peer.screenAudioSender);
+            peer.screenAudioSender = null;
+          }
         }
         set({ sharing: false, localScreen: null });
         publishState();
@@ -734,9 +770,18 @@ export const useVoice = create<VoiceState>((set, get) => {
 
       const media = useDevices.getState().media;
 
+      // Le son du partage, quand la source en fournit. Il voyage dans le meme
+      // flux que l'image : le separer obligerait a resynchroniser a l'arrivee.
+      const [audioTrack] = display.getAudioTracks();
+
       for (const [peerId, peer] of peers) {
         peer.screenSender = peer.connection.addTrack(videoTrack, display);
         void applyEncoding(peer.screenSender, screenBitrate(media), media.screenPriority);
+
+        if (audioTrack) {
+          peer.screenAudioSender = peer.connection.addTrack(audioTrack, display);
+        }
+
         announceStream(peerId, display.id, 'screen');
       }
 
