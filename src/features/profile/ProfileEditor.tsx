@@ -170,6 +170,13 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
         </p>
       </div>
 
+      <p className="field__hint">
+        Photo et banniere acceptent les images animees — GIF, WebP, APNG. La
+        limite de taille est quadruplee pour ces formats, qui pesent bien plus
+        a dimensions egales : 8 Mo pour une photo, 16 Mo pour une banniere.
+        Quand elles s'animent se regle dans Apparence.
+      </p>
+
       <input
         ref={avatarInput}
         type="file"

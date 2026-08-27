@@ -94,7 +94,10 @@ export function ProfileCard({ userId }: { userId: UUID }) {
                 src={profile.banner_url}
                 alt=""
                 className="profile__banner-image"
-                mode={animate}
+                // Ouvrir une fiche de profil est deja un geste deliberе : la
+                // banniere s'anime sans qu'il faille en plus la survoler.
+                // « Jamais » reste respecte — c'est une demande, pas un defaut.
+                mode={animate === 'never' ? 'never' : 'always'}
               />
             ) : (
               <img src={profile.banner_url} alt="" className="profile__banner-image" />
