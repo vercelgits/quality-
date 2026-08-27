@@ -313,7 +313,7 @@ function ChannelItem({
 function UserBar() {
   const profile = useSession((state) => state.profile);
   const setStatus = useSession((state) => state.setStatus);
-  const openModal = useUI((state) => state.openModal);
+  const openSettings = useUI((state) => state.openSettings);
 
   const voiceChannelId = useVoice((state) => state.channelId);
   const muted = useVoice((state) => state.muted);
@@ -390,7 +390,7 @@ function UserBar() {
           <button
             type="button"
             className="icon-btn"
-            onClick={() => openModal({ kind: 'preferences' })}
+            onClick={() => openSettings()}
             title="Preferences"
           >
             <Icon name="settings" size={16} />

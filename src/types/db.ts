@@ -352,3 +352,35 @@ export interface MessageEdit {
   previous: string;
   edited_at: ISODate;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Relations d'amitie                                                          */
+/* -------------------------------------------------------------------------- */
+
+export type FriendshipStatus = 'pending' | 'accepted' | 'blocked';
+
+export interface Friendship {
+  id: UUID;
+  requester_id: UUID;
+  addressee_id: UUID;
+  status: FriendshipStatus;
+  created_at: ISODate;
+  responded_at: ISODate | null;
+}
+
+/** Une relation vue depuis soi : seule compte l'autre personne. */
+export interface FriendLink {
+  id: UUID;
+  user_id: UUID;
+  since?: ISODate | null;
+  created_at?: ISODate;
+}
+
+/** Charge renvoyee par `friends_overview`. */
+export interface FriendsOverview {
+  friends: FriendLink[];
+  incoming: FriendLink[];
+  outgoing: FriendLink[];
+  blocked: FriendLink[];
+  profiles: Profile[];
+}

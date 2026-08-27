@@ -162,7 +162,7 @@ export function CommandPalette() {
         icon: 'settings',
         group: 'Actions',
         keywords: 'reglages parametres options',
-        run: () => openModal({ kind: 'preferences' }),
+        run: () => useUI.getState().openSettings(),
       },
       {
         id: 'action:create-space',

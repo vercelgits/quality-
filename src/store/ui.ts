@@ -6,7 +6,6 @@ export type SidePanel = 'none' | 'thread' | 'pins' | 'members' | 'search';
 
 export type Modal =
   | { kind: 'none' }
-  | { kind: 'preferences' }
   | { kind: 'create-space' }
   | { kind: 'join-space' }
   | { kind: 'create-channel'; spaceId: UUID }
@@ -29,8 +28,31 @@ export type Modal =
  */
 export type SidebarView = 'space' | 'direct';
 
+/**
+ * Sections des parametres, en pleine page.
+ *
+ * Une page et non une fenetre : il y a trop de reglages pour une boite de
+ * dialogue, et un test de micro ou un apercu de camera y seraient a l'etroit.
+ */
+export type SettingsSection =
+  | 'compte'
+  | 'profil'
+  | 'confidentialite'
+  | 'voix'
+  | 'apparence'
+  | 'notifications'
+  | 'raccourcis'
+  | 'avance';
+
 interface UIState {
   view: SidebarView;
+  /**
+   * Page des amis affichee a la place d'une conversation privee.
+   * N'a de sens que dans la vue privee.
+   */
+  friendsOpen: boolean;
+  /** Parametres en pleine page ; `null` quand ils sont fermes. */
+  settings: SettingsSection | null;
   activeSpaceId: UUID | null;
   activeChannelId: UUID | null;
   activeThreadId: UUID | null;
@@ -54,6 +76,10 @@ interface UIState {
 
   searchQuery: string;
 
+  showFriends: () => void;
+  openSettings: (section?: SettingsSection) => void;
+  closeSettings: () => void;
+
   selectSpace: (spaceId: UUID | null) => void;
   showDirectMessages: () => void;
   selectChannel: (channelId: UUID) => void;
@@ -74,6 +100,8 @@ interface UIState {
 
 export const useUI = create<UIState>((set, get) => ({
   view: 'space',
+  friendsOpen: false,
+  settings: null,
   activeSpaceId: null,
   activeChannelId: null,
   activeThreadId: null,
@@ -88,9 +116,24 @@ export const useUI = create<UIState>((set, get) => ({
   navOpen: false,
   searchQuery: '',
 
+  showFriends: () =>
+    set({
+      view: 'direct',
+      friendsOpen: true,
+      activeSpaceId: null,
+      activeChannelId: null,
+      activeThreadId: null,
+      panel: 'none',
+      navOpen: false,
+    }),
+
+  openSettings: (section = 'compte') => set({ settings: section, navOpen: false }),
+  closeSettings: () => set({ settings: null }),
+
   selectSpace: (spaceId) =>
     set({
       view: 'space',
+      friendsOpen: false,
       activeSpaceId: spaceId,
       activeChannelId: null,
       activeThreadId: null,
@@ -102,6 +145,9 @@ export const useUI = create<UIState>((set, get) => ({
   selectChannel: (channelId) =>
     set({
       activeChannelId: channelId,
+      // Ouvrir une conversation quitte la page des amis : les deux occupent la
+      // meme zone.
+      friendsOpen: false,
       // Choisir un salon referme le tiroir : sur mobile il masque la
       // conversation qu'on vient justement de demander.
       navOpen: false,
@@ -116,6 +162,9 @@ export const useUI = create<UIState>((set, get) => ({
   showDirectMessages: () =>
     set({
       view: 'direct',
+      // Le bouton d'accueil des messages prives ouvre les amis : c'est de la
+      // qu'on demarre une conversation, et la liste de gauche peut etre vide.
+      friendsOpen: true,
       activeSpaceId: null,
       activeChannelId: null,
       activeThreadId: null,

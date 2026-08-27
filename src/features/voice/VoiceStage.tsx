@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useVoice } from './useVoice';
+import { useDevices, applySink } from '@/store/devices';
 import { useChat } from '@/store/chat';
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
@@ -257,6 +258,8 @@ export function VoiceStage({ channel }: { channel: Channel }) {
  */
 function RemoteAudio({ stream, muted }: { stream: MediaStream | undefined; muted: boolean }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const speakerId = useDevices((state) => state.media.speakerId);
+  const outputVolume = useDevices((state) => state.media.outputVolume);
 
   useEffect(() => {
     const node = ref.current;
@@ -267,6 +270,16 @@ function RemoteAudio({ stream, muted }: { stream: MediaStream | undefined; muted
       // interagi avec la page ; le prochain clic la debloquera.
     });
   }, [stream]);
+
+  // Volume et sortie sont des proprietes et non des attributs : React ne les
+  // ecrit pas depuis le rendu.
+  useEffect(() => {
+    if (ref.current) ref.current.volume = outputVolume;
+  }, [outputVolume]);
+
+  useEffect(() => {
+    if (ref.current) void applySink(ref.current, speakerId);
+  }, [speakerId]);
 
   return <audio ref={ref} autoPlay muted={muted} />;
 }

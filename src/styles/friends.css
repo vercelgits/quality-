@@ -1,0 +1,609 @@
+/* ==========================================================================
+   Page des amis
+
+   Elle occupe la meme zone qu'une conversation : meme hauteur d'en-tete, meme
+   fond. Ce qui la distingue, ce sont les onglets colores — chaque liste a sa
+   couleur, pour qu'on reconnaisse « en attente » sans lire l'etiquette.
+   ========================================================================== */
+
+.friends {
+  display: grid;
+  grid-template-rows: var(--header-height) minmax(0, 1fr);
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+/* -------------------------------------------------------------- En-tete */
+
+.friends__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: 0 var(--space-4);
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+
+.friends__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.friends__brand svg {
+  color: var(--text-faint);
+}
+
+/* Seuls les onglets defilent horizontalement : si l'en-tete entier defilait,
+   « Ajouter un ami » partirait avec eux au lieu de rester a portee. */
+.friends__tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 24px;
+  padding-left: var(--space-4);
+  border-left: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.friends__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.friends__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 26px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.friends__tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* La couleur ne sert qu'a l'onglet actif : la porter en permanence sur les
+   quatre en ferait une rangee d'etiquettes criardes, et plus rien ne
+   ressortirait. */
+.friends__tab.is-active {
+  color: var(--text-on-accent);
+}
+
+.friends__tab--online.is-active {
+  background: var(--success);
+}
+
+.friends__tab--all.is-active {
+  background: var(--accent);
+}
+
+.friends__tab--pending.is-active {
+  background: var(--warning);
+  /* Le jaune est trop clair pour du texte blanc : on repasse en sombre. */
+  color: #1a1a1e;
+}
+
+.friends__tab--blocked.is-active {
+  background: var(--danger);
+}
+
+/* Une demande en attente doit se voir meme quand l'onglet ne l'est pas. */
+.friends__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  line-height: 1;
+}
+
+.friends__tab--pending.is-active .friends__count {
+  background: #1a1a1e;
+}
+
+.friends__add {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 26px;
+  padding: 0 var(--space-4);
+  margin-left: var(--space-2);
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--radius-button);
+  background: var(--success);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: filter var(--duration-fast) var(--ease-out);
+}
+
+.friends__add:hover {
+  filter: brightness(1.1);
+}
+
+.friends__add.is-active {
+  background: transparent;
+  color: var(--success);
+  box-shadow: inset 0 0 0 1px var(--success);
+}
+
+/* ---------------------------------------------------------------- Corps */
+
+.friends__body {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-7) var(--space-8);
+}
+
+.friends__body--add {
+  padding-top: var(--space-8);
+}
+
+.friends__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 36px;
+  padding: 0 var(--space-4);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+}
+
+.friends__search:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.friends__field {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-base);
+}
+
+.friends__field:focus {
+  outline: none;
+}
+
+.friends__field::placeholder {
+  color: var(--text-faint);
+}
+
+/* Chrome ajoute sa propre croix aux champs de recherche : elle doublerait la
+   notre, sans le meme comportement. */
+.friends__field::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.friends__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--bg-active);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.friends__clear:hover {
+  background: var(--bg-selected);
+  color: var(--text-primary);
+}
+
+.friends__heading {
+  margin: 0 0 var(--space-3);
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.friends__heading + .friends__list {
+  margin-bottom: var(--space-7);
+}
+
+.friends__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* ---------------------------------------------------------------- Lignes */
+
+.friends__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: 62px;
+  padding-right: var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.friends__row:hover {
+  margin: 0 calc(var(--space-4) * -1);
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
+  border-top-color: transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-hover);
+}
+
+/* Sans cela, le survol d'une ligne laisserait le trait de la suivante visible
+   au ras du fond colore. */
+.friends__row:hover + .friends__row {
+  border-top-color: transparent;
+}
+
+.friends__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.friends__names {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.friends__name {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends__meta {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.friends__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-shrink: 0;
+}
+
+.friends__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.friends__action:hover:not(:disabled) {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+}
+
+.friends__action--ok:hover:not(:disabled) {
+  color: var(--success);
+}
+
+.friends__action--danger:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.friends__action:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------- Etats vides */
+
+.friends__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+}
+
+.friends__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+}
+
+.friends__empty h2 {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.friends__empty p {
+  max-width: 42ch;
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.friends__loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) 0;
+  color: var(--text-secondary);
+}
+
+.friends__error {
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--text-sm);
+}
+
+/* ------------------------------------------------------------------ Ajout */
+
+.addfriend {
+  max-width: 660px;
+}
+
+.addfriend__title {
+  margin: 0 0 var(--space-3);
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.addfriend__lede {
+  margin: 0 0 var(--space-6);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.addfriend__box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 1px transparent;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.addfriend__box:focus-within {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.addfriend__box.is-error {
+  box-shadow: inset 0 0 0 1px var(--danger);
+}
+
+.addfriend__box.is-ok {
+  box-shadow: inset 0 0 0 1px var(--success);
+}
+
+.addfriend__field {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-md);
+}
+
+.addfriend__field:focus {
+  outline: none;
+}
+
+.addfriend__field::placeholder {
+  color: var(--text-faint);
+}
+
+.addfriend__error,
+.addfriend__ok {
+  margin: var(--space-3) 0 0;
+  font-size: var(--text-sm);
+}
+
+.addfriend__error {
+  color: var(--danger);
+}
+
+.addfriend__ok {
+  color: var(--success);
+}
+
+.addfriend__share {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-8);
+  padding: var(--space-4) var(--space-5);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.addfriend__share-label {
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.addfriend__share-value {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+/* ------------------------------------- Acces depuis la barre laterale */
+
+.dm-friends {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: calc(100% - var(--space-4));
+  height: 42px;
+  margin: var(--space-2) var(--space-2) var(--space-3);
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  cursor: pointer;
+}
+
+.dm-friends:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dm-friends.is-active {
+  background: var(--bg-selected);
+  color: var(--text-primary);
+}
+
+.dm-friends__badge {
+  margin-left: auto;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: var(--radius-full);
+  background: var(--danger);
+  color: #fff;
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  line-height: 16px;
+  text-align: center;
+}
+
+/* ------------------------------------------------------------- Petit ecran */
+
+@media (max-width: 767px) {
+  /* Deux rangees : le nom et l'action principale en haut, les onglets en
+     dessous. Sur une seule ligne, « Ajouter un ami » sortait de l'ecran et il
+     fallait deviner qu'on pouvait faire glisser la barre pour l'atteindre. */
+  .friends {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .friends__bar {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    box-shadow: 0 1px 0 var(--border-subtle);
+  }
+
+  .friends__brand {
+    font-size: var(--text-base);
+  }
+
+  .friends__tabs {
+    order: 3;
+    width: 100%;
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* En haut a droite de la premiere rangee, face au titre. */
+  .friends__add {
+    height: 32px;
+    margin-left: auto;
+  }
+
+  .friends__body {
+    padding: var(--space-4) var(--space-4) var(--space-8);
+  }
+
+  /* Les cibles passent a 44 px : au doigt, 36 px se rate une fois sur trois. */
+  .friends__action {
+    width: 44px;
+    height: 44px;
+  }
+
+  .friends__row {
+    height: auto;
+    min-height: 66px;
+    padding-top: var(--space-3);
+    padding-bottom: var(--space-3);
+  }
+
+  .addfriend__box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .addfriend__share {
+    flex-wrap: wrap;
+  }
+}

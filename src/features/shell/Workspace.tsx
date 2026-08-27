@@ -13,6 +13,9 @@ import { Composer } from '@/features/messages/Composer';
 import { VoiceStage } from '@/features/voice/VoiceStage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 import { Modals } from '@/features/settings/Modals';
+import { SettingsPage } from '@/features/settings/SettingsPage';
+import { FriendsPage } from '@/features/friends/FriendsPage';
+import { useFriends } from '@/store/friends';
 import { Icon } from '@/components/Icon';
 import { useIsMobile } from '@/lib/useMediaQuery';
 import type { Profile } from '@/types/db';
@@ -31,6 +34,8 @@ export function Workspace() {
   const resetChat = useChat((state) => state.reset);
 
   const view = useUI((state) => state.view);
+  const friendsOpen = useUI((state) => state.friendsOpen);
+  const settings = useUI((state) => state.settings);
   const activeSpaceId = useUI((state) => state.activeSpaceId);
   const activeChannelId = useUI((state) => state.activeChannelId);
   const sidebarCollapsed = useUI((state) => state.sidebarCollapsed);
@@ -68,10 +73,18 @@ export function Workspace() {
 
     const stop = startRealtime(userId);
 
+    // Les amis sont charges ici et non dans leur page : la pastille des
+    // demandes recues doit etre juste des l'ouverture de l'application, pas
+    // seulement quand on pense a aller voir.
+    void useFriends.getState().load();
+    const stopFriends = useFriends.getState().subscribe(userId);
+
     return () => {
       cancelled = true;
       stop();
+      stopFriends();
       resetChat();
+      useFriends.getState().reset();
     };
   }, [userId, bootstrapChat, resetChat, setProfile]);
 
@@ -157,7 +170,7 @@ export function Workspace() {
 
       if (modifier && event.key === ',') {
         event.preventDefault();
-        useUI.getState().openModal({ kind: 'preferences' });
+        useUI.getState().openSettings();
       }
     };
 
@@ -211,7 +224,9 @@ export function Workspace() {
       </div>
 
       <main className="main" id="conversation">
-        {channel ? (
+        {friendsOpen && view === 'direct' ? (
+          <FriendsPage />
+        ) : channel ? (
           <>
             <ChannelHeader channel={channel} />
 
@@ -263,6 +278,7 @@ export function Workspace() {
       <SidePanel />
       <CommandPalette />
       <Modals />
+      {settings ? <SettingsPage /> : null}
 
       {error ? (
         <div className="toast" role="alert">

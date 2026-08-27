@@ -1,0 +1,876 @@
+/* ==========================================================================
+   Parametres en pleine page
+
+   Deux colonnes : la navigation a gauche sur le fond de la barre laterale, le
+   contenu a droite sur le fond de l'application. Le meme decoupage que le
+   reste de l'interface, pour que la page ne donne pas l'impression d'un autre
+   logiciel.
+   ========================================================================== */
+
+.settings {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: grid;
+  grid-template-columns: minmax(218px, 1fr) minmax(0, 3fr);
+  /* Ligne declaree explicitement : sans elle, la ligne implicite se dimensionne
+     sur son contenu et depasse la fenetre. Les colonnes debordent alors au lieu
+     de defiler, et tout ce qui suit le premier ecran devient inatteignable. */
+  grid-template-rows: minmax(0, 1fr);
+  background: var(--bg-app);
+  animation: settings-in var(--duration-normal) var(--ease-out);
+}
+
+@keyframes settings-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+[data-motion='reduced'] .settings {
+  animation: none;
+}
+
+/* ---------------------------------------------------------- Navigation */
+
+.settings__nav {
+  display: flex;
+  justify-content: flex-end;
+  overflow-y: auto;
+  padding: 60px var(--space-3) var(--space-8) 0;
+  background: var(--bg-sidebar);
+}
+
+.settings__nav-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  max-width: 218px;
+}
+
+.settings__nav-title {
+  margin: 0 var(--space-3) var(--space-2);
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.settings__navitem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 32px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--duration-instant) var(--ease-out),
+    color var(--duration-instant) var(--ease-out);
+}
+
+.settings__navitem svg {
+  flex-shrink: 0;
+  opacity: 0.7;
+}
+
+.settings__navitem:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.settings__navitem.is-active {
+  background: var(--bg-selected);
+  color: var(--text-primary);
+}
+
+.settings__navitem.is-active svg {
+  opacity: 1;
+  color: var(--accent-text);
+}
+
+.settings__navitem--danger:hover {
+  color: var(--danger);
+}
+
+.settings__nav-rule {
+  height: 1px;
+  margin: var(--space-3) var(--space-3);
+  border: 0;
+  background: var(--border-subtle);
+}
+
+/* -------------------------------------------------------------- Contenu */
+
+.settings__main {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.settings__scroll {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 60px var(--space-10) var(--space-10) var(--space-9);
+}
+
+.settings__page {
+  max-width: 740px;
+}
+
+.settings__title {
+  margin: 0 0 var(--space-7);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+  letter-spacing: var(--tracking-tight);
+  color: var(--text-primary);
+}
+
+.settings__group {
+  padding-bottom: var(--space-7);
+  margin-bottom: var(--space-7);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.settings__group:last-child {
+  border-bottom: 0;
+  margin-bottom: 0;
+}
+
+.settings__group-title {
+  margin: 0 0 var(--space-4);
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.settings__group--danger .settings__group-title {
+  color: var(--danger);
+}
+
+/* La croix reste visible pendant le defilement : sans cela, il faudrait
+   remonter en haut de page pour sortir. */
+.settings__close {
+  position: sticky;
+  top: 60px;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  margin: 60px var(--space-8) 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.settings__close > svg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  padding: 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-strong);
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.settings__close:hover {
+  color: var(--text-primary);
+}
+
+.settings__close:hover > svg {
+  background: var(--bg-hover);
+}
+
+.settings__close-key {
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.04em;
+}
+
+/* --------------------------------------------------------------- Champs */
+
+.settings__form,
+.settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.settings__form {
+  gap: var(--space-5);
+}
+
+.settings__field + .settings__field {
+  margin-top: var(--space-5);
+}
+
+.settings__label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.settings__label svg {
+  opacity: 0.7;
+}
+
+.settings__value {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-primary);
+}
+
+.settings__input,
+.settings__select {
+  width: 100%;
+  height: 40px;
+  padding: 0 var(--space-4);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-base);
+}
+
+.settings__input--area {
+  height: auto;
+  padding: var(--space-3) var(--space-4);
+  line-height: var(--leading-normal);
+  resize: vertical;
+}
+
+.settings__input:focus,
+.settings__select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Le triangle natif herite du theme du systeme et reste clair sur fond
+   sombre : on le remplace par un chevron dessine. */
+.settings__select {
+  appearance: none;
+  padding-right: var(--space-9);
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 18px) 18px, calc(100% - 13px) 18px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  cursor: pointer;
+}
+
+.settings__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.settings__error {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--danger);
+}
+
+.settings__ok {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--success);
+}
+
+.settings__alert {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+}
+
+.settings__notice {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+.settings__notice p {
+  margin: 0;
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--text-primary);
+}
+
+.settings__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.settings__inline-btn {
+  align-self: flex-start;
+  margin-top: var(--space-4);
+}
+
+/* ------------------------------------------------------------ Segments */
+
+/* Largeur du contenu, pas de la colonne : dans un champ en colonne, un
+   `inline-flex` s'etire quand meme, et les memes trois choix apparaissaient
+   tantot serres, tantot etales sur toute la largeur. */
+.settings__segmented {
+  align-self: flex-start;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+}
+
+.settings__segmented--wide {
+  align-self: stretch;
+  display: flex;
+}
+
+.settings__seg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-height: 32px;
+  padding: 0 var(--space-5);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.settings__seg:hover {
+  color: var(--text-primary);
+}
+
+.settings__seg.is-active {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+/* ------------------------------------------------------------- Vignettes */
+
+.settings__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-3);
+}
+
+.settings__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg-sunken);
+  box-shadow: inset 0 0 0 1px transparent;
+  color: inherit;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.settings__card:hover {
+  box-shadow: inset 0 0 0 1px var(--border-strong);
+}
+
+.settings__card.is-active {
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+
+.settings__card-label {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.settings__card-hint {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* ---------------------------------------------------------------- Teintes */
+
+.settings__hues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+
+.settings__hue {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--spring);
+}
+
+.settings__hue:hover {
+  transform: scale(1.12);
+}
+
+.settings__hue.is-active {
+  box-shadow: 0 0 0 2px var(--bg-app), 0 0 0 4px var(--text-primary);
+}
+
+/* ------------------------------------------------------------ Interrupteur */
+
+.switchrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+  cursor: pointer;
+}
+
+.switchrow + .switchrow {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.switchrow__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.switchrow__label {
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.switchrow__hint {
+  font-size: var(--text-sm);
+  line-height: var(--leading-normal);
+  color: var(--text-secondary);
+}
+
+.switchrow__track {
+  position: relative;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background: var(--text-faint);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.switchrow__track.is-on {
+  background: var(--success);
+}
+
+.switchrow__thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  background: #fff;
+  transition: transform var(--duration-fast) var(--spring);
+}
+
+.switchrow__track.is-on .switchrow__thumb {
+  transform: translateX(16px);
+}
+
+.switchrow input:focus-visible + .switchrow__track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ----------------------------------------------------------- Glissieres */
+
+.settings__range {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  cursor: pointer;
+}
+
+.settings__range::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--bg-app);
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+}
+
+.settings__range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--bg-app);
+  border-radius: var(--radius-full);
+  background: var(--text-primary);
+}
+
+.settings__range:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------- Test du micro */
+
+.mictest {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.mictest__bar {
+  --level: 0;
+  flex: 1;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.mictest__fill {
+  width: 100%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--success), var(--warning) 75%, var(--danger));
+  /* L'echelle plutot que la largeur : elle est animee par le compositeur, donc
+     sans recalcul de mise en page a chaque image. */
+  transform: scaleX(var(--level));
+  transform-origin: left;
+}
+
+.mictest__mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  color: var(--text-faint);
+  transition: background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.mictest__mark.is-live {
+  background: var(--success);
+  color: #fff;
+}
+
+/* ------------------------------------------------------ Apercu de camera */
+
+.campreview {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  max-width: 440px;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.campreview__video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /* Un apercu de sa propre camera se lit en miroir : c'est ce qu'on attend
+     d'un reflet, meme si les autres voient l'image dans l'autre sens. */
+  transform: scaleX(-1);
+  opacity: 0;
+}
+
+.campreview__video.is-live {
+  opacity: 1;
+}
+
+.campreview__idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  color: var(--text-faint);
+  font-size: var(--text-sm);
+}
+
+/* ---------------------------------------------------------------- Compte */
+
+.account {
+  margin-bottom: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.account__banner {
+  height: 100px;
+  background: var(--accent);
+}
+
+.account__head {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-5);
+  padding: 0 var(--space-6);
+  margin-top: -40px;
+}
+
+.account__head .avatar {
+  border: 6px solid var(--bg-sunken);
+  border-radius: var(--radius-full);
+}
+
+.account__identity {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: var(--space-4);
+  min-width: 0;
+}
+
+.account__name {
+  font-size: var(--text-lg);
+  font-weight: var(--weight-bold);
+  color: var(--text-primary);
+}
+
+.account__handle {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.account__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-5) var(--space-6) var(--space-6);
+}
+
+.account__fact {
+  padding: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--bg-app);
+}
+
+.account__fact dt {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.account__fact dd {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------- Listes de gens */
+
+.settings__people {
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 var(--space-4);
+  padding: 0;
+  list-style: none;
+}
+
+.settings__person {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+}
+
+.settings__person + .settings__person {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings__person-name {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.settings__person-handle {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-normal);
+  color: var(--text-secondary);
+}
+
+/* ------------------------------------------------------------- Raccourcis */
+
+.shortcuts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.shortcuts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) 0;
+}
+
+.shortcuts__row + .shortcuts__row {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.shortcuts__label {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+
+.shortcuts__keys {
+  display: flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.shortcuts__key {
+  min-width: 28px;
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-xs);
+  background: var(--bg-raised);
+  box-shadow: 0 1px 0 var(--border-strong);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: var(--weight-semibold);
+  text-align: center;
+}
+
+/* ------------------------------------------------------------- Petit ecran */
+
+@media (max-width: 900px) {
+  /* La navigation passe en bandeau horizontal : deux colonnes ne tiennent pas
+     sans reduire le contenu a une gouttiere. */
+  .settings {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  .settings__nav {
+    justify-content: flex-start;
+    padding: var(--space-4) var(--space-4) 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .settings__nav-inner {
+    flex-direction: row;
+    gap: var(--space-2);
+    max-width: none;
+    padding-bottom: var(--space-3);
+  }
+
+  .settings__nav-title {
+    display: none;
+  }
+
+  .settings__navitem {
+    height: 36px;
+    padding: 0 var(--space-4);
+    white-space: nowrap;
+  }
+
+  .settings__nav-rule {
+    width: 1px;
+    height: auto;
+    margin: var(--space-1) var(--space-2);
+  }
+
+  .settings__scroll {
+    padding: var(--space-6) var(--space-4) var(--space-10);
+  }
+
+  .settings__close {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    margin: 0;
+    z-index: 1;
+  }
+
+  .settings__close-key {
+    display: none;
+  }
+
+  .account__facts {
+    grid-template-columns: 1fr;
+  }
+}

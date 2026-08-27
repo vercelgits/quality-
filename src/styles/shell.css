@@ -1266,12 +1266,12 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) .composer {
-    background: #383a40;
+    background: #232329;
   }
 }
 
 :root[data-theme='dark'] .composer {
-  background: #383a40;
+  background: #232329;
 }
 
 .composer__input {

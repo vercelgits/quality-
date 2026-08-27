@@ -4,6 +4,8 @@ export const LIMITS = {
   messageLength: 4000,
   threadTitleLength: 120,
   usernameLength: 32,
+  /** Minimum impose a l'inscription ; Supabase applique le meme. */
+  passwordLength: 6,
   displayNameLength: 48,
   customStatusLength: 128,
   spaceNameLength: 64,

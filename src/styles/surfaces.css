@@ -528,14 +528,22 @@
 
 /* Pastilles de teinte du panneau de preferences. Chacune montre le degrade
    reel que la teinte produira, pas un aplat : c'est ce que l'on verra. */
-.hue-dot--theme[data-accent-swatch='indigo'] { background: linear-gradient(135deg, oklch(62% 0.22 275), oklch(66% 0.18 225)); }
-.hue-dot--theme[data-accent-swatch='violet'] { background: linear-gradient(135deg, oklch(62% 0.22 295), oklch(66% 0.18 250)); }
-.hue-dot--theme[data-accent-swatch='ocean']  { background: linear-gradient(135deg, oklch(62% 0.2 235),  oklch(68% 0.16 200)); }
-.hue-dot--theme[data-accent-swatch='teal']   { background: linear-gradient(135deg, oklch(66% 0.16 195), oklch(70% 0.15 165)); }
-.hue-dot--theme[data-accent-swatch='forest'] { background: linear-gradient(135deg, oklch(62% 0.17 155), oklch(68% 0.16 120)); }
-.hue-dot--theme[data-accent-swatch='sunset'] { background: linear-gradient(135deg, oklch(72% 0.17 45),  oklch(66% 0.2 20)); }
-.hue-dot--theme[data-accent-swatch='rose']   { background: linear-gradient(135deg, oklch(66% 0.21 350), oklch(64% 0.19 320)); }
-.hue-dot--theme[data-accent-swatch='mono']   { background: linear-gradient(135deg, oklch(78% 0 0), oklch(42% 0 0)); }
+.hue-dot--theme[data-accent-swatch='indigo'],
+.settings__hue[data-accent-swatch='indigo'] { background: linear-gradient(135deg, oklch(62% 0.22 275), oklch(66% 0.18 225)); }
+.hue-dot--theme[data-accent-swatch='violet'],
+.settings__hue[data-accent-swatch='violet'] { background: linear-gradient(135deg, oklch(62% 0.22 295), oklch(66% 0.18 250)); }
+.hue-dot--theme[data-accent-swatch='ocean'],
+.settings__hue[data-accent-swatch='ocean']  { background: linear-gradient(135deg, oklch(62% 0.2 235),  oklch(68% 0.16 200)); }
+.hue-dot--theme[data-accent-swatch='teal'],
+.settings__hue[data-accent-swatch='teal']   { background: linear-gradient(135deg, oklch(66% 0.16 195), oklch(70% 0.15 165)); }
+.hue-dot--theme[data-accent-swatch='forest'],
+.settings__hue[data-accent-swatch='forest'] { background: linear-gradient(135deg, oklch(62% 0.17 155), oklch(68% 0.16 120)); }
+.hue-dot--theme[data-accent-swatch='sunset'],
+.settings__hue[data-accent-swatch='sunset'] { background: linear-gradient(135deg, oklch(72% 0.17 45),  oklch(66% 0.2 20)); }
+.hue-dot--theme[data-accent-swatch='rose'],
+.settings__hue[data-accent-swatch='rose']   { background: linear-gradient(135deg, oklch(66% 0.21 350), oklch(64% 0.19 320)); }
+.hue-dot--theme[data-accent-swatch='mono'],
+.settings__hue[data-accent-swatch='mono']   { background: linear-gradient(135deg, oklch(78% 0 0), oklch(42% 0 0)); }
 
 /* Grille de membres. Une seule colonne dans le panneau lateral, qui est
    etroit : deux colonnes y tronqueraient tous les noms. */

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
+import { useFriends } from '@/store/friends';
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { Avatar, AvatarStack } from '@/components/Avatar';
@@ -29,6 +30,32 @@ export function dmTitle(
 
   const other = others[0];
   return (other && profiles[other]?.display_name) ?? channel.name ?? 'Conversation';
+}
+
+/**
+ * Acces a la page des amis, en tete de la liste privee.
+ *
+ * La pastille montre le nombre de demandes recues : sans elle, une demande
+ * resterait invisible tant qu'on n'ouvre pas la page, et personne n'ouvre une
+ * page qui n'annonce rien.
+ */
+function FriendsEntry() {
+  const friendsOpen = useUI((state) => state.friendsOpen);
+  const showFriends = useUI((state) => state.showFriends);
+  const incoming = useFriends((state) => state.incoming.length);
+
+  return (
+    <button
+      type="button"
+      className={'dm-friends' + (friendsOpen ? ' is-active' : '')}
+      onClick={showFriends}
+      aria-current={friendsOpen ? 'page' : undefined}
+    >
+      <Icon name="users" size={19} />
+      Amis
+      {incoming > 0 ? <span className="dm-friends__badge">{incoming}</span> : null}
+    </button>
+  );
 }
 
 export function DirectMessageList() {
@@ -92,6 +119,8 @@ export function DirectMessageList() {
       </header>
 
       <div className="sidebar__scroll scroll">
+        <FriendsEntry />
+
         {hasAny ? (
           <div className="dm-search">
             <Icon name="search" size={15} />

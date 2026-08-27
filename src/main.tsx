@@ -10,6 +10,8 @@ import './styles/shell.css';
 import './styles/surfaces.css';
 import './styles/features.css';
 import './styles/dm.css';
+import './styles/friends.css';
+import './styles/settings.css';
 import './styles/landing.css';
 // En dernier : les regles mobiles surchargent celles des grands ecrans.
 import './styles/mobile.css';
@@ -17,8 +19,24 @@ import './styles/mobile.css';
 const container = document.getElementById('root');
 if (!container) throw new Error('Element racine introuvable.');
 
-createRoot(container).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-);
+/**
+ * Apercu d'un ecran isole pendant le developpement.
+ *
+ * `import.meta.env.DEV` est remplace par `false` a la compilation : le bloc et
+ * le module qu'il importe disparaissent du paquet livre.
+ */
+async function root() {
+  if (import.meta.env.DEV) {
+    const wanted = new URLSearchParams(window.location.search).get('preview');
+    if (wanted) {
+      const { devPreview } = await import('./devPreview');
+      const screen = devPreview(wanted);
+      if (screen) return screen;
+    }
+  }
+  return <App />;
+}
+
+void root().then((screen) => {
+  createRoot(container).render(<StrictMode>{screen}</StrictMode>);
+});

@@ -1,6 +1,12 @@
 import { create } from 'zustand';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import {
+  useDevices,
+  audioConstraints,
+  videoConstraints,
+  screenConstraints,
+} from '@/store/devices';
 import type { UUID, VoiceParticipant, VoiceSignal } from '@/types/db';
 
 /**
@@ -118,6 +124,15 @@ let audioContext: AudioContext | null = null;
 let speechTimer: number | null = null;
 const analysers = new Map<UUID, AnalyserNode>();
 
+/** Plage couverte par `getByteFrequencyData`, de l'octet 0 a l'octet 255. */
+export const ANALYSER_FLOOR = -100;
+export const ANALYSER_CEILING = -20;
+
+/** Repasse une valeur d'octet en decibels, dans la plage ci-dessus. */
+export function byteToDecibels(value: number): number {
+  return ANALYSER_FLOOR + (value / 255) * (ANALYSER_CEILING - ANALYSER_FLOOR);
+}
+
 function send(message: VoiceMessage): void {
   if (!room) return;
   void room.send({ type: 'broadcast', event: 'voice-signal', payload: message });
@@ -163,6 +178,11 @@ export const useVoice = create<VoiceState>((set, get) => {
       const analyser = audioContext.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.6;
+      // Bornes fixees explicitement : sans cela elles varient selon le
+      // navigateur, et le seuil regle dans les parametres ne voudrait pas dire
+      // la meme chose d'une machine a l'autre.
+      analyser.minDecibels = ANALYSER_FLOOR;
+      analyser.maxDecibels = ANALYSER_CEILING;
       source.connect(analyser);
       analysers.set(peerId, analyser);
     } catch {
@@ -177,12 +197,21 @@ export const useVoice = create<VoiceState>((set, get) => {
     speechTimer = window.setInterval(() => {
       if (analysers.size === 0) return;
 
+      const threshold = useDevices.getState().media.speakingThreshold;
+
       const speaking: Record<UUID, boolean> = {};
       for (const [peerId, analyser] of analysers) {
         analyser.getByteFrequencyData(buffer);
-        let sum = 0;
-        for (let index = 0; index < buffer.length; index += 1) sum += buffer[index]!;
-        speaking[peerId] = sum / buffer.length > 18;
+
+        // Le pic plutot que la moyenne : la voix n'occupe qu'une partie du
+        // spectre, et la moyenne sur des bandes vides la diluerait au point que
+        // le seuil ne correspondrait plus a rien d'audible.
+        let peak = 0;
+        for (let index = 0; index < buffer.length; index += 1) {
+          if (buffer[index]! > peak) peak = buffer[index]!;
+        }
+
+        speaking[peerId] = byteToDecibels(peak) > threshold;
       }
       set({ speaking });
     }, 220);
@@ -469,11 +498,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       let localStream: MediaStream;
       try {
         localStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            autoGainControl: true,
-          },
+          audio: audioConstraints(useDevices.getState().media),
           video: false,
         });
       } catch {
@@ -603,7 +628,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       let display: MediaStream;
       try {
         display = await navigator.mediaDevices.getDisplayMedia({
-          video: { frameRate: 30 },
+          video: screenConstraints(useDevices.getState().media),
           audio: false,
         });
       } catch {
@@ -665,7 +690,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       let camera: MediaStream;
       try {
         camera = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } },
+          video: videoConstraints(useDevices.getState().media),
           audio: false,
         });
       } catch {
