@@ -116,9 +116,11 @@ Ce que cela gagne, mesuré sur cette application : l'exécutable fait **3,4 Mo**
 l'installateur **1,3 Mo**, là où Electron en embarquerait plusieurs dizaines.
 
 Ce que cela ne gagne pas : la mémoire vive. WebView2 lance un Chromium
-multi-processus comme le ferait Electron. Orbit occupe **environ 390 Mo** au
-repos — 26 Mo pour le processus Rust, le reste réparti sur six processus
-WebView2. C'est nettement moins que Discord, qui dépasse couramment le
+multi-processus comme le ferait Electron. Orbit occupe **environ 400 Mo** au
+repos — 27 Mo pour le processus Rust, le reste réparti sur six processus
+WebView2. Le chiffre varie d'une mesure à l'autre ; il exclut les WebView2
+déjà lancés par d'autres logiciels, que compter reviendrait à leur attribuer
+la mémoire d'autrui. C'est nettement moins que Discord, qui dépasse couramment le
 gigaoctet, mais ce n'est pas « la mémoire d'un onglet ».
 
 Il faut la chaîne Rust, une seule fois :
