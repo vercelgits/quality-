@@ -4,6 +4,9 @@ import { App } from './App';
 import './styles/tokens.css';
 import './styles/base.css';
 import './styles/app.css';
+// La coquille reprend les metriques de Discord ; elle vient apres app.css,
+// dont elle remplace les regles de mise en page.
+import './styles/shell.css';
 import './styles/surfaces.css';
 import './styles/features.css';
 import './styles/dm.css';
