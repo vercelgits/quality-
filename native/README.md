@@ -14,7 +14,28 @@ l'application de référence tant que la parité n'est pas atteinte.
 - Disposition en quatre colonnes : rail, salons, conversation, membres
 - Thème repris du client web — mêmes couleurs, mêmes mesures, mêmes rayons
 - Survols et transitions animés
+- **Authentification complète** : connexion, lecture du profil à travers les
+  politiques RLS, rafraîchissement du jeton, session conservée entre deux
+  lancements
+- Écran de connexion, avec les erreurs traduites en français
 - Compile et s'exécute sur Windows
+
+### Vérification
+
+`cargo test` ouvre une vraie session contre le projet Supabase et lit le profil.
+Les identifiants viennent de `.env.e2e`, le même fichier que la suite Playwright,
+et ne sont jamais écrits dans le dépôt. Sans eux, les tests s'ignorent au lieu
+d'échouer.
+
+Un second test vérifie qu'un refus est annoncé lisiblement — « Identifiants
+incorrects. » plutôt que l'anglais du serveur.
+
+### Réserve connue
+
+La session est rangée dans un fichier du dossier de l'application, comme le
+navigateur le fait avec son stockage local. Ce n'est pas un coffre : quiconque a
+accès au compte Windows peut le lire. La porter dans le gestionnaire
+d'identifiants du système reste à faire.
 
 ## Mesures relevées
 
@@ -35,12 +56,12 @@ moindre.
 
 ## Ce qui reste, par ordre de difficulté
 
-### 1. Données et authentification — faible risque
+### 1. Données — faible risque, à moitié fait
 
-Supabase expose une API REST et un flux temps réel en WebSocket. Rien de tout
-cela n'est propre au navigateur : `reqwest` et `tokio-tungstenite` suffisent.
-Toute la logique métier — le SQL, les politiques RLS, les fonctions — est
-réutilisée telle quelle. C'est la moitié du travail déjà faite.
+L'authentification est **faite et vérifiée**. Le reste des données suit le même
+chemin : PostgREST pour les lectures et les écritures, `tokio-tungstenite` pour
+le flux temps réel. Toute la logique métier — le SQL, les politiques RLS, les
+fonctions — est réutilisée telle quelle.
 
 ### 2. Interface — long mais sans piège
 

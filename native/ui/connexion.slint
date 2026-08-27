@@ -1,0 +1,156 @@
+import { Theme } from "theme.slint";
+
+// Champ de saisie, avec le meme rendu que la version web : fond creux, bordure
+// qui prend la couleur d'accent au focus, pas de contour du systeme.
+export component Champ inherits Rectangle {
+    in property <string> etiquette;
+    in property <bool> masque: false;
+    in-out property <string> valeur;
+
+    callback valide();
+
+    height: 68px;
+    background: transparent;
+
+    VerticalLayout {
+        spacing: 6px;
+        alignment: start;
+
+        Text {
+            text: root.etiquette;
+            color: Theme.texte-faible;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        Rectangle {
+            height: 40px;
+            background: Theme.fond-creux;
+            border-radius: Theme.rayon-sm;
+            border-width: 1px;
+            border-color: saisie.has-focus ? Theme.accent : transparent;
+
+            animate border-color { duration: 120ms; }
+
+            HorizontalLayout {
+                padding-left: 12px;
+                padding-right: 12px;
+
+                saisie := TextInput {
+                    text <=> root.valeur;
+                    color: Theme.texte;
+                    font-size: 14px;
+                    vertical-alignment: center;
+                    single-line: true;
+                    // Slint n'a pas de champ masque : on remplace les
+                    // caracteres a l'affichage. Le texte reel reste dans
+                    // `valeur`, ce qui suffit ici et evite d'ecrire un champ
+                    // complet a la main.
+                    input-type: root.masque ? InputType.password : InputType.text;
+                    accepted => { root.valide(); }
+                }
+            }
+        }
+    }
+}
+
+export component EcranConnexion inherits Rectangle {
+    in property <bool> occupe: false;
+    in property <string> erreur;
+    in-out property <string> email;
+    in-out property <string> mot-de-passe;
+
+    callback connecter();
+
+    background: Theme.fond-creux;
+
+    Rectangle {
+        width: 400px;
+        height: 396px;
+        background: Theme.fond-lateral;
+        border-radius: Theme.rayon-lg;
+        border-width: 1px;
+        border-color: Theme.bordure;
+
+        VerticalLayout {
+            padding: 28px;
+            spacing: 4px;
+            alignment: start;
+
+            Rectangle {
+                height: 52px;
+                width: 52px;
+                border-radius: Theme.rayon-md;
+                background: Theme.accent;
+                Text { text: "O"; color: white; font-size: 24px; font-weight: 700; }
+            }
+
+            Rectangle { height: 12px; }
+
+            Text {
+                text: "Content de vous revoir";
+                color: Theme.texte;
+                font-size: 22px;
+                font-weight: 700;
+            }
+            Text {
+                text: "Connectez-vous pour retrouver vos espaces.";
+                color: Theme.texte-faible;
+                font-size: 13px;
+            }
+
+            Rectangle { height: 16px; }
+
+            Champ {
+                etiquette: "ADRESSE E-MAIL";
+                valeur <=> root.email;
+                valide => { root.connecter(); }
+            }
+
+            Champ {
+                etiquette: "MOT DE PASSE";
+                masque: true;
+                valeur <=> root.mot-de-passe;
+                valide => { root.connecter(); }
+            }
+
+            Rectangle { height: 8px; }
+
+            Rectangle {
+                height: 42px;
+                border-radius: Theme.rayon-sm;
+                background: root.occupe
+                    ? Theme.fond-releve
+                    : (zone.has-hover ? #4752c4 : Theme.accent);
+
+                animate background { duration: 120ms; }
+
+                Text {
+                    text: root.occupe ? "Connexion…" : "Entrer";
+                    color: root.occupe ? Theme.texte-faible : white;
+                    font-size: 15px;
+                    font-weight: 600;
+                }
+
+                zone := TouchArea {
+                    enabled: !root.occupe;
+                    clicked => { root.connecter(); }
+                }
+            }
+
+            // La place de l'erreur est reservee en permanence : la faire
+            // apparaitre ferait sauter le bouton au moment ou l'on clique
+            // dessus une seconde fois.
+            Rectangle {
+                height: 32px;
+                Text {
+                    text: root.erreur;
+                    color: Theme.danger;
+                    font-size: 12px;
+                    wrap: word-wrap;
+                    vertical-alignment: center;
+                }
+            }
+        }
+    }
+}

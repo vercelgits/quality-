@@ -1,4 +1,5 @@
 import { Theme } from "theme.slint";
+import { EcranConnexion } from "connexion.slint";
 
 // Bouton du rail des espaces : cercle qui se carre au survol.
 component BoutonRail inherits Rectangle {
@@ -158,6 +159,17 @@ export component Coquille inherits Window {
     callback fermer();
     callback reduire();
     callback agrandir();
+    callback connecter();
+    callback deconnecter();
+
+    // Etat de session, pilote depuis Rust.
+    in property <bool> connecte: false;
+    in property <bool> occupe: false;
+    in property <string> erreur;
+    in property <string> nom-affiche;
+    in property <string> pseudo;
+    in-out property <string> email;
+    in-out property <string> mot-de-passe;
 
     VerticalLayout {
         spacing: 0px;
@@ -205,8 +217,19 @@ export component Coquille inherits Window {
             }
         }
 
+        // Tant qu'aucune session n'est ouverte, l'ecran de connexion occupe
+        // toute la place : montrer une coquille vide derriere donnerait
+        // l'impression d'une application a moitie chargee.
+        if !root.connecte: EcranConnexion {
+            occupe: root.occupe;
+            erreur: root.erreur;
+            email <=> root.email;
+            mot-de-passe <=> root.mot-de-passe;
+            connecter => { root.connecter(); }
+        }
+
         // Quatre colonnes.
-        HorizontalLayout {
+        if root.connecte: HorizontalLayout {
             spacing: 0px;
 
             // 1. Rail des espaces.
@@ -382,7 +405,7 @@ export component Coquille inherits Window {
                                 background: Theme.succes;
                             }
                             Text {
-                                text: "ex";
+                                text: root.nom-affiche;
                                 color: Theme.texte-second;
                                 font-size: 14px;
                                 font-weight: 500;
@@ -411,7 +434,7 @@ export component Coquille inherits Window {
                                 background: Theme.accent;
                             }
                             Text {
-                                text: "orbit";
+                                text: root.pseudo;
                                 color: Theme.texte-second;
                                 font-size: 14px;
                                 font-weight: 500;
