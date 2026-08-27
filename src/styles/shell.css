@@ -900,6 +900,19 @@
 }
 
 /*
+ * Le message survole passe au-dessus de ses voisins.
+ *
+ * Sa barre d'actions deborde de quelques pixels au-dessus et en dessous de la
+ * ligne. Sans cette priorite, le message voisin intercepte le clic — et de
+ * maniere imprevisible, car `content-visibility: auto` ne contient le rendu
+ * que hors ecran : l'ordre d'empilement change au fil du defilement.
+ */
+.message:hover,
+.message:focus-within {
+  z-index: 2;
+}
+
+/*
  * Un liseré qui parait au survol, plutot qu'un deplacement du contenu.
  *
  * Il est dessine par un pseudo-element de largeur nulle qui s'etire : animer
