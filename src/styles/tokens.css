@@ -99,7 +99,7 @@
 
   --perspective: 900px;
   --tilt-max: 0deg;
-  --lift: 0px;
+  --lift: -1px;
 
   /* ==================================================================
      Theme clair
@@ -115,9 +115,9 @@
   --bg-scrim: rgba(0, 0, 0, 0.7);
   --bg-floating: #ffffff;     /* info-bulles et menus surgissants */
 
-  --glass-bg: #ffffff;
+  --glass-bg: rgba(255, 255, 255, 0.72);
   --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-blur: 0px;
+  --glass-blur: 20px;
 
   --bg-hover: rgba(6, 6, 7, 0.06);
   --bg-active: rgba(6, 6, 7, 0.1);
@@ -158,15 +158,26 @@
   --gradient-aurora: linear-gradient(135deg, #5865f2, #eb459e);
   --gradient-surface: none;
 
-  /* Ombres franches et discretes : une messagerie n'a que trois niveaux de
-     profondeur — la page, ce qui flotte, ce qui bloque. */
-  --shadow-xs: 0 1px 0 rgba(6, 6, 7, 0.05);
-  --shadow-sm: 0 1px 2px rgba(6, 6, 7, 0.1);
-  --shadow-md: 0 4px 8px rgba(6, 6, 7, 0.12);
-  --shadow-lg: 0 8px 20px rgba(6, 6, 7, 0.18);
-  --shadow-glow: none;
+  /*
+   * Profondeur.
+   *
+   * Chaque niveau superpose deux ombres : une courte et dense qui pose l'objet
+   * sur son support, une longue et diffuse qui donne la hauteur. Une seule
+   * ombre donne toujours l'impression d'un autocollant.
+   *
+   * La source de lumiere est unique et vient d'en haut : les decalages sont
+   * tous positifs sur l'axe vertical.
+   */
+  --shadow-xs: 0 1px 1px rgba(6, 6, 7, 0.04), 0 1px 2px rgba(6, 6, 7, 0.06);
+  --shadow-sm: 0 1px 2px rgba(6, 6, 7, 0.06), 0 2px 6px rgba(6, 6, 7, 0.08);
+  --shadow-md: 0 2px 4px rgba(6, 6, 7, 0.06), 0 8px 20px rgba(6, 6, 7, 0.12);
+  --shadow-lg: 0 4px 8px rgba(6, 6, 7, 0.08), 0 20px 48px rgba(6, 6, 7, 0.16);
+  /* Halo colore, reserve a ce qui a le focus ou porte l'action principale. */
+  --shadow-glow: 0 0 0 3px var(--accent-soft), 0 6px 20px rgba(88, 101, 242, 0.24);
 
-  --edge-light: none;
+  /* Filet clair sur l'arete superieure : c'est ce qui fait lire une surface
+     comme un materiau et non comme un aplat. */
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
   color-scheme: light;
 }
@@ -187,9 +198,9 @@
     --bg-scrim: rgba(0, 0, 0, 0.85);
     --bg-floating: #060608;
 
-    --glass-bg: #1a1a1e;
+    --glass-bg: rgba(30, 30, 36, 0.72);
     --glass-border: rgba(255, 255, 255, 0.06);
-    --glass-blur: 0px;
+    --glass-blur: 20px;
 
     --bg-hover: rgba(255, 255, 255, 0.04);
     --bg-active: rgba(255, 255, 255, 0.07);
@@ -225,13 +236,13 @@
 
     --gradient-surface: none;
 
-    --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.2);
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-    --shadow-glow: none;
+    --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.24);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 24px rgba(0, 0, 0, 0.42);
+    --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.34), 0 24px 60px rgba(0, 0, 0, 0.56);
+    --shadow-glow: 0 0 0 3px var(--accent-soft), 0 8px 28px rgba(88, 101, 242, 0.4);
 
-    --edge-light: none;
+    --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
     color-scheme: dark;
   }
@@ -248,9 +259,9 @@
   --bg-scrim: rgba(0, 0, 0, 0.85);
   --bg-floating: #060608;
 
-  --glass-bg: #1a1a1e;
+  --glass-bg: rgba(30, 30, 36, 0.72);
   --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-blur: 0px;
+  --glass-blur: 20px;
 
   --bg-hover: rgba(255, 255, 255, 0.04);
   --bg-active: rgba(255, 255, 255, 0.07);
@@ -286,13 +297,13 @@
 
   --gradient-surface: none;
 
-  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.2);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: none;
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.2), 0 1px 2px rgba(0, 0, 0, 0.24);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.24), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.3), 0 10px 24px rgba(0, 0, 0, 0.42);
+  --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.34), 0 24px 60px rgba(0, 0, 0, 0.56);
+  --shadow-glow: 0 0 0 3px var(--accent-soft), 0 8px 28px rgba(88, 101, 242, 0.4);
 
-  --edge-light: none;
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 
   color-scheme: dark;
 }
@@ -318,9 +329,9 @@
   --bg-scrim: rgba(0, 0, 0, 0.92);
   --bg-floating: #000000;
 
-  --glass-bg: #000000;
-  --glass-border: rgba(255, 255, 255, 0.06);
-  --glass-blur: 0px;
+  --glass-bg: rgba(14, 14, 18, 0.72);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-blur: 20px;
 
   --bg-hover: rgba(255, 255, 255, 0.05);
   --bg-active: rgba(255, 255, 255, 0.08);
@@ -356,13 +367,13 @@
 
   --gradient-surface: none;
 
-  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.2);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-glow: none;
+  --shadow-xs: 0 1px 1px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.34);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.34), 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.52);
+  --shadow-lg: 0 4px 10px rgba(0, 0, 0, 0.44), 0 24px 60px rgba(0, 0, 0, 0.66);
+  --shadow-glow: 0 0 0 3px var(--accent-soft), 0 8px 28px rgba(88, 101, 242, 0.4);
 
-  --edge-light: none;
+  --edge-light: inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
   color-scheme: dark;
 }

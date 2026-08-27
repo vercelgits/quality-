@@ -13,6 +13,9 @@ import './styles/dm.css';
 import './styles/friends.css';
 import './styles/settings.css';
 import './styles/landing.css';
+// La matiere vient apres les feuilles de structure : elle ne change que les
+// surfaces, les ombres et les reponses au survol, jamais les metriques.
+import './styles/depth.css';
 // En dernier : les regles mobiles surchargent celles des grands ecrans.
 import './styles/mobile.css';
 
