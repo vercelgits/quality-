@@ -1,43 +1,10 @@
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { signIn, uniqueText, withoutCredentials, skipReason } from './session';
 
-/**
- * Parcours critiques, avec une session ouverte.
- *
- * Ces tests ecrivent dans un vrai projet Supabase : ils demandent donc un
- * compte dedie, fourni par l'environnement. Sans lui, la suite se declare
- * ignoree plutot qu'en echec — un identifiant de test n'a rien a faire dans le
- * depot, et un depot fraichement clone doit pouvoir lancer les tests publics
- * sans rien configurer.
- *
- *   E2E_EMAIL=compte-de-test@exemple.fr E2E_PASSWORD=... npx playwright test
- */
-
-const email = process.env['E2E_EMAIL'];
-const password = process.env['E2E_PASSWORD'];
+/** Parcours critiques avec une session ouverte. */
 
 test.describe('Parcours authentifies', () => {
-  test.skip(
-    !email || !password,
-    'Definissez E2E_EMAIL et E2E_PASSWORD pour executer ces tests.',
-  );
-
-  async function signIn(page: Page): Promise<void> {
-    await page.goto('/connexion');
-    await page.getByLabel('Adresse e-mail').fill(email!);
-    await page.getByLabel('Mot de passe').fill(password!);
-    await page.getByRole('button', { name: 'Entrer' }).click();
-
-    // L'amorcage charge espaces et salons : on attend la barre laterale plutot
-    // qu'un delai fixe, qui serait tantot trop court tantot inutilement long.
-    await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible({
-      timeout: 20_000,
-    });
-  }
-
-  /** Texte unique par execution, pour ne jamais confondre deux essais. */
-  function uniqueText(prefix: string): string {
-    return `${prefix} ${Date.now().toString(36)}`;
-  }
+  test.skip(withoutCredentials, skipReason);
 
   test('se connecte et atteint un salon', async ({ page }) => {
     await signIn(page);

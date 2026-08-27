@@ -276,6 +276,9 @@ function ChannelItem({
         }
         onClick={() => onSelect(channel.id)}
         aria-current={active ? 'true' : undefined}
+        // Seule l'icone distinguait un salon vocal d'un salon texte : rien
+        // qu'une feuille de style ou un test puisse viser.
+        data-kind={channel.kind}
       >
         <Icon name={channel.kind === 'voice' ? 'volume' : 'hash'} size={16} />
         <span className="channel__name truncate">{channel.name}</span>
