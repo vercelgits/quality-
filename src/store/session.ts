@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Session } from '@supabase/supabase-js';
-import { supabase, errorMessage } from '@/lib/supabase';
+import { supabase, errorMessage, isSessionFailure } from '@/lib/supabase';
 import type { Profile, PresenceStatus } from '@/types/db';
 
 /* -------------------------------------------------------------------------- */
@@ -189,10 +189,34 @@ export const useSession = create<SessionState>((set, get) => ({
     applyPreferences(get().preferences);
     readRedirectError(set);
 
-    void supabase.auth.getSession().then(({ data }) => {
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+
+      if (!data.session) {
+        set({ session: null, loading: false });
+        return;
+      }
+
+      // `getSession` relit le jeton stocke sans le valider. Un jeton refuse par
+      // le serveur — horloge decalee au moment de la connexion, session
+      // revoquee — laisserait donc l'application se croire connectee et echouer
+      // sur chaque requete, sans que rien ne l'explique.
+      const { error } = await supabase.auth.getUser();
+
+      if (error && isSessionFailure(error)) {
+        await supabase.auth.signOut();
+        set({
+          session: null,
+          profile: null,
+          loading: false,
+          error: errorMessage(error),
+        });
+        return;
+      }
+
       set({ session: data.session, loading: false });
-      if (data.session) void get().setStatus('online');
-    });
+      void get().setStatus('online');
+    })();
 
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       set({ session, loading: false });

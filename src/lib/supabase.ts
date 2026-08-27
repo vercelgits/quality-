@@ -36,6 +36,29 @@ export const supabase = createClient(url, key, {
   },
 });
 
+/**
+ * Vrai quand l'erreur signale un jeton que le serveur refuse.
+ *
+ * Ces echecs ne se resolvent pas d'eux-memes : tant que le jeton mort reste en
+ * cache, chaque requete echoue. La seule issue est de fermer la session pour
+ * repartir d'un ecran de connexion propre.
+ */
+export function isSessionFailure(error: unknown): boolean {
+  const message =
+    typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message: unknown }).message).toLowerCase()
+      : '';
+
+  return (
+    message.includes('issued at future') ||
+    message.includes('token is expired') ||
+    message.includes('jwt expired') ||
+    message.includes('invalid jwt') ||
+    message.includes('bad_jwt') ||
+    message.includes('session from session_id claim in jwt does not exist')
+  );
+}
+
 /** Message d'erreur lisible a partir de ce que renvoie Supabase. */
 export function errorMessage(error: unknown): string {
   if (!error) return 'Une erreur inconnue est survenue.';
@@ -109,6 +132,22 @@ function translate(message: string): string {
   }
   if (lowered.includes('access_denied')) {
     return 'Connexion annulee : l’acces au compte Google a ete refuse.';
+  }
+  // Un jeton refuse pour cause d'horodatage vient presque toujours d'une
+  // horloge qui etait decalee au moment de la connexion. Le jeton reste ensuite
+  // en cache et bloque tout, sans que rien ne l'explique.
+  if (
+    lowered.includes('issued at future') ||
+    lowered.includes('token is expired') ||
+    lowered.includes('jwt expired') ||
+    lowered.includes('invalid jwt') ||
+    lowered.includes('bad_jwt')
+  ) {
+    return (
+      'Votre session n’est plus valable — souvent parce que l’horloge de ' +
+      'l’appareil etait decalee au moment de la connexion. Reconnectez-vous, ' +
+      'et verifiez la date et l’heure du systeme si cela se reproduit.'
+    );
   }
   if (message.includes('duplicate key') && message.includes('username')) {
     return 'Ce pseudo est deja pris.';
