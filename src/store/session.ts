@@ -99,6 +99,7 @@ interface SessionState {
   initialize: () => () => void;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, username: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<boolean>;
   updatePassword: (password: string) => Promise<boolean>;
@@ -222,6 +223,35 @@ export const useSession = create<SessionState>((set, get) => ({
   },
 
   endRecovery: () => set({ recovering: false }),
+
+  /**
+   * Connexion par Google.
+   *
+   * Le navigateur quitte la page vers Google puis revient sur `/app` avec un
+   * jeton dans l'adresse ; `detectSessionInUrl` du client Supabase le consomme
+   * et ouvre la session. Il n'y a donc rien a attendre ici : soit la
+   * redirection part, soit elle echoue et l'on affiche pourquoi.
+   */
+  signInWithGoogle: async () => {
+    set({ error: null });
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/app`,
+        queryParams: {
+          // Redemande le choix du compte : sans cela, Google reconnecte
+          // silencieusement le dernier utilise, ce qui piege qui en a plusieurs.
+          prompt: 'select_account',
+        },
+      },
+    });
+
+    if (error) {
+      set({ error: errorMessage(error) });
+      throw error;
+    }
+  },
 
   signOut: async () => {
     // Le passage hors ligne est tente mais ne doit jamais empecher la

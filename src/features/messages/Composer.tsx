@@ -20,7 +20,8 @@ import {
 } from '@/lib/upload';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
-import { LIMITS, QUICK_REACTIONS } from '@/constants';
+import { EmojiPicker } from '@/components/EmojiPicker';
+import { LIMITS } from '@/constants';
 import { formatBytes, formatRelative } from '@/lib/time';
 import type { Profile, UUID } from '@/types/db';
 
@@ -546,22 +547,22 @@ export function Composer({ channelId, threadId = null, placeholder, autoFocus }:
         </div>
 
         {emojiOpen ? (
-          <div className="emoji-pop emoji-pop--composer surface">
-            {QUICK_REACTIONS.map((emoji) => (
-              <button
-                type="button"
-                key={emoji}
-                className="emoji-pop__item"
-                onClick={() => {
-                  setValue((current) => current + emoji);
-                  setEmojiOpen(false);
-                  textareaRef.current?.focus();
-                }}
-              >
-                {emoji}
-              </button>
-            ))}
-          </div>
+          <EmojiPicker
+            align="right"
+            onClose={() => setEmojiOpen(false)}
+            onPick={(char) => {
+              // Insertion au curseur plutot qu'a la fin : on ecrit rarement
+              // son emoji apres avoir tout redige.
+              const node = textareaRef.current;
+              const caret = node?.selectionStart ?? value.length;
+              setValue(value.slice(0, caret) + char + value.slice(caret));
+
+              requestAnimationFrame(() => {
+                node?.focus();
+                node?.setSelectionRange(caret + char.length, caret + char.length);
+              });
+            }}
+          />
         ) : null}
       </div>
 

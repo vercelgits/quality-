@@ -17,7 +17,8 @@ export type Modal =
   | { kind: 'poll'; channelId: UUID; threadId: UUID | null }
   | { kind: 'bookmarks' }
   | { kind: 'edit-profile' }
-  | { kind: 'new-dm' };
+  | { kind: 'new-dm' }
+  | { kind: 'space-settings'; spaceId: UUID };
 
 /**
  * Ce que montre la barre laterale.

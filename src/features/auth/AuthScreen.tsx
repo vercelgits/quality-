@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { navigate } from '@/lib/router';
+import { GoogleMark } from '@/components/GoogleMark';
 
 type Mode = 'signin' | 'signup' | 'forgot';
 
@@ -31,7 +32,9 @@ export function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
-  const { signIn, signUp, requestPasswordReset, error, clearError } = useSession();
+  const { signIn, signUp, signInWithGoogle, requestPasswordReset, error, clearError } =
+    useSession();
+  const [googleBusy, setGoogleBusy] = useState(false);
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -162,6 +165,30 @@ export function AuthScreen() {
               </p>
             </div>
           )}
+
+          {mode !== 'forgot' ? (
+            <>
+              <button
+                type="button"
+                className="btn btn--block auth__google"
+                disabled={googleBusy}
+                onClick={() => {
+                  setGoogleBusy(true);
+                  clearError();
+                  // La page part vers Google : inutile de retablir l'etat, sauf
+                  // si la redirection echoue.
+                  void signInWithGoogle().catch(() => setGoogleBusy(false));
+                }}
+              >
+                {googleBusy ? <span className="spinner" /> : <GoogleMark size={18} />}
+                Continuer avec Google
+              </button>
+
+              <div className="auth__separator">
+                <span>ou avec une adresse e-mail</span>
+              </div>
+            </>
+          ) : null}
 
           <div className="field">
             <label className="field__label" htmlFor="auth-email">

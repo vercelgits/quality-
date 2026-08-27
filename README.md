@@ -91,6 +91,14 @@ mise à jour est la façon normale de récupérer les nouvelles migrations.**
 Dans **Authentication → Providers → Email**, désactivez *Confirm email* pour
 tester tout de suite ; laissez-le actif en production avec un expéditeur SMTP.
 
+**Pour la connexion Google**, activez le fournisseur dans **Authentication →
+Providers → Google** et renseignez-y l'identifiant et le secret client obtenus
+dans la console Google Cloud. Ajoutez `https://VOTRE-REF.supabase.co/auth/v1/callback`
+aux URI de redirection autorisées côté Google.
+
+Le bouton est déjà en place : tant que le fournisseur n'est pas activé, il
+affiche un message qui le dit, au lieu d'une erreur technique.
+
 ### 5. Lancer
 
 ```bash

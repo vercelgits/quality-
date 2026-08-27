@@ -64,6 +64,9 @@ function translate(message: string): string {
     'Password should be at least 6 characters':
       'Le mot de passe doit faire au moins 6 caracteres.',
     'Unable to validate email address: invalid format': 'Adresse e-mail invalide.',
+    'Unsupported provider: provider is not enabled':
+      'La connexion Google n’est pas encore activee sur ce projet. ' +
+      'Activez-la dans Authentication puis Providers, cote Supabase.',
     'For security purposes, you can only request this after 60 seconds.':
       'Pour des raisons de securite, reessayez dans une minute.',
   };

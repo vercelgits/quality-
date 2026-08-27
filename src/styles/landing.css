@@ -586,3 +586,36 @@
 .auth__brand--link:hover .auth__wordmark {
   color: var(--accent-text);
 }
+
+/* --------------------------------------------------------------------------
+   Connexion par un fournisseur tiers
+   -------------------------------------------------------------------------- */
+
+.auth__google {
+  gap: var(--space-3);
+  min-height: 46px;
+  font-weight: var(--weight-medium);
+}
+
+/* Separateur avec libelle : un trait seul laisserait croire a une simple
+   division, alors qu'il annonce une seconde methode. */
+.auth__separator {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-1) 0;
+}
+
+.auth__separator::before,
+.auth__separator::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-subtle);
+}
+
+.auth__separator span {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  white-space: nowrap;
+}

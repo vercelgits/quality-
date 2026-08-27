@@ -693,3 +693,306 @@ a.attachment:hover {
     opacity: 1;
   }
 }
+
+/* ==========================================================================
+   Apercus de liens
+   ========================================================================== */
+
+.previews {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  max-width: 460px;
+}
+
+/* --------------------------------------------------------------- Carte */
+
+.preview-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  border-left: 3px solid var(--border-strong);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.preview-card:hover {
+  background: var(--bg-hover);
+  border-left-color: var(--accent);
+  text-decoration: none;
+}
+
+/* Initiale du domaine plutot qu'un favicon : aller chercher l'icone
+   exposerait l'adresse du lecteur au site avant meme qu'il clique. */
+.preview-card__mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-text);
+  font-weight: var(--weight-bold);
+  font-size: var(--text-sm);
+}
+
+.preview-card__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-card__host {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
+}
+
+.preview-card__path {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+}
+
+/* --------------------------------------------------------------- Image */
+
+.preview-image {
+  display: block;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+}
+
+.preview-image img {
+  width: 100%;
+  height: auto;
+  max-height: 340px;
+  object-fit: contain;
+  background: var(--bg-sunken);
+}
+
+/* --------------------------------------------------------------- Video */
+
+.preview-video {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-subtle);
+  text-align: left;
+  transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.preview-video:hover {
+  border-color: var(--accent);
+}
+
+.preview-video__play {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  flex: none;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.preview-video__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.preview-video__provider {
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.preview-video__url {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+}
+
+.preview-video__hint {
+  font-size: var(--text-xs);
+  color: var(--accent-text);
+  font-weight: var(--weight-medium);
+  white-space: nowrap;
+}
+
+.preview-embed {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #000;
+}
+
+.preview-embed iframe {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: none;
+}
+
+/* ==========================================================================
+   Selecteur d'emoji
+   ========================================================================== */
+
+.emoji-picker {
+  position: absolute;
+  z-index: 60;
+  width: 340px;
+  max-width: calc(100vw - var(--space-7));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: pop-in var(--duration-fast) var(--ease-out);
+}
+
+.emoji-picker--left { left: 0; }
+.emoji-picker--right { right: 0; }
+
+/* Ancre par defaut : au-dessus de l'element declencheur. */
+.composer .emoji-picker {
+  bottom: calc(100% + var(--space-3));
+}
+
+.message__picker {
+  position: absolute;
+  top: var(--space-6);
+  right: var(--space-5);
+  z-index: 60;
+}
+
+.message__picker .emoji-picker {
+  position: static;
+}
+
+.emoji-picker__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-faint);
+  flex: none;
+}
+
+.emoji-picker__input {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.emoji-picker__body {
+  max-height: 300px;
+  padding: var(--space-2) var(--space-3) var(--space-3);
+}
+
+.emoji-picker__empty {
+  padding: var(--space-7) var(--space-4);
+  text-align: center;
+  font-size: var(--text-sm);
+  color: var(--text-faint);
+}
+
+.emoji-section + .emoji-section {
+  margin-top: var(--space-4);
+}
+
+/* L'intitule reste visible au defilement : sans cela on perd le fil de la
+   categorie qu'on parcourt. */
+.emoji-section__label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: var(--space-2) var(--space-1);
+  background: var(--bg-raised);
+  font-size: var(--text-2xs);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-faint);
+}
+
+.emoji-section__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+  gap: 2px;
+}
+
+.emoji-section__item {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  font-size: 1.35rem;
+  line-height: 1;
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
+}
+
+.emoji-section__item:hover {
+  background: var(--bg-hover);
+  transform: scale(1.18);
+}
+
+@media (max-width: 860px) {
+  .emoji-picker {
+    width: calc(100vw - var(--space-6));
+  }
+
+  /* Ancre au bord de la fenetre plutot qu'au bouton : a cette largeur, un
+     panneau ancre a droite deborderait. */
+  .message__picker {
+    right: var(--space-3);
+  }
+}
+
+/* ==========================================================================
+   Zone sensible des parametres
+   ========================================================================== */
+
+/* Le cadre rouge est ici justifie : il separe une action irreversible du reste
+   du formulaire, ou tout se corrige. */
+.danger-zone {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--danger-soft);
+  border: 1px solid var(--danger);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.danger-zone__title {
+  font-size: var(--text-base);
+  font-weight: var(--weight-semibold);
+  color: var(--danger);
+}
+
+.danger-zone__body {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+.danger-zone .btn--danger {
+  align-self: flex-start;
+}

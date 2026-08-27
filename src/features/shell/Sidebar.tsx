@@ -104,6 +104,18 @@ export function Sidebar() {
           <Icon name="link" size={14} />
         </button>
 
+        {myRank >= 2 ? (
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={() => openModal({ kind: 'space-settings', spaceId: space.id })}
+            title="Parametres de l’espace"
+            aria-label="Parametres de l’espace"
+          >
+            <Icon name="settings" size={16} />
+          </button>
+        ) : null}
+
         {myRank >= 1 ? (
           <button
             type="button"

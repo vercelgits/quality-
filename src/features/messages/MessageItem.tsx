@@ -4,8 +4,10 @@ import { Icon } from '@/components/Icon';
 import { RichText, type RichTextContext } from '@/lib/richtext';
 import { formatTime, formatFull, formatRelative } from '@/lib/time';
 import { QUICK_REACTIONS } from '@/constants';
+import { EmojiPicker } from '@/components/EmojiPicker';
 import { PollCard } from '@/features/polls/PollCard';
 import { AttachmentList } from './AttachmentList';
+import { LinkPreviews } from './LinkPreview';
 import type { Message, Profile, UUID } from '@/types/db';
 
 interface MessageItemProps {
@@ -186,6 +188,8 @@ function MessageItemInner({
             </>
           )}
 
+          {!editing ? <LinkPreviews content={message.content} /> : null}
+
           {message.poll ? <PollCard poll={message.poll} /> : null}
 
           <AttachmentList attachments={message.attachments} />
@@ -358,20 +362,15 @@ function MessageItemInner({
       ) : null}
 
       {pickerOpen ? (
-        <div className="emoji-pop surface">
-          {QUICK_REACTIONS.map((emoji) => (
-            <button
-              type="button"
-              key={emoji}
-              className="emoji-pop__item"
-              onClick={() => {
-                onReact(message.id, emoji);
-                setPickerOpen(false);
-              }}
-            >
-              {emoji}
-            </button>
-          ))}
+        <div className="message__picker">
+          <EmojiPicker
+            align="right"
+            onClose={() => setPickerOpen(false)}
+            onPick={(char) => {
+              onReact(message.id, char);
+              setPickerOpen(false);
+            }}
+          />
         </div>
       ) : null}
     </article>
