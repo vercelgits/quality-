@@ -26,11 +26,43 @@ export async function signIn(page: Page): Promise<void> {
   await page.getByLabel('Mot de passe').fill(password!);
   await page.getByRole('button', { name: 'Entrer' }).click();
 
+  await passOnboarding(page);
+
   // L'amorcage charge espaces et salons : on attend la barre laterale plutot
   // qu'un delai fixe, qui serait tantot trop court tantot inutilement long.
   await expect(page.getByRole('navigation', { name: 'Navigation principale' })).toBeVisible({
     timeout: 20_000,
   });
+}
+
+/**
+ * Franchit l'ecran de choix du pseudo, s'il se presente.
+ *
+ * Un compte cree depuis le tableau de bord Supabase n'a pas choisi son pseudo :
+ * la base en deduit un de l'adresse et l'application demande de trancher avant
+ * d'entrer. Sans ce passage, chaque parcours authentifie echouerait sur un
+ * compte neuf — et l'echec designerait la barre laterale manquante plutot que
+ * sa vraie cause.
+ */
+async function passOnboarding(page: Page): Promise<void> {
+  const heading = page.getByRole('heading', { name: /Choisissez votre pseudo/i });
+
+  // Course volontaire : sur un compte deja configure, l'ecran ne parait jamais
+  // et c'est la barre laterale qui gagne.
+  const outcome = await Promise.race([
+    heading.waitFor({ state: 'visible', timeout: 20_000 }).then(() => 'onboarding' as const),
+    page
+      .getByRole('navigation', { name: 'Navigation principale' })
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .then(() => 'ready' as const),
+  ]).catch(() => 'ready' as const);
+
+  if (outcome !== 'onboarding') return;
+
+  // Le pseudo propose est deja libre : le valider tel quel suffit.
+  const submit = page.getByRole('button', { name: 'Continuer' });
+  await expect(submit).toBeEnabled({ timeout: 10_000 });
+  await submit.click();
 }
 
 /** Texte unique par execution, pour ne jamais confondre deux essais. */

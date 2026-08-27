@@ -10,6 +10,9 @@ dist/
 supabase/.temp/
 supabase/.branches/
 
+# Identifiants du compte de test : ne doivent jamais etre versionnes.
+.env.e2e
+
 # Playwright
 test-results/
 playwright-report/

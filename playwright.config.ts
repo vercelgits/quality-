@@ -1,4 +1,47 @@
 import { defineConfig, devices } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+
+/**
+ * Charge les identifiants du compte de test depuis `.env.e2e`, s'il existe.
+ *
+ * Un fichier plutot que des variables a retaper a chaque commande : le mot de
+ * passe reste sur la machine, hors du depot et hors de l'historique du terminal.
+ * Le fichier est ignore par git.
+ */
+function loadTestCredentials(): void {
+  let raw: string;
+  try {
+    raw = readFileSync(new URL('.env.e2e', import.meta.url), 'utf8');
+  } catch {
+    return; // Absent : les parcours authentifies se declareront ignores.
+  }
+
+  // Coupe sur le saut de ligne seul ; `trim` se charge du retour chariot que
+  // Windows ajoute, ce qui evite d'avoir a le prevoir ici.
+  const NEWLINE = String.fromCharCode(10);
+
+  for (const line of raw.split(NEWLINE)) {
+    const trimmed = line.trim();
+    if (trimmed === '' || trimmed.startsWith('#')) continue;
+
+    const separator = trimmed.indexOf('=');
+    if (separator === -1) continue;
+
+    const key = trimmed.slice(0, separator).trim();
+    // Les guillemets sont retires : on en met par reflexe autour d'un mot de
+    // passe, et ils partiraient sinon tels quels dans le formulaire.
+    const value = trimmed
+      .slice(separator + 1)
+      .trim()
+      .replace(/^["']|["']$/g, '');
+
+    // L'environnement reel garde la priorite : une commande explicite doit
+    // pouvoir surcharger le fichier.
+    if (value !== '' && process.env[key] === undefined) process.env[key] = value;
+  }
+}
+
+loadTestCredentials();
 
 /**
  * Configuration Playwright.
