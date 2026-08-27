@@ -64,15 +64,27 @@
      Volontairement courts. Un bouton a 3 px se lit comme un controle ; a 14 px
      il se lit comme une pastille, ce qui est le defaut le plus visible d'une
      interface generee sans intention. */
-  --radius-xs: 3px;
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 8px;
-  --radius-xl: 12px;
-  --radius-2xl: 16px;
+  /*
+   * Rayons.
+   *
+   * L'echelle precedente reprenait celle de Discord — trois pixels sur un
+   * bouton, quatre sur une ligne. C'est un choix defendable, mais c'est
+   * exactement ce qui fait paraitre une interface datee a cote de ce qui se
+   * fait aujourd'hui : l'angle vif se lit comme un reste des annees 2010.
+   *
+   * Chaque palier double a peu pres le precedent, pour que deux rayons voisins
+   * restent distinguables. Un bouton pose dans une carte doit avoir un rayon
+   * plus petit qu'elle, sinon le coin interieur parait de travers.
+   */
+  --radius-xs: 8px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+  --radius-2xl: 32px;
   --radius-full: 999px;
 
-  --radius-button: 3px;
+  --radius-button: 10px;
 
   /* --------------------------------------------------------------- Mouvement */
   --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -90,7 +102,7 @@
   --sidebar-width: 240px;
   --panel-width: 340px;
   --header-height: 48px;
-  --composer-radius: var(--radius-md);
+  --composer-radius: var(--radius-lg);
 
   --row-padding-y: var(--space-1);
   --row-gap: var(--space-4);

@@ -1,0 +1,291 @@
+/* ==========================================================================
+   Scene vocale
+
+   Une grande carte par personne, format paysage, avec la photo au centre et
+   le nom pose en pastille dans un coin. C'est ce que fait Discord, et ce
+   n'est pas un caprice : quand quelqu'un allume sa camera, la tuile ne change
+   pas de forme — la video prend simplement la place de la photo. Des tuiles
+   carrees obligeraient a recadrer, ou a tout redisposer au premier flux.
+   ========================================================================== */
+
+.voice-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
+  gap: var(--space-4);
+  align-content: start;
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-2);
+  overflow-y: auto;
+}
+
+/* Seul dans le salon, on n'a pas besoin d'une tuile pleine largeur : elle
+   donnerait une photo demesuree au milieu d'un vide. */
+.voice-grid:has(> :only-child) {
+  grid-template-columns: minmax(0, min(760px, 100%));
+  justify-content: center;
+  align-content: center;
+}
+
+/*
+ * Le fond de la tuile emprunte la teinte du profil.
+ *
+ * Un aplat sombre avec une pastille au milieu donne une carte inerte, et
+ * quatre personnes sans photo produisent quatre rectangles identiques. La
+ * teinte vient de l'identifiant, elle est donc stable et differente d'une
+ * personne a l'autre : on repere qui parle avant meme de lire le nom.
+ */
+.voice-tile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16 / 10;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background:
+    radial-gradient(60% 60% at 50% 42%, var(--bg-raised), transparent 70%),
+    var(--bg-sunken);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm), var(--edge-light);
+  transition:
+    box-shadow var(--duration-normal) var(--ease-out),
+    transform var(--duration-normal) var(--spring);
+}
+
+/*
+ * L'anneau de parole est dessine en ombre interieure, pas en bordure.
+ *
+ * Une bordure modifierait la taille de la tuile a chaque prise de parole, et
+ * toute la grille tressauterait des que quelqu'un ouvre la bouche.
+ */
+.voice-tile.is-speaking {
+  box-shadow:
+    inset 0 0 0 3px var(--success),
+    0 0 0 1px var(--success),
+    0 8px 28px color-mix(in oklab, var(--success) 30%, transparent);
+}
+
+.voice-tile.is-muted .avatar {
+  opacity: 0.55;
+}
+
+/* La photo occupe la carte sans la remplir : assez grande pour reconnaitre
+   quelqu'un d'un coup d'oeil, assez petite pour laisser respirer. */
+.voice-tile .avatar {
+  width: clamp(72px, 26%, 132px) !important;
+  height: clamp(72px, 26%, 132px) !important;
+}
+
+.voice-tile__name {
+  position: absolute;
+  left: var(--space-4);
+  bottom: var(--space-4);
+  max-width: calc(100% - var(--space-8));
+  padding: 4px var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.voice-tile__icons {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-4);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 0;
+  padding: 5px var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: var(--text-secondary);
+}
+
+/* Aucune icone a montrer : la pastille vide serait une tache. */
+.voice-tile__icons:empty {
+  display: none;
+}
+
+/* La camera remplit la carte de bord a bord. */
+.voice-tile video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ------------------------------------------------------------- Partages */
+
+.voice-stage__screens {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+  gap: var(--space-4);
+  padding: var(--space-2);
+}
+
+.screen-tile {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-xl);
+  background: #000;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.screen-tile.is-fullscreen {
+  border-radius: 0;
+  aspect-ratio: auto;
+}
+
+.screen-tile__video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+}
+
+.screen-tile__label {
+  position: absolute;
+  left: var(--space-4);
+  bottom: var(--space-4);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 4px var(--space-4);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.screen-tile__actions {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  display: flex;
+  gap: var(--space-2);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.screen-tile:hover .screen-tile__actions,
+.screen-tile:focus-within .screen-tile__actions {
+  opacity: 1;
+}
+
+/* Au doigt il n'y a pas de survol : les commandes restent la. */
+@media (hover: none) {
+  .screen-tile__actions {
+    opacity: 1;
+  }
+}
+
+.screen-tile__action {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: #fff;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.screen-tile__action:hover {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+/* -------------------------------------------------------- Barre du bas */
+
+/*
+ * Elle flotte au-dessus de la scene plutot que de s'y empiler.
+ *
+ * Empilee, elle repoussait les tuiles vers le haut et la place perdue
+ * grandissait avec elle. Flottante, la scene garde toute sa hauteur.
+ */
+.voice-controls {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-6);
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-full);
+  z-index: 3;
+}
+
+.voice-stage {
+  position: relative;
+  /* De quoi ne pas laisser la barre flottante recouvrir la derniere tuile. */
+  padding-bottom: 84px;
+}
+
+.voice-controls .icon-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.voice-controls .icon-btn:hover {
+  background: var(--bg-selected);
+}
+
+/* Une commande active se lit a son fond plein, pas a une nuance de gris. */
+.voice-controls .icon-btn.is-active {
+  background: #fff;
+  color: #060607;
+}
+
+/* Quitter est la seule action sans retour : elle porte la seule couleur. */
+.voice-controls .btn--danger {
+  width: 56px;
+  height: 44px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  justify-content: center;
+}
+
+.voice-controls__timer {
+  padding-right: var(--space-3);
+  margin-right: var(--space-2);
+  border-right: 1px solid var(--border-subtle);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 640px) {
+  .voice-controls {
+    bottom: var(--space-4);
+    gap: 4px;
+    padding: var(--space-2);
+  }
+
+  .voice-controls__timer {
+    display: none;
+  }
+
+  .voice-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -22,3 +22,6 @@ playwright/.auth/
 
 # Captures de verification, produites a la demande.
 apercu-*.png
+
+# Captures de verification.
+vue-*.png

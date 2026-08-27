@@ -23,7 +23,6 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
 
   const voiceChannelId = useVoice((state) => state.channelId);
   const joinVoice = useVoice((state) => state.join);
-  const leaveVoice = useVoice((state) => state.leave);
   const connecting = useVoice((state) => state.connecting);
 
   const openThreadCount = Object.values(threads).filter(
@@ -76,18 +75,20 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
 
       <div className="spacer" />
 
-      {channel.kind === 'voice' ? (
+      {/*
+        Une fois en ligne, la barre de commandes de la scene porte deja
+        « Quitter » : le repeter dans l'en-tete donnait deux boutons rouges a
+        l'ecran pour une seule action.
+      */}
+      {channel.kind === 'voice' && !inThisVoice ? (
         <button
           type="button"
-          className={'btn btn--sm' + (inThisVoice ? ' btn--danger' : ' btn--primary')}
-          onClick={() => {
-            if (inThisVoice) void leaveVoice();
-            else if (profile) void joinVoice(channel.id, profile.id);
-          }}
-          disabled={connecting}
+          className="btn btn--sm btn--primary"
+          onClick={() => profile && void joinVoice(channel.id, profile.id)}
+          disabled={connecting || !profile}
         >
-          {connecting ? <span className="spinner" /> : <Icon name={inThisVoice ? 'phone-off' : 'volume'} size={14} />}
-          {inThisVoice ? 'Quitter' : 'Rejoindre'}
+          {connecting ? <span className="spinner" /> : <Icon name="volume" size={14} />}
+          Rejoindre
         </button>
       ) : null}
 
