@@ -328,3 +328,21 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Mesures du partage, dans la barre de commandes. Discretes : c'est un
+   diagnostic, pas une information dont on a besoin en permanence. */
+.voice-controls__stats {
+  padding-right: var(--space-3);
+  margin-right: var(--space-2);
+  border-right: 1px solid var(--border-subtle);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .voice-controls__stats {
+    display: none;
+  }
+}

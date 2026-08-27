@@ -301,15 +301,21 @@ export async function applyEncoding(
   sender: RTCRtpSender,
   bitrate: number,
   priority: 'motion' | 'detail',
-): Promise<void> {
+): Promise<boolean> {
   try {
     const parameters = sender.getParameters();
-    if (!parameters.encodings || parameters.encodings.length === 0) return;
+
+    // Juste apres `addTrack`, la liste d'encodages est encore vide : elle n'est
+    // remplie qu'une fois la description locale posee. C'est precisement le
+    // moment ou l'on veut regler le debit, d'ou l'echec signale a l'appelant
+    // plutot qu'avale — il rappellera plus tard.
+    if (!parameters.encodings || parameters.encodings.length === 0) return false;
 
     for (const encoding of parameters.encodings) {
       encoding.maxBitrate = bitrate;
-      // Sans plancher, l'encodeur peut descendre a quelques images par seconde
-      // avant meme que le reseau ne soit sature.
+      // Aucune reduction de definition imposee : sans cela Chrome se garde le
+      // droit de diviser la resolution par deux des le premier a-coup.
+      encoding.scaleResolutionDownBy = 1;
       encoding.maxFramerate = undefined;
     }
 
@@ -317,9 +323,34 @@ export async function applyEncoding(
       priority === 'motion' ? 'maintain-framerate' : 'maintain-resolution';
 
     await sender.setParameters(parameters);
+    return true;
   } catch {
-    // Encodage pas encore pret, ou navigateur qui refuse : sans consequence.
+    // Etat transitoire, ou navigateur qui refuse : l'appelant reessaiera.
+    return false;
   }
+}
+
+/**
+ * Insiste jusqu'a ce que le reglage passe.
+ *
+ * Une seule tentative echouait presque toujours : elle arrive avant que la
+ * negociation ait rempli la liste d'encodages, et le partage repartait alors au
+ * debit par defaut de WebRTC — environ deux megabits, ce qui donne un 1080p
+ * baveux. C'est la cause la plus probable d'un partage « qui pixellise ».
+ */
+export async function applyEncodingWithRetry(
+  sender: RTCRtpSender,
+  bitrate: number,
+  priority: 'motion' | 'detail',
+): Promise<boolean> {
+  for (const attente of [0, 120, 400, 1200, 3000]) {
+    if (attente > 0) await new Promise((resoudre) => setTimeout(resoudre, attente));
+
+    // Une piste retiree entre-temps n'a plus rien a regler.
+    if (!sender.track) return false;
+    if (await applyEncoding(sender, bitrate, priority)) return true;
+  }
+  return false;
 }
 
 /**

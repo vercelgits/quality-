@@ -9,7 +9,7 @@ import {
   screenConstraints,
   screenBitrate,
   cameraBitrate,
-  applyEncoding,
+  applyEncodingWithRetry,
 } from '@/store/devices';
 import type { UUID, VoiceParticipant, VoiceSignal } from '@/types/db';
 
@@ -116,6 +116,15 @@ interface VoiceState {
   speaking: Record<UUID, boolean>;
 
   participantsByChannel: Record<UUID, VoiceParticipant[]>;
+
+  /** Mesures du partage sortant, relevees toutes les deux secondes. */
+  outboundStats: {
+    width: number;
+    height: number;
+    fps: number;
+    /** Debit reellement emis, en kilobits par seconde. */
+    kbps: number;
+  } | null;
 
   join: (channelId: UUID, userId: UUID) => Promise<void>;
   leave: () => Promise<void>;
@@ -261,6 +270,70 @@ export const useVoice = create<VoiceState>((set, get) => {
     }, 220);
   }
 
+  /*
+   * Releve de la qualite reellement emise.
+   *
+   * Les chiffres viennent de WebRTC lui-meme, pas de ce qu'on a demande : c'est
+   * la seule facon de savoir si le debit demande est effectivement atteint. Un
+   * partage annonce en 1080p60 qui sort a deux megabits se voit ici, alors
+   * qu'a l'oeil on hesite entre « le reseau » et « le code ».
+   */
+  let statsTimer: number | null = null;
+  let dernierOctets = 0;
+  let dernierInstant = 0;
+
+  function startStats(): void {
+    if (statsTimer !== null) return;
+
+    statsTimer = window.setInterval(() => {
+      const emetteur = [...peers.values()].find((pair) => pair.screenSender)?.screenSender;
+      if (!emetteur) {
+        set({ outboundStats: null });
+        return;
+      }
+
+      void emetteur.getStats().then((rapport) => {
+        for (const entree of rapport.values()) {
+          if (entree.type !== 'outbound-rtp' || entree.kind !== 'video') continue;
+
+          const octets = entree.bytesSent ?? 0;
+          const instant = entree.timestamp ?? performance.now();
+          const ecart = (instant - dernierInstant) / 1000;
+
+          // Le premier releve n'a rien a quoi se comparer : on l'utilise comme
+          // point de depart plutot que d'afficher un debit fantaisiste.
+          const kbps =
+            dernierInstant > 0 && ecart > 0
+              ? Math.round(((octets - dernierOctets) * 8) / ecart / 1000)
+              : 0;
+
+          dernierOctets = octets;
+          dernierInstant = instant;
+
+          set({
+            outboundStats: {
+              width: entree.frameWidth ?? 0,
+              height: entree.frameHeight ?? 0,
+              fps: Math.round(entree.framesPerSecond ?? 0),
+              kbps,
+            },
+          });
+          return;
+        }
+      });
+    }, 2000);
+  }
+
+  function stopStats(): void {
+    if (statsTimer !== null) {
+      window.clearInterval(statsTimer);
+      statsTimer = null;
+    }
+    dernierOctets = 0;
+    dernierInstant = 0;
+    set({ outboundStats: null });
+  }
+
   function stopSpeechDetection(): void {
     if (speechTimer !== null) {
       window.clearInterval(speechTimer);
@@ -361,7 +434,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       peer.screenSender = connection.addTrack(screenTrack, screen);
       // Un pair qui arrive en cours de partage doit recevoir la meme qualite
       // que les autres : sans cela il herite du debit par defaut.
-      void applyEncoding(
+      void applyEncodingWithRetry(
         peer.screenSender,
         screenBitrate(useDevices.getState().media),
         useDevices.getState().media.screenPriority,
@@ -373,7 +446,7 @@ export const useVoice = create<VoiceState>((set, get) => {
     const cameraTrack = camera?.getVideoTracks()[0];
     if (camera && cameraTrack) {
       peer.cameraSender = connection.addTrack(cameraTrack, camera);
-      void applyEncoding(peer.cameraSender, cameraBitrate(useDevices.getState().media), 'detail');
+      void applyEncodingWithRetry(peer.cameraSender, cameraBitrate(useDevices.getState().media), 'detail');
       announceStream(peerId, camera.id, 'camera');
     }
 
@@ -546,6 +619,7 @@ export const useVoice = create<VoiceState>((set, get) => {
     focusedShare: null,
     speaking: {},
     participantsByChannel: {},
+    outboundStats: null,
 
     join: async (channelId, userId) => {
       if (get().channelId === channelId) return;
@@ -613,6 +687,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       const { localStream, localScreen, localCamera, channelId } = get();
 
       stopSpeechDetection();
+      stopStats();
       teardownPeers();
       streamPurposes.clear();
       pendingStreams.clear();
@@ -705,6 +780,7 @@ export const useVoice = create<VoiceState>((set, get) => {
         for (const track of localScreen?.getTracks() ?? []) track.stop();
 
         set({ sharing: false, localScreen: null });
+        stopStats();
         playCue('share-stop');
         publishState();
         return;
@@ -776,7 +852,7 @@ export const useVoice = create<VoiceState>((set, get) => {
 
       for (const [peerId, peer] of peers) {
         peer.screenSender = peer.connection.addTrack(videoTrack, display);
-        void applyEncoding(peer.screenSender, screenBitrate(media), media.screenPriority);
+        void applyEncodingWithRetry(peer.screenSender, screenBitrate(media), media.screenPriority);
 
         if (audioTrack) {
           peer.screenAudioSender = peer.connection.addTrack(audioTrack, display);
@@ -786,6 +862,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       }
 
       set({ sharing: true, localScreen: display });
+      startStats();
       playCue('share-start');
       publishState();
     },
@@ -848,7 +925,7 @@ export const useVoice = create<VoiceState>((set, get) => {
 
       for (const [peerId, peer] of peers) {
         peer.cameraSender = peer.connection.addTrack(videoTrack, camera);
-        void applyEncoding(peer.cameraSender, cameraBitrate(useDevices.getState().media), 'detail');
+        void applyEncodingWithRetry(peer.cameraSender, cameraBitrate(useDevices.getState().media), 'detail');
         announceStream(peerId, camera.id, 'camera');
       }
 

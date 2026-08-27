@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useContextMenu } from '@/components/ContextMenu';
+import { ContextMenu, useContextMenu, type MenuEntry, type MenuPosition } from '@/components/ContextMenu';
 import { UserContextMenu } from '@/features/profile/UserContextMenu';
 import { useVoice } from './useVoice';
 import { useDevices, applySink } from '@/store/devices';
@@ -39,6 +39,8 @@ export function VoiceStage({ channel }: { channel: Channel }) {
   const muted = useVoice((state) => state.muted);
   const deafened = useVoice((state) => state.deafened);
   const sharing = useVoice((state) => state.sharing);
+  const stats = useVoice((state) => state.outboundStats);
+  const qualite = useContextMenu();
 
   const join = useVoice((state) => state.join);
   const leave = useVoice((state) => state.leave);
@@ -208,6 +210,20 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           {formatDuration(elapsed)}
         </span>
 
+        {/*
+          Ce qui part reellement, releve par WebRTC — pas ce qu'on a demande.
+          Un partage annonce en 1080p60 qui sort a deux megabits se voit ici ;
+          a l'oeil, on hesite entre le reseau et le code.
+        */}
+        {stats ? (
+          <span
+            className="voice-controls__stats"
+            title={`Ce qui est reellement emis : ${stats.width}x${stats.height}, ${stats.fps} images par seconde, ${stats.kbps} kb/s`}
+          >
+            {stats.height}p{stats.fps} · {(stats.kbps / 1000).toFixed(1)} Mb/s
+          </span>
+        ) : null}
+
         <button
           type="button"
           className={'icon-btn' + (muted ? ' is-active' : '')}
@@ -247,6 +263,26 @@ export function VoiceStage({ channel }: { channel: Channel }) {
         >
           <Icon name="screen" size={18} />
         </button>
+
+        {/*
+          Reglages de qualite, atteignables pendant le partage.
+          Les changer en cours exige de relancer la capture : la definition et
+          la cadence sont fixees a l'ouverture du flux, et rien ne permet de
+          les modifier ensuite sans rouvrir.
+        */}
+        <button
+          type="button"
+          className="icon-btn voice-controls__more"
+          onClick={(event) => qualite.openAt(event.currentTarget)}
+          title="Qualite du partage"
+          aria-label="Qualite du partage"
+        >
+          <Icon name="chevron-down" size={16} />
+        </button>
+
+        {qualite.position ? (
+          <ShareQualityMenu position={qualite.position} onClose={qualite.close} sharing={sharing} />
+        ) : null}
 
         <button
           type="button"
@@ -443,5 +479,91 @@ function VoiceTile({
         <UserContextMenu userId={userId} position={menu.position} onClose={menu.close} />
       ) : null}
     </li>
+  );
+}
+
+
+/**
+ * Choix rapide de la qualite du partage.
+ *
+ * Les memes reglages existent dans les parametres, mais on ne va pas les
+ * chercher au milieu d'un appel : ce sont justement les moments ou l'on veut
+ * baisser la definition parce que ca rame.
+ *
+ * Un changement pendant un partage relance la capture — le selecteur de source
+ * reapparait. C'est annonce dans l'intitule plutot que subi.
+ */
+function ShareQualityMenu({
+  position,
+  onClose,
+  sharing,
+}: {
+  position: MenuPosition;
+  onClose: () => void;
+  sharing: boolean;
+}) {
+  const media = useDevices((state) => state.media);
+  const setMedia = useDevices((state) => state.setMedia);
+  const toggleScreenShare = useVoice((state) => state.toggleScreenShare);
+
+  /** Applique un reglage, en relancant la capture si un partage est en cours. */
+  const appliquer = (action: () => void) => {
+    action();
+    if (!sharing) return;
+
+    void toggleScreenShare().then(() => void toggleScreenShare());
+  };
+
+  const coche = (actif: boolean) => (actif ? <Icon name="check" size={15} /> : undefined);
+
+  const entrees: MenuEntry[] = [
+    ...(['720p', '1080p', 'source'] as const).map((valeur) => ({
+      id: `def-${valeur}`,
+      label: valeur === 'source' ? 'Definition de la source' : valeur,
+      icon: coche(media.screenQuality === valeur),
+      onSelect: () => appliquer(() => setMedia('screenQuality', valeur)),
+    })),
+
+    { id: 'sep-fps', separator: true },
+
+    ...([30, 60] as const).map((valeur) => ({
+      id: `fps-${valeur}`,
+      label: `${valeur} images par seconde`,
+      icon: coche(media.screenFrameRate === valeur),
+      onSelect: () => appliquer(() => setMedia('screenFrameRate', valeur)),
+    })),
+
+    { id: 'sep-prio', separator: true },
+
+    {
+      id: 'motion',
+      label: 'Privilegier la fluidite',
+      icon: coche(media.screenPriority === 'motion'),
+      onSelect: () => appliquer(() => setMedia('screenPriority', 'motion')),
+    },
+    {
+      id: 'detail',
+      label: 'Privilegier la nettete',
+      icon: coche(media.screenPriority === 'detail'),
+      onSelect: () => appliquer(() => setMedia('screenPriority', 'detail')),
+    },
+
+    { id: 'sep-son', separator: true },
+
+    {
+      id: 'son',
+      label: media.shareSystemAudio ? 'Partager le son : oui' : 'Partager le son : non',
+      icon: <Icon name={media.shareSystemAudio ? 'volume' : 'mic-off'} size={15} />,
+      onSelect: () => appliquer(() => setMedia('shareSystemAudio', !media.shareSystemAudio)),
+    },
+  ];
+
+  return (
+    <ContextMenu
+      position={position}
+      entries={entrees}
+      onClose={onClose}
+      label="Qualite du partage"
+    />
   );
 }

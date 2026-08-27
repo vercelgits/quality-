@@ -114,10 +114,14 @@ function MessageItemInner({
       }
       id={`message-${message.id}`}
       data-message-id={message.id}
-      onContextMenu={author ? menu.open : undefined}
+      onContextMenu={menu.open}
     >
-      {menu.position && author ? (
-        <UserContextMenu userId={author.id} position={menu.position} onClose={menu.close} />
+      {menu.position ? (
+        <UserContextMenu
+          userId={message.author_id}
+          position={menu.position}
+          onClose={menu.close}
+        />
       ) : null}
       {replyTo ? (
         <button
@@ -148,8 +152,8 @@ function MessageItemInner({
               type="button"
               className="message__avatar-button"
               onClick={(event) => menu.openAt(event.currentTarget)}
-              title={author ? `Actions pour ${author.display_name}` : undefined}
-              aria-label={author ? `Actions pour ${author.display_name}` : 'Auteur inconnu'}
+              title={author ? `Actions pour ${author.display_name}` : 'Actions'}
+              aria-label={author ? `Actions pour ${author.display_name}` : 'Actions'}
             >
               <Avatar profile={author} size={undefined} />
             </button>
@@ -163,7 +167,6 @@ function MessageItemInner({
                 type="button"
                 className="message__author"
                 onClick={(event) => menu.openAt(event.currentTarget)}
-                disabled={!author}
               >
                 {author?.display_name ?? 'Compte supprime'}
               </button>
