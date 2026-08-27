@@ -202,15 +202,19 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: var(--rail-width) var(--sidebar-width) minmax(0, 1fr) auto;
+  /* Trois zones : navigation, conversation, panneau lateral. La navigation
+     regroupe le rail et la barre des salons pour pouvoir coulisser d'un bloc
+     sur petit ecran. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
   height: 100%;
   overflow: hidden;
   /* Transparent : c'est le fond d'ambiance qui se voit a travers les panneaux. */
   background: transparent;
 }
 
-.workspace.is-collapsed {
-  grid-template-columns: var(--rail-width) 0 minmax(0, 1fr) auto;
+.workspace__nav {
+  display: flex;
+  min-height: 0;
 }
 
 .workspace.is-collapsed .sidebar {
@@ -955,10 +959,26 @@
 
 /* ----------------------------------------------------------------- Message */
 
+/**
+ * Virtualisation par le navigateur.
+ *
+ * `content-visibility: auto` laisse le navigateur sauter la mise en page et la
+ * peinture de tout ce qui sort de la fenetre. Sur un historique de plusieurs
+ * milliers de messages, le cout de rendu devient celui des seuls messages
+ * visibles, sans la machinerie d'un fenetrage en JavaScript — qui aurait
+ * demande de mesurer chaque hauteur et se serait battu avec l'ancrage du
+ * defilement a chaque nouveau message.
+ *
+ * Le mot-cle `auto` de `contain-intrinsic-size` fait retenir au navigateur la
+ * derniere hauteur mesuree : sans lui, chaque message hors champ compterait
+ * pour la valeur estimee et la barre de defilement sauterait au parcours.
+ */
 .message {
   position: relative;
   padding: var(--row-padding-y) var(--space-6);
   transition: background-color var(--duration-fast) var(--ease-out);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 62px;
 }
 
 .message:hover {
@@ -1108,7 +1128,10 @@
 
 .message__actions {
   position: absolute;
-  top: calc(var(--row-padding-y) * -1 + 2px);
+  /* Dans les limites du message, et non 8 px au-dessus : la virtualisation par
+     `content-visibility` implique un confinement de peinture, qui rognerait
+     tout debordement. */
+  top: 2px;
   right: var(--space-5);
   display: flex;
   align-items: center;
@@ -2596,32 +2619,3 @@
   }
 }
 
-@media (max-width: 860px) {
-  .workspace {
-    grid-template-columns: var(--rail-width) minmax(0, 1fr);
-  }
-
-  .sidebar {
-    position: fixed;
-    top: 0;
-    bottom: 0;
-    left: var(--rail-width);
-    width: var(--sidebar-width);
-    z-index: 50;
-    box-shadow: var(--shadow-lg);
-  }
-
-  .workspace.is-collapsed .sidebar {
-    display: none;
-  }
-
-  .side-panel {
-    width: min(var(--panel-width), 100vw);
-  }
-
-  .message,
-  .composer-wrap,
-  .messages__scroll {
-    --space-6: var(--space-4);
-  }
-}

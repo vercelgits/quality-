@@ -256,6 +256,40 @@ publique sans rien configurer.
 
 ---
 
+## Mobile
+
+Sous 860 px, la navigation ne côtoie plus la conversation : elle la recouvre.
+Le rail et la barre des salons coulissent d'un bloc en tiroir, la conversation
+occupe toute la largeur, et le panneau latéral devient une feuille plein écran.
+
+Le tiroir fermé porte `inert` : il sort du parcours clavier et des lecteurs
+d'écran au lieu de rester une zone morte tabulable. Choisir un salon, toucher le
+voile ou presser `Échap` le referme.
+
+Deux détails qui ne se voient qu'à l'usage : la hauteur utilise `dvh` et non
+`vh`, sinon le compositeur passe sous le bord visible quand la barre d'adresse
+se rétracte ; et les actions de message restent affichées sous `hover: none`,
+puisqu'au doigt il n'y a pas de survol.
+
+---
+
+## Performance
+
+La liste de messages s'appuie sur `content-visibility: auto`. Le navigateur
+saute la mise en page et la peinture de tout ce qui sort de la fenêtre, ce qui
+ramène le coût de rendu à celui des seuls messages visibles — sans la machinerie
+d'un fenêtrage en JavaScript, qui aurait demandé de mesurer chaque hauteur et se
+serait battu avec l'ancrage du défilement à chaque nouveau message.
+
+`contain-intrinsic-size: auto` fait retenir au navigateur la dernière hauteur
+mesurée ; sans le mot-clé `auto`, la barre de défilement sauterait au parcours.
+
+Corollaire à connaître : ce mode implique un confinement de peinture, donc rien
+ne peut déborder d'une ligne de message. C'est pourquoi la barre d'actions est
+positionnée à l'intérieur de ses limites et non au-dessus.
+
+---
+
 ## Limites connues
 
 - **Le vocal est en maillage.** Le coût monte au carré du nombre de

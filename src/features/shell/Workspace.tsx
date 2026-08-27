@@ -14,6 +14,7 @@ import { VoiceStage } from '@/features/voice/VoiceStage';
 import { CommandPalette } from '@/features/palette/CommandPalette';
 import { Modals } from '@/features/settings/Modals';
 import { Icon } from '@/components/Icon';
+import { useIsMobile } from '@/lib/useMediaQuery';
 import type { Profile } from '@/types/db';
 
 export function Workspace() {
@@ -33,6 +34,9 @@ export function Workspace() {
   const activeSpaceId = useUI((state) => state.activeSpaceId);
   const activeChannelId = useUI((state) => state.activeChannelId);
   const sidebarCollapsed = useUI((state) => state.sidebarCollapsed);
+  const navOpen = useUI((state) => state.navOpen);
+  const closeNav = useUI((state) => state.closeNav);
+  const isMobile = useIsMobile();
   const selectSpace = useUI((state) => state.selectSpace);
   const selectChannel = useUI((state) => state.selectChannel);
   const setPaletteOpen = useUI((state) => state.setPaletteOpen);
@@ -123,6 +127,12 @@ export function Workspace() {
     const handler = (event: KeyboardEvent) => {
       const modifier = event.ctrlKey || event.metaKey;
 
+      if (event.key === 'Escape' && useUI.getState().navOpen) {
+        event.preventDefault();
+        useUI.getState().closeNav();
+        return;
+      }
+
       if (modifier && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setPaletteOpen(!paletteOpen);
@@ -172,9 +182,33 @@ export function Workspace() {
   }
 
   return (
-    <div className={'workspace' + (sidebarCollapsed ? ' is-collapsed' : '')}>
-      <SpaceRail />
-      <Sidebar />
+    <div
+      className={
+        'workspace' +
+        (sidebarCollapsed ? ' is-collapsed' : '') +
+        (isMobile ? ' is-mobile' : '') +
+        (navOpen ? ' is-nav-open' : '')
+      }
+    >
+      {/* Sur petit ecran, la navigation recouvre la conversation : il faut un
+          voile pour la refermer, et l'ecarter des lecteurs d'ecran quand elle
+          est fermee. */}
+      {isMobile && navOpen ? (
+        <button
+          type="button"
+          className="nav-scrim"
+          onClick={closeNav}
+          aria-label="Fermer la navigation"
+        />
+      ) : null}
+
+      <div
+        className="workspace__nav"
+        inert={isMobile && !navOpen ? true : undefined}
+      >
+        <SpaceRail />
+        <Sidebar />
+      </div>
 
       <main className="main" id="conversation">
         {channel ? (

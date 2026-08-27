@@ -5,6 +5,7 @@ import { useVoice } from '@/features/voice/useVoice';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { dmTitle } from '@/features/dm/DirectMessageList';
+import { useIsMobile } from '@/lib/useMediaQuery';
 import type { Channel } from '@/types/db';
 
 export function ChannelHeader({ channel }: { channel: Channel }) {
@@ -12,6 +13,8 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
   const togglePanel = useUI((state) => state.togglePanel);
   const setPaletteOpen = useUI((state) => state.setPaletteOpen);
   const toggleSidebar = useUI((state) => state.toggleSidebar);
+  const openNav = useUI((state) => state.openNav);
+  const isMobile = useIsMobile();
 
   const threads = useChat((state) => state.threads);
   const dmParticipants = useChat((state) => state.dmParticipants);
@@ -42,10 +45,10 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
       <button
         type="button"
         className="icon-btn channel-header__toggle"
-        onClick={toggleSidebar}
-        aria-label="Afficher ou masquer la barre laterale"
+        onClick={isMobile ? openNav : toggleSidebar}
+        aria-label={isMobile ? 'Ouvrir la navigation' : 'Afficher ou masquer la barre laterale'}
       >
-        <Icon name="inbox" size={17} />
+        <Icon name={isMobile ? 'chevron-right' : 'inbox'} size={18} />
       </button>
 
       {isDirect ? (

@@ -43,8 +43,13 @@ interface UIState {
   /** Message en cours de modification. */
   editingId: UUID | null;
 
-  /** Barre laterale repliee, pour les petits ecrans et le mode concentre. */
+  /** Barre laterale repliee, pour le mode concentre sur grand ecran. */
   sidebarCollapsed: boolean;
+  /**
+   * Tiroir de navigation ouvert. N'a de sens que sur petit ecran, ou la
+   * navigation recouvre la conversation au lieu de la cotoyer.
+   */
+  navOpen: boolean;
 
   searchQuery: string;
 
@@ -61,6 +66,8 @@ interface UIState {
   setReplyingTo: (messageId: UUID | null) => void;
   setEditingId: (messageId: UUID | null) => void;
   toggleSidebar: () => void;
+  openNav: () => void;
+  closeNav: () => void;
   setSearchQuery: (query: string) => void;
 }
 
@@ -77,6 +84,7 @@ export const useUI = create<UIState>((set, get) => ({
   replyingTo: null,
   editingId: null,
   sidebarCollapsed: false,
+  navOpen: false,
   searchQuery: '',
 
   selectSpace: (spaceId) =>
@@ -93,6 +101,9 @@ export const useUI = create<UIState>((set, get) => ({
   selectChannel: (channelId) =>
     set({
       activeChannelId: channelId,
+      // Choisir un salon referme le tiroir : sur mobile il masque la
+      // conversation qu'on vient justement de demander.
+      navOpen: false,
       // Changer de salon ferme le fil : son contenu n'a plus de rapport avec
       // ce qui est affiche a gauche.
       activeThreadId: null,
@@ -116,7 +127,7 @@ export const useUI = create<UIState>((set, get) => ({
 
   closeThread: () => set({ activeThreadId: null, panel: 'none' }),
 
-  setPanel: (panel) => set({ panel }),
+  setPanel: (panel) => set({ panel, navOpen: false }),
 
   togglePanel: (panel) =>
     set((state) => ({
@@ -130,5 +141,7 @@ export const useUI = create<UIState>((set, get) => ({
   setReplyingTo: (replyingTo) => set({ replyingTo, editingId: null }),
   setEditingId: (editingId) => set({ editingId, replyingTo: null }),
   toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+  openNav: () => set({ navOpen: true }),
+  closeNav: () => set({ navOpen: false }),
   setSearchQuery: (searchQuery) => set({ searchQuery }),
 }));

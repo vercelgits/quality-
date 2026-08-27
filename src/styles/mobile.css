@@ -1,0 +1,281 @@
+/* ==========================================================================
+   Orbit — petits ecrans
+
+   Sur un telephone, la navigation ne cotoie pas la conversation : elle la
+   recouvre. Le rail et la barre des salons coulissent d'un bloc par-dessus,
+   et la conversation occupe toute la largeur en permanence.
+
+   Le seuil de 860 px est repris tel quel dans `useMediaQuery` : le CSS decide
+   de la mise en page, le TypeScript decide du comportement, et les deux
+   basculent au meme endroit.
+   ========================================================================== */
+
+@media (max-width: 860px) {
+  /* `dvh` plutot que `vh` : sur mobile, la barre d'adresse se retracte au
+     defilement et `vh` reste fige sur la hauteur maximale, ce qui pousse le
+     compositeur sous le bord visible. */
+  html,
+  body,
+  #root {
+    height: 100dvh;
+  }
+
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* --------------------------------------------------------------- Tiroir */
+
+  .workspace__nav {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 60;
+    width: min(340px, 88vw);
+    transform: translateX(-100%);
+    box-shadow: none;
+    transition:
+      transform var(--duration-normal) var(--ease-out),
+      box-shadow var(--duration-normal) var(--ease-out);
+    will-change: transform;
+  }
+
+  .workspace.is-nav-open .workspace__nav {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* Le rail garde sa largeur ; la barre des salons prend le reste du tiroir. */
+  .workspace__nav .rail {
+    flex: none;
+  }
+
+  .workspace__nav .sidebar {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Repli quand `inert` n'est pas gere : sans cela, le tiroir ferme resterait
+     accessible a la tabulation et au lecteur d'ecran. */
+  @supports not selector(:disabled) {
+    .workspace:not(.is-nav-open) .workspace__nav {
+      visibility: hidden;
+    }
+  }
+
+  .nav-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    border: none;
+    background: var(--bg-scrim);
+    animation: fade-in var(--duration-fast) var(--ease-out);
+    /* Sur iOS, un element sans `cursor` n'accepte pas le clic. */
+    cursor: pointer;
+  }
+
+  /* Le tiroir ferme ne doit rien laisser passer au clavier. */
+  .workspace__nav[inert] {
+    pointer-events: none;
+  }
+
+  /* ---------------------------------------------------------- Conversation */
+
+  .main {
+    grid-column: 1;
+  }
+
+  .channel-header {
+    padding: 0 var(--space-3);
+    gap: var(--space-2);
+  }
+
+  .channel-header__name {
+    font-size: var(--text-base);
+    max-width: 18ch;
+  }
+
+  /* Les libelles des actions n'ont plus la place : l'icone et l'info-bulle
+     suffisent, et le nom accessible reste porte par `title`. */
+  .channel-header__action {
+    width: 38px;
+    padding: 0;
+  }
+
+  .channel-header__action-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  /* Marges laterales resserrees : sur 375 px, 23 px de chaque cote mangent
+     un huitieme de la largeur utile. */
+  .message,
+  .composer-wrap,
+  .day-divider,
+  .unread-divider,
+  .channel-intro {
+    padding-left: var(--space-4);
+    padding-right: var(--space-4);
+  }
+
+  .day-divider,
+  .unread-divider {
+    margin-left: var(--space-4);
+    margin-right: var(--space-4);
+  }
+
+  /* Les actions de message ne se survolent pas au doigt : elles restent
+     visibles, plus petites, plutot que d'etre inaccessibles. */
+  .message__actions {
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
+    justify-content: flex-end;
+    margin-top: var(--space-2);
+    margin-left: calc(var(--avatar-size) + var(--row-gap));
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+
+  .message__action {
+    width: 34px;
+    height: 34px;
+  }
+
+  /* Trop d'actions pour la largeur : on garde l'essentiel. */
+  .message__action--emoji:not(:first-of-type) {
+    display: none;
+  }
+
+  .composer__hint {
+    display: none;
+  }
+
+  .jump-to-bottom {
+    right: var(--space-4);
+    bottom: var(--space-3);
+  }
+
+  /* -------------------------------------------------------- Panneau lateral */
+
+  .side-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 65;
+    width: 100%;
+    border-left: none;
+  }
+
+  .side-panel__header {
+    padding: 0 var(--space-4);
+  }
+
+  /* ------------------------------------------------------------- Dialogues */
+
+  .modal {
+    max-width: calc(100vw - var(--space-5)) !important;
+  }
+
+  .modal__panel {
+    max-height: 88dvh;
+  }
+
+  .palette {
+    width: calc(100vw - var(--space-5));
+    max-height: 70dvh;
+  }
+
+  .palette-backdrop {
+    padding-top: 8vh;
+  }
+
+  /* Le pied de la palette liste des raccourcis clavier : sans clavier, il
+     n'apprend rien. */
+  .palette__footer {
+    display: none;
+  }
+
+  /* -------------------------------------------------------------- Vocal */
+
+  .voice-grid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .voice-controls {
+    position: sticky;
+    bottom: var(--space-3);
+    flex-wrap: wrap;
+  }
+
+  /* --------------------------------------------------------------- Profil */
+
+  .profile__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  /* L'inclinaison suit le doigt et donne l'impression que la carte glisse
+     sous la pression : sur ecran tactile, l'effet dessert plus qu'il ne sert. */
+  .tilt__inner {
+    transform: none;
+  }
+
+  .tilt__glare {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Ecrans tres etroits
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 380px) {
+  .workspace__nav {
+    width: 92vw;
+  }
+
+  .message,
+  .composer-wrap {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
+
+  .message__actions {
+    margin-left: 0;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Ecran tactile, quelle que soit la largeur
+
+   `hover: none` cible l'absence de survol, pas la taille : une tablette large
+   a le meme probleme qu'un telephone avec les actions au survol.
+   -------------------------------------------------------------------------- */
+
+@media (hover: none) {
+  .message__actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .dm-row__hide {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .message__gutter-time {
+    opacity: 1;
+  }
+}
+
+/* La barre d'actions est en flux sur mobile : le confinement de peinture ne
+   la concerne plus, mais la hauteur estimee doit tenir compte de sa presence. */
+@media (hover: none) {
+  .message {
+    contain-intrinsic-size: auto 108px;
+  }
+}

@@ -155,12 +155,58 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
     window.setTimeout(() => node.classList.remove('is-highlighted'), 1600);
   }, []);
 
+  /**
+   * Gestionnaires stabilises.
+   *
+   * `MessageItem` est memoise, mais une fonction fleche ecrite dans le JSX est
+   * recreee a chaque rendu : la comparaison de props echouait donc toujours et
+   * les cinquante lignes visibles se repeignaient a chaque frappe dans le
+   * compositeur. Les figer rend la memoisation effective.
+   */
+  const handleSubmitEdit = useCallback(
+    (id: UUID, content: string) => {
+      void editMessage(view, id, content);
+      setEditingId(null);
+    },
+    [editMessage, view, setEditingId],
+  );
+
+  const handleDelete = useCallback(
+    (id: UUID) => void deleteMessage(view, id),
+    [deleteMessage, view],
+  );
+
+  const handleReact = useCallback(
+    (id: UUID, emoji: string) => {
+      if (profile) void toggleReaction(view, id, emoji, profile.id);
+    },
+    [toggleReaction, view, profile],
+  );
+
+  const handlePin = useCallback((id: UUID) => void togglePin(view, id), [togglePin, view]);
+
+  const handleRetry = useCallback(
+    (id: UUID) => void retryMessage(view, id),
+    [retryMessage, view],
+  );
+
+  const handleBookmark = useCallback(
+    (id: UUID) => void toggleBookmark(id),
+    [toggleBookmark],
+  );
+
+  const handleReport = useCallback(
+    (id: UUID) => openModal({ kind: 'report', messageId: id }),
+    [openModal],
+  );
+
   const handleStartThread = useCallback(
-    async (messageId: UUID) => {
+    (messageId: UUID) => {
       const source = byId.get(messageId);
       const title = source ? source.content.slice(0, 80) : 'Nouveau fil';
-      const thread = await startThread(messageId, title);
-      if (thread) openThread(thread.id);
+      void startThread(messageId, title).then((thread) => {
+        if (thread) openThread(thread.id);
+      });
     },
     [byId, startThread, openThread],
   );
@@ -257,21 +303,16 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
                   profiles={profiles}
                   onReply={setReplyingTo}
                   onEdit={setEditingId}
-                  onSubmitEdit={(id, content) => {
-                    void editMessage(view, id, content);
-                    setEditingId(null);
-                  }}
-                  onDelete={(id) => void deleteMessage(view, id)}
-                  onReact={(id, emoji) =>
-                    profile && void toggleReaction(view, id, emoji, profile.id)
-                  }
-                  onPin={(id) => void togglePin(view, id)}
+                  onSubmitEdit={handleSubmitEdit}
+                  onDelete={handleDelete}
+                  onReact={handleReact}
+                  onPin={handlePin}
                   onOpenThread={openThread}
-                  onStartThread={(id) => void handleStartThread(id)}
-                  onRetry={(id) => void retryMessage(view, id)}
+                  onStartThread={handleStartThread}
+                  onRetry={handleRetry}
                   onJumpTo={jumpTo}
-                  onBookmark={(id) => void toggleBookmark(id)}
-                  onReport={(id) => openModal({ kind: 'report', messageId: id })}
+                  onBookmark={handleBookmark}
+                  onReport={handleReport}
                   bookmarked={bookmarked.has(message.id)}
                 />
               </div>
