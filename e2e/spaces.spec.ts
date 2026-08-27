@@ -50,11 +50,12 @@ test.describe('Espaces et salons', () => {
     return null;
   }
 
-  test('cree un espace, qui apparait dans le rail', async ({ page }) => {
+  test('cree un espace, qui apparait dans le rail, puis le retire', async ({ page }) => {
     await openApp(page);
 
-    const created = await createSpace(page, uniqueText('Espace'));
-    if (!created) {
+    const nom = uniqueText('Espace');
+    const cree = await createSpace(page, nom);
+    if (!cree) {
       test.skip(true, 'Quota horaire d espaces atteint ; le refus est bien annonce.');
       return;
     }
@@ -62,6 +63,25 @@ test.describe('Espaces et salons', () => {
     // La creation fournit un salon de depart : sans lui, on entrerait dans un
     // espace ou l'on ne peut rien ecrire.
     await expect(page.locator('.composer__input')).toBeVisible();
+
+    /*
+     * L'espace est supprime dans la foulee.
+     *
+     * Le quota compte les espaces existants de la derniere heure : en laisser
+     * un a chaque execution finissait par empecher le proprietaire du compte
+     * d'en creer un lui-meme. Le retirer rend le credit, et couvre au passage
+     * l'aller-retour complet.
+     */
+    await page.getByRole('button', { name: 'Parametres de l’espace' }).click();
+
+    const fenetre = openDialog(page);
+    await fenetre.getByRole('tab', { name: 'Zone sensible' }).click();
+    await fenetre.getByLabel(/Pour confirmer, tapez/).fill(nom);
+    await fenetre.getByRole('button', { name: 'Supprimer definitivement' }).click();
+
+    await expect(page.locator(`.rail__button[title="${nom}"]`)).toHaveCount(0, {
+      timeout: 15_000,
+    });
   });
 
   test('cree un salon texte dans l espace courant', async ({ page }) => {
