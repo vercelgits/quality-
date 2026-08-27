@@ -619,3 +619,87 @@
   color: var(--text-faint);
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   Choix du pseudo
+   ========================================================================== */
+
+.onboarding {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
+  padding: var(--space-6);
+  background: var(--bg-sidebar);
+}
+
+.onboarding__card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  border-radius: var(--radius-md);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-lg);
+  text-align: center;
+}
+
+.onboarding__avatar {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-1);
+}
+
+.onboarding__title {
+  font-size: var(--text-xl);
+  font-weight: var(--weight-bold);
+}
+
+.onboarding__lede {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  line-height: var(--leading-relaxed);
+  margin-bottom: var(--space-2);
+}
+
+.onboarding__field {
+  text-align: left;
+}
+
+/* L'arobase est dans le champ, pas devant : elle fait partie du pseudo tel
+   qu'il sera lu, et la taper serait une erreur. */
+.onboarding__input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.onboarding__at {
+  position: absolute;
+  left: var(--space-4);
+  color: var(--text-faint);
+  font-size: var(--text-base);
+  pointer-events: none;
+}
+
+.onboarding__input .input {
+  padding-left: calc(var(--space-4) + 14px);
+  padding-right: 44px;
+}
+
+.onboarding__state {
+  position: absolute;
+  right: var(--space-4);
+  display: grid;
+  place-items: center;
+  color: var(--text-faint);
+}
+
+.onboarding__input:has(.input[aria-invalid='true']) .onboarding__state {
+  color: var(--danger);
+}
+
+.onboarding__input:has(.input[aria-invalid='false']) .onboarding__state {
+  color: var(--success);
+}

@@ -30,7 +30,7 @@ test.describe('Petit ecran', () => {
     expect(overflow).toBeLessThanOrEqual(0);
   });
 
-  test('les cibles tactiles font au moins 40 px', async ({ page }) => {
+  test('les cibles tactiles font au moins 44 px', async ({ page }) => {
     await page.goto('/connexion');
 
     const boxes = await page.locator('button:visible').evaluateAll((nodes) =>
@@ -40,7 +40,9 @@ test.describe('Petit ecran', () => {
       }),
     );
 
-    const tooSmall = boxes.filter((box) => box.height > 0 && box.height < 40);
+    // 44 px : la recommandation d'accessibilite pour une cible actionnee au
+    // doigt. A la souris, 38 suffisent et l'interface les utilise.
+    const tooSmall = boxes.filter((box) => box.height > 0 && box.height < 44);
     expect(tooSmall, `cibles trop petites : ${JSON.stringify(tooSmall)}`).toHaveLength(0);
   });
 

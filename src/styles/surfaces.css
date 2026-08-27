@@ -6,111 +6,6 @@
    ========================================================================== */
 
 /* --------------------------------------------------------------------------
-   Fond d'ambiance
-
-   Trois halos flous derivent lentement derriere l'interface. Ils sont fixes au
-   viewport et sous tout le reste, donc ils ne genent ni les clics ni la
-   lecture. `filter: blur` sur un degrade coute une seule passe au compositeur.
-   -------------------------------------------------------------------------- */
-
-.ambient {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-  background: var(--bg-app);
-}
-
-.ambient__orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(90px);
-  opacity: 0.5;
-  will-change: transform;
-}
-
-.ambient__orb--one {
-  width: 46vw;
-  height: 46vw;
-  top: -14vw;
-  left: -10vw;
-  background: oklch(62% 0.22 var(--hue-primary));
-  animation: drift-one 34s var(--ease-in-out) infinite alternate;
-}
-
-.ambient__orb--two {
-  width: 38vw;
-  height: 38vw;
-  top: 32vh;
-  right: -12vw;
-  background: oklch(64% 0.19 var(--hue-secondary));
-  animation: drift-two 42s var(--ease-in-out) infinite alternate;
-}
-
-.ambient__orb--three {
-  width: 32vw;
-  height: 32vw;
-  bottom: -12vw;
-  left: 34vw;
-  background: oklch(64% 0.2 var(--hue-tertiary));
-  animation: drift-three 38s var(--ease-in-out) infinite alternate;
-}
-
-/* En clair, les halos doivent rester des teintes : a pleine opacite ils
-   laveraient le texte. */
-:root:not([data-theme='dark']) .ambient__orb {
-  opacity: 0.12;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) .ambient__orb {
-    opacity: 0.24;
-  }
-}
-
-:root[data-theme='dark'] .ambient__orb {
-  opacity: 0.24;
-}
-
-/* Grain tres fin : casse les bandes visibles dans les grands degrades. */
-.ambient__grain {
-  position: absolute;
-  inset: 0;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
-}
-
-@keyframes drift-one {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to   { transform: translate3d(6vw, 8vh, 0) scale(1.15); }
-}
-
-@keyframes drift-two {
-  from { transform: translate3d(0, 0, 0) scale(1.1); }
-  to   { transform: translate3d(-8vw, -6vh, 0) scale(0.95); }
-}
-
-@keyframes drift-three {
-  from { transform: translate3d(0, 0, 0) scale(0.95); }
-  to   { transform: translate3d(5vw, -9vh, 0) scale(1.2); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .ambient__orb { animation: none; }
-}
-
-:root[data-motion='reduced'] .ambient__orb { animation: none; }
-
-/* L'application flotte au-dessus du decor. */
-.workspace,
-.auth,
-.boot {
-  position: relative;
-  z-index: 1;
-}
-
-/* --------------------------------------------------------------------------
    Cartes inclinables
 
    `--tilt-x` et `--tilt-y` sont ecrits par le composant a chaque image. La
@@ -127,20 +22,17 @@
   display: block;
 }
 
+/* L'inclinaison est neutralisee : `--tilt-max` vaut zero. Le composant reste
+   en place pour ne pas reecrire les cartes qui s'en servent, mais il ne
+   produit plus de mouvement — un objet qui penche sous le curseur n'a pas sa
+   place dans une interface qu'on manipule toute la journee. */
 .tilt__inner {
   display: block;
   position: relative;
   border-radius: inherit;
-  transform-style: preserve-3d;
-  transform:
-    rotateX(calc(var(--tilt-x) * var(--tilt-max)))
-    rotateY(calc(var(--tilt-y) * var(--tilt-max)));
-  transition: transform var(--duration-slow) var(--ease-out);
 }
 
-.tilt:hover .tilt__inner {
-  transition: transform var(--duration-instant) linear;
-}
+
 
 /* Reflet : un halo clair qui suit le curseur, comme sur une surface vernie. */
 .tilt__glare {
@@ -158,8 +50,8 @@
   );
 }
 
-.tilt:hover .tilt__glare {
-  opacity: 1;
+.tilt__glare {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

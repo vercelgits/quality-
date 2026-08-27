@@ -1,15 +1,13 @@
 /* ==========================================================================
    Orbit — jetons de design
 
-   Direction : « aurore ». Un fond profond bleu-violet, des surfaces de verre
-   qui laissent transparaitre ce qui est derriere, et des accents en degrade
-   violet -> cyan -> rose. Le nom du produit evoque l'orbite : la lumiere vient
-   donc du haut et de loin, comme un astre hors-champ.
+   Palette de gris, accent bleu-violet, dans la lignee de Discord. Le gris
+   domine et l'accent ne sert qu'a designer ce qui est actif ou principal :
+   c'est ce qui rend une interface de messagerie reposante sur huit heures.
 
-   Les couleurs sont en OKLCH. Contrairement a HSL, un meme ecart de luminosite
-   y est percu de facon identique quelle que soit la teinte : une palette
-   derivee reste donc reguliere a l'oeil sans corrections manuelles, et un
-   degrade entre deux teintes ne traverse pas de zone terne.
+   Les valeurs sont en hexadecimal et non en OKLCH. La raison est concrete :
+   il s'agit de teintes precises, pas d'une echelle a deriver, et un
+   hexadecimal se compare directement a une reference.
 
    Regle de structure : la palette claire est definie sur `:root` nu, et seuls
    les jetons qui changent sont redefinis pour le theme sombre. Aucune couleur
@@ -17,27 +15,24 @@
    ========================================================================== */
 
 :root {
-  /* ---------------------------------------------------------------- Teintes */
-  --hue-primary: 280;   /* violet */
-  --hue-secondary: 215; /* cyan-bleu */
-  --hue-tertiary: 340;  /* rose */
+  /* ------------------------------------------------------------- Typographie
+     `gg sans` est la police de Discord ; absente ailleurs, la pile retombe sur
+     celle du systeme, qui reste sobre et lisible. */
+  --font-sans: 'gg sans', 'Noto Sans', -apple-system, BlinkMacSystemFont,
+    'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-display: var(--font-sans);
+  --font-mono: 'gg mono', Consolas, 'Andale Mono WT', 'Andale Mono',
+    'Lucida Console', Monaco, monospace;
 
-  /* ------------------------------------------------------------- Typographie */
-  --font-sans: 'Inter var', 'Inter', ui-sans-serif, system-ui, -apple-system,
-    'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
-  --font-display: 'Inter var', 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', 'Cascadia Code',
-    Menlo, Consolas, monospace;
-
-  --text-2xs: 0.75rem;
-  --text-xs: 0.8125rem;
-  --text-sm: 0.9375rem;
-  --text-base: 1.0625rem;
-  --text-md: 1.125rem;
-  --text-lg: 1.3125rem;
-  --text-xl: 1.625rem;
-  --text-2xl: 2.125rem;
-  --text-3xl: 2.75rem;
+  --text-2xs: 0.6875rem;  /* 11 */
+  --text-xs: 0.75rem;     /* 12 */
+  --text-sm: 0.875rem;    /* 14 — taille de reference des controles */
+  --text-base: 1rem;      /* 16 — taille des messages */
+  --text-md: 1.125rem;    /* 18 */
+  --text-lg: 1.25rem;     /* 20 */
+  --text-xl: 1.5rem;      /* 24 */
+  --text-2xl: 2rem;       /* 32 */
+  --text-3xl: 2.5rem;     /* 40 */
 
   --weight-normal: 400;
   --weight-medium: 500;
@@ -45,338 +40,295 @@
   --weight-bold: 700;
   --weight-black: 800;
 
-  --leading-tight: 1.2;
-  --leading-normal: 1.5;
-  --leading-relaxed: 1.65;
+  --leading-tight: 1.25;
+  --leading-normal: 1.375;
+  --leading-relaxed: 1.375;
 
-  --tracking-tight: -0.02em;
-  --tracking-display: -0.035em;
+  --tracking-tight: -0.01em;
+  --tracking-display: -0.02em;
 
   /* ------------------------------------------------------------------ Espace */
   --space-0: 0;
-  --space-1: 0.3125rem;
-  --space-2: 0.4375rem;
-  --space-3: 0.625rem;
-  --space-4: 0.875rem;
-  --space-5: 1.125rem;
-  --space-6: 1.4375rem;
-  --space-7: 1.75rem;
-  --space-8: 2.25rem;
-  --space-9: 2.75rem;
-  --space-10: 3.5rem;
+  --space-1: 0.25rem;
+  --space-2: 0.375rem;
+  --space-3: 0.5rem;
+  --space-4: 0.75rem;
+  --space-5: 1rem;
+  --space-6: 1.25rem;
+  --space-7: 1.5rem;
+  --space-8: 2rem;
+  --space-9: 2.5rem;
+  --space-10: 3rem;
 
-  /* ------------------------------------------------------------------ Rayons */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 28px;
-  --radius-2xl: 36px;
+  /* ------------------------------------------------------------------ Rayons
+     Volontairement courts. Un bouton a 3 px se lit comme un controle ; a 14 px
+     il se lit comme une pastille, ce qui est le defaut le plus visible d'une
+     interface generee sans intention. */
+  --radius-xs: 3px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
   --radius-full: 999px;
 
-  /* --------------------------------------------------------------- Mouvement
-     Deux familles : `ease-out` pour ce qui obeit au doigt, `spring` pour ce qui
-     doit sembler avoir une masse. Le ressort depasse legerement sa cible, ce
-     qui donne l'impression d'un objet reel plutot que d'une valeur interpolee. */
+  --radius-button: 3px;
+
+  /* --------------------------------------------------------------- Mouvement */
   --ease-out: cubic-bezier(0.2, 0.8, 0.3, 1);
-  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
-  --duration-instant: 80ms;
-  --duration-fast: 140ms;
-  --duration-normal: 220ms;
-  --duration-slow: 380ms;
-  --duration-slower: 600ms;
+  --duration-instant: 60ms;
+  --duration-fast: 110ms;
+  --duration-normal: 170ms;
+  --duration-slow: 280ms;
+  --duration-slower: 450ms;
 
-  /* ---------------------------------------------------------------- Structure */
-  --rail-width: 80px;
-  --sidebar-width: 284px;
-  --panel-width: 420px;
-  --header-height: 64px;
-  --composer-radius: var(--radius-xl);
+  /* --------------------------------------------------------------- Structure */
+  --rail-width: 72px;
+  --sidebar-width: 240px;
+  --panel-width: 340px;
+  --header-height: 48px;
+  --composer-radius: var(--radius-md);
 
-  --row-padding-y: var(--space-3);
+  --row-padding-y: var(--space-1);
   --row-gap: var(--space-4);
-  --avatar-size: 42px;
-  --message-leading: var(--leading-relaxed);
+  --avatar-size: 40px;
+  --message-leading: 1.375;
 
-  /* ------------------------------------------------------------------- 3D
-     La perspective est declaree une fois ici pour que toutes les cartes
-     penchent avec la meme profondeur apparente. Une valeur plus courte
-     exagererait l'effet jusqu'a le rendre caricatural. */
   --perspective: 900px;
-  --tilt-max: 3deg;
-  --lift: 3px;
+  --tilt-max: 0deg;
+  --lift: 0px;
 
   /* ==================================================================
-     Palette claire
+     Theme clair
      ================================================================== */
 
-  --bg-app: oklch(97% 0.008 var(--hue-primary));
-  --bg-rail: oklch(94.5% 0.014 var(--hue-primary));
-  --bg-sidebar: oklch(96.5% 0.01 var(--hue-primary));
-  --bg-surface: oklch(100% 0 0);
-  --bg-raised: oklch(99.5% 0.004 var(--hue-primary));
-  --bg-sunken: oklch(93.5% 0.012 var(--hue-primary));
-  --bg-overlay: oklch(100% 0 0 / 0.72);
-  --bg-scrim: oklch(28% 0.06 var(--hue-primary) / 0.4);
+  --bg-app: #ffffff;          /* zone de conversation */
+  --bg-sidebar: #f2f3f5;      /* liste des salons */
+  --bg-rail: #e3e5e8;         /* colonne des espaces */
+  --bg-surface: #ffffff;
+  --bg-raised: #ffffff;       /* fenetres et menus */
+  --bg-sunken: #ebedef;       /* champs et creux */
+  --bg-overlay: #ffffff;
+  --bg-scrim: rgba(0, 0, 0, 0.7);
+  --bg-floating: #ffffff;     /* info-bulles et menus surgissants */
 
-  /* Surface de verre : un fond translucide double d'un flou. Le flou est ce
-     qui distingue le verre d'un simple aplat transparent — sans lui, le texte
-     du dessous reste lisible et brouille celui du dessus. */
-  --glass-bg: oklch(100% 0 0 / 0.65);
-  --glass-border: oklch(100% 0 0 / 0.7);
-  --glass-blur: 20px;
+  --glass-bg: #ffffff;
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-blur: 0px;
 
-  --bg-hover: oklch(from var(--accent) l c h / 0.07);
-  --bg-active: oklch(from var(--accent) l c h / 0.12);
-  --bg-selected: oklch(from var(--accent) l c h / 0.13);
+  --bg-hover: rgba(6, 6, 7, 0.06);
+  --bg-active: rgba(6, 6, 7, 0.1);
+  --bg-selected: rgba(6, 6, 7, 0.08);
 
-  --text-primary: oklch(22% 0.03 var(--hue-primary));
-  --text-secondary: oklch(45% 0.028 var(--hue-primary));
-  --text-muted: oklch(58% 0.024 var(--hue-primary));
-  --text-faint: oklch(70% 0.02 var(--hue-primary));
-  --text-on-accent: oklch(100% 0 0);
+  --text-primary: #060607;
+  --text-secondary: #4e5058;
+  --text-muted: #5c5e66;
+  --text-faint: #80848e;
+  --text-on-accent: #ffffff;
 
-  --border-subtle: oklch(from var(--accent) l c h / 0.1);
-  --border-default: oklch(from var(--accent) l c h / 0.18);
-  --border-strong: oklch(from var(--accent) l c h / 0.32);
+  --border-subtle: rgba(6, 6, 7, 0.08);
+  --border-default: #cfd1d4;
+  --border-strong: #b5b8bd;
 
-  --accent: oklch(56% 0.22 var(--hue-primary));
-  --accent-hover: oklch(50% 0.24 var(--hue-primary));
-  --accent-soft: oklch(from var(--accent) l c h / 0.14);
-  --accent-text: oklch(48% 0.22 var(--hue-primary));
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --accent-soft: rgba(88, 101, 242, 0.12);
+  --accent-text: #4752c4;
 
-  --secondary: oklch(58% 0.16 var(--hue-secondary));
-  --tertiary: oklch(62% 0.2 var(--hue-tertiary));
+  --secondary: #00a8fc;
+  --tertiary: #eb459e;
 
-  --success: oklch(58% 0.17 150);
-  --warning: oklch(70% 0.17 75);
-  --danger: oklch(56% 0.22 25);
-  --danger-soft: oklch(from var(--danger) l c h / 0.12);
+  --success: #248046;
+  --warning: #b78100;
+  --danger: #d83c3e;
+  --danger-hover: #a12d2f;
+  --danger-soft: rgba(216, 60, 62, 0.1);
 
-  --mention-bg: oklch(from var(--warning) l c h / 0.14);
-  --mention-border: oklch(from var(--warning) l c h / 0.6);
+  --mention-bg: rgba(88, 101, 242, 0.1);
+  --mention-border: #5865f2;
 
-  /* Degrades. Le degrade d'accent traverse trois teintes voisines en OKLCH,
-     ce qui evite la bande grise que produirait le meme parcours en sRGB. */
-  /* Reserve aux grandes surfaces : bannieres, illustrations. Jamais sur un
-     bouton ni sur un fond de panneau. */
-  --gradient-accent: linear-gradient(
-    135deg,
-    oklch(60% 0.23 var(--hue-primary)) 0%,
-    oklch(63% 0.19 calc(var(--hue-primary) - 35)) 100%
-  );
-  --gradient-aurora: linear-gradient(
-    120deg,
-    oklch(65% 0.22 var(--hue-primary)) 0%,
-    oklch(68% 0.2 var(--hue-tertiary)) 35%,
-    oklch(70% 0.17 var(--hue-secondary)) 70%,
-    oklch(66% 0.21 var(--hue-primary)) 100%
-  );
-  --gradient-surface: linear-gradient(
-    160deg,
-    oklch(100% 0 0 / 0.9),
-    oklch(100% 0 0 / 0.55)
-  );
+  --gradient-accent: linear-gradient(135deg, #5865f2, #7289da);
+  --gradient-aurora: linear-gradient(135deg, #5865f2, #eb459e);
+  --gradient-surface: none;
 
-  /* Ombres teintees plutot que noires : une ombre grise sur un fond colore
-     lit comme de la salissure, une ombre teintee comme de la profondeur. */
-  --shadow-xs: 0 1px 2px oklch(30% 0.05 var(--hue-primary) / 0.08);
-  --shadow-sm: 0 2px 4px oklch(30% 0.05 var(--hue-primary) / 0.09);
-  --shadow-md:
-    0 2px 6px oklch(30% 0.05 var(--hue-primary) / 0.08),
-    0 10px 24px oklch(30% 0.05 var(--hue-primary) / 0.1);
-  --shadow-lg:
-    0 4px 12px oklch(30% 0.05 var(--hue-primary) / 0.1),
-    0 24px 56px oklch(30% 0.05 var(--hue-primary) / 0.16);
-  --shadow-glow: 0 0 32px oklch(from var(--accent) l c h / 0.28);
+  /* Ombres franches et discretes : une messagerie n'a que trois niveaux de
+     profondeur — la page, ce qui flotte, ce qui bloque. */
+  --shadow-xs: 0 1px 0 rgba(6, 6, 7, 0.05);
+  --shadow-sm: 0 1px 2px rgba(6, 6, 7, 0.1);
+  --shadow-md: 0 4px 8px rgba(6, 6, 7, 0.12);
+  --shadow-lg: 0 8px 20px rgba(6, 6, 7, 0.18);
+  --shadow-glow: none;
 
-  /* Liseré clair sur le haut des surfaces : simule une arete qui accroche la
-     lumiere, ce qui donne l'epaisseur sans dessiner de bordure complete. */
-  --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.8);
+  --edge-light: none;
 
   color-scheme: light;
 }
 
 /* ==================================================================
-   Palette sombre
+   Theme sombre
    ================================================================== */
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg-app: oklch(17% 0.028 var(--hue-primary));
-    --bg-rail: oklch(13% 0.03 var(--hue-primary));
-    --bg-sidebar: oklch(15% 0.03 var(--hue-primary));
-    --bg-surface: oklch(19% 0.03 var(--hue-primary));
-    --bg-raised: oklch(24% 0.035 var(--hue-primary));
-    --bg-sunken: oklch(12.5% 0.028 var(--hue-primary));
-    --bg-overlay: oklch(19% 0.03 var(--hue-primary) / 0.75);
-    --bg-scrim: oklch(8% 0.03 var(--hue-primary) / 0.65);
+    --bg-app: #313338;
+    --bg-sidebar: #2b2d31;
+    --bg-rail: #1e1f22;
+    --bg-surface: #313338;
+    --bg-raised: #313338;
+    --bg-sunken: #1e1f22;
+    --bg-overlay: #313338;
+    --bg-scrim: rgba(0, 0, 0, 0.85);
+    --bg-floating: #111214;
 
-    --glass-bg: oklch(26% 0.04 var(--hue-primary) / 0.55);
-    --glass-border: oklch(100% 0 0 / 0.12);
-    --glass-blur: 22px;
+    --glass-bg: #313338;
+    --glass-border: rgba(255, 255, 255, 0.06);
+    --glass-blur: 0px;
 
-    --bg-hover: oklch(100% 0 0 / 0.06);
-    --bg-active: oklch(100% 0 0 / 0.1);
-    --bg-selected: oklch(from var(--accent) l c h / 0.22);
+    --bg-hover: rgba(78, 80, 88, 0.3);
+    --bg-active: rgba(78, 80, 88, 0.48);
+    --bg-selected: rgba(78, 80, 88, 0.6);
 
-    --text-primary: oklch(96% 0.01 var(--hue-primary));
-    --text-secondary: oklch(78% 0.02 var(--hue-primary));
-    --text-muted: oklch(64% 0.025 var(--hue-primary));
-    --text-faint: oklch(50% 0.025 var(--hue-primary));
-    --text-on-accent: oklch(14% 0.02 var(--hue-primary));
+    --text-primary: #f2f3f5;
+    --text-secondary: #dbdee1;
+    --text-muted: #b5bac1;
+    --text-faint: #949ba4;
+    --text-on-accent: #ffffff;
 
-    --border-subtle: oklch(100% 0 0 / 0.08);
-    --border-default: oklch(100% 0 0 / 0.14);
-    --border-strong: oklch(100% 0 0 / 0.26);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --border-default: #3f4147;
+    --border-strong: #4e5058;
 
-    --accent: oklch(72% 0.2 var(--hue-primary));
-    --accent-hover: oklch(78% 0.19 var(--hue-primary));
-    --accent-soft: oklch(from var(--accent) l c h / 0.2);
-    --accent-text: oklch(80% 0.16 var(--hue-primary));
+    --accent: #5865f2;
+    --accent-hover: #4752c4;
+    --accent-soft: rgba(88, 101, 242, 0.18);
+    --accent-text: #949cf7;
 
-    --secondary: oklch(74% 0.15 var(--hue-secondary));
-    --tertiary: oklch(74% 0.18 var(--hue-tertiary));
+    --secondary: #00a8fc;
+    --tertiary: #eb459e;
 
-    --success: oklch(76% 0.17 150);
-    --warning: oklch(82% 0.16 80);
-    --danger: oklch(70% 0.2 25);
-    --danger-soft: oklch(from var(--danger) l c h / 0.18);
+    --success: #23a559;
+    --warning: #f0b232;
+    --danger: #da373c;
+    --danger-hover: #a12d2f;
+    --danger-soft: rgba(218, 55, 60, 0.15);
 
-    --mention-bg: oklch(from var(--warning) l c h / 0.12);
-    --mention-border: oklch(from var(--warning) l c h / 0.65);
+    --mention-bg: rgba(240, 178, 50, 0.1);
+    --mention-border: #f0b232;
 
-    --gradient-surface: linear-gradient(
-      160deg,
-      oklch(100% 0 0 / 0.09),
-      oklch(100% 0 0 / 0.02)
-    );
+    --gradient-surface: none;
 
-    --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
-    --shadow-sm: 0 2px 4px oklch(0% 0 0 / 0.45);
-    --shadow-md: 0 2px 8px oklch(0% 0 0 / 0.45), 0 12px 28px oklch(0% 0 0 / 0.4);
-    --shadow-lg: 0 4px 14px oklch(0% 0 0 / 0.5), 0 28px 64px oklch(0% 0 0 / 0.55);
-    --shadow-glow: 0 0 40px oklch(from var(--accent) l c h / 0.35);
+    --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.2);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-glow: none;
 
-    --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.1);
+    --edge-light: none;
 
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg-app: oklch(17% 0.028 var(--hue-primary));
-  --bg-rail: oklch(13% 0.03 var(--hue-primary));
-  --bg-sidebar: oklch(15% 0.03 var(--hue-primary));
-  --bg-surface: oklch(19% 0.03 var(--hue-primary));
-  --bg-raised: oklch(24% 0.035 var(--hue-primary));
-  --bg-sunken: oklch(12.5% 0.028 var(--hue-primary));
-  --bg-overlay: oklch(19% 0.03 var(--hue-primary) / 0.75);
-  --bg-scrim: oklch(8% 0.03 var(--hue-primary) / 0.65);
+  --bg-app: #313338;
+  --bg-sidebar: #2b2d31;
+  --bg-rail: #1e1f22;
+  --bg-surface: #313338;
+  --bg-raised: #313338;
+  --bg-sunken: #1e1f22;
+  --bg-overlay: #313338;
+  --bg-scrim: rgba(0, 0, 0, 0.85);
+  --bg-floating: #111214;
 
-  --glass-bg: oklch(26% 0.04 var(--hue-primary) / 0.55);
-  --glass-border: oklch(100% 0 0 / 0.12);
-  --glass-blur: 22px;
+  --glass-bg: #313338;
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-blur: 0px;
 
-  --bg-hover: oklch(100% 0 0 / 0.06);
-  --bg-active: oklch(100% 0 0 / 0.1);
-  --bg-selected: oklch(from var(--accent) l c h / 0.22);
+  --bg-hover: rgba(78, 80, 88, 0.3);
+  --bg-active: rgba(78, 80, 88, 0.48);
+  --bg-selected: rgba(78, 80, 88, 0.6);
 
-  --text-primary: oklch(96% 0.01 var(--hue-primary));
-  --text-secondary: oklch(78% 0.02 var(--hue-primary));
-  --text-muted: oklch(64% 0.025 var(--hue-primary));
-  --text-faint: oklch(50% 0.025 var(--hue-primary));
-  --text-on-accent: oklch(14% 0.02 var(--hue-primary));
+  --text-primary: #f2f3f5;
+  --text-secondary: #dbdee1;
+  --text-muted: #b5bac1;
+  --text-faint: #949ba4;
+  --text-on-accent: #ffffff;
 
-  --border-subtle: oklch(100% 0 0 / 0.08);
-  --border-default: oklch(100% 0 0 / 0.14);
-  --border-strong: oklch(100% 0 0 / 0.26);
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: #3f4147;
+  --border-strong: #4e5058;
 
-  --accent: oklch(72% 0.2 var(--hue-primary));
-  --accent-hover: oklch(78% 0.19 var(--hue-primary));
-  --accent-soft: oklch(from var(--accent) l c h / 0.2);
-  --accent-text: oklch(80% 0.16 var(--hue-primary));
+  --accent: #5865f2;
+  --accent-hover: #4752c4;
+  --accent-soft: rgba(88, 101, 242, 0.18);
+  --accent-text: #949cf7;
 
-  --secondary: oklch(74% 0.15 var(--hue-secondary));
-  --tertiary: oklch(74% 0.18 var(--hue-tertiary));
+  --secondary: #00a8fc;
+  --tertiary: #eb459e;
 
-  --success: oklch(76% 0.17 150);
-  --warning: oklch(82% 0.16 80);
-  --danger: oklch(70% 0.2 25);
-  --danger-soft: oklch(from var(--danger) l c h / 0.18);
+  --success: #23a559;
+  --warning: #f0b232;
+  --danger: #da373c;
+  --danger-hover: #a12d2f;
+  --danger-soft: rgba(218, 55, 60, 0.15);
 
-  --mention-bg: oklch(from var(--warning) l c h / 0.12);
-  --mention-border: oklch(from var(--warning) l c h / 0.65);
+  --mention-bg: rgba(240, 178, 50, 0.1);
+  --mention-border: #f0b232;
 
-  --gradient-surface: linear-gradient(
-    160deg,
-    oklch(100% 0 0 / 0.09),
-    oklch(100% 0 0 / 0.02)
-  );
+  --gradient-surface: none;
 
-  --shadow-xs: 0 1px 2px oklch(0% 0 0 / 0.4);
-  --shadow-sm: 0 2px 4px oklch(0% 0 0 / 0.45);
-  --shadow-md: 0 2px 8px oklch(0% 0 0 / 0.45), 0 12px 28px oklch(0% 0 0 / 0.4);
-  --shadow-lg: 0 4px 14px oklch(0% 0 0 / 0.5), 0 28px 64px oklch(0% 0 0 / 0.55);
-  --shadow-glow: 0 0 40px oklch(from var(--accent) l c h / 0.35);
+  --shadow-xs: 0 1px 0 rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: none;
 
-  --edge-light: inset 0 1px 0 oklch(100% 0 0 / 0.1);
+  --edge-light: none;
 
   color-scheme: dark;
 }
 
 /* ==================================================================
-   Teinte choisie par l'utilisateur
+   Teinte d'accent
 
-   Seule la teinte de base change : toute la palette en derive, donc un
-   reglage suffit a recolorer l'application sans casser les contrastes.
+   Seul l'accent change ; les gris restent identiques. C'est ce qui permet de
+   personnaliser sans jamais deregler les contrastes du texte.
    ================================================================== */
 
-:root[data-accent='violet'] { --hue-primary: 295; --hue-secondary: 250; --hue-tertiary: 340; }
-:root[data-accent='indigo'] { --hue-primary: 275; --hue-secondary: 225; --hue-tertiary: 320; }
-:root[data-accent='ocean']  { --hue-primary: 235; --hue-secondary: 200; --hue-tertiary: 280; }
-:root[data-accent='teal']   { --hue-primary: 195; --hue-secondary: 165; --hue-tertiary: 240; }
-:root[data-accent='forest'] { --hue-primary: 155; --hue-secondary: 120; --hue-tertiary: 195; }
-:root[data-accent='sunset'] { --hue-primary: 45;  --hue-secondary: 20;  --hue-tertiary: 350; }
-:root[data-accent='rose']   { --hue-primary: 350; --hue-secondary: 320; --hue-tertiary: 25; }
-:root[data-accent='mono']   { --hue-primary: 280; --hue-secondary: 280; --hue-tertiary: 280; }
+:root[data-accent='blurple'] { --accent: #5865f2; --accent-hover: #4752c4; --accent-text: #949cf7; }
+:root[data-accent='vert']    { --accent: #248046; --accent-hover: #1a6334; --accent-text: #43b581; }
+:root[data-accent='rose']    { --accent: #eb459e; --accent-hover: #c03384; --accent-text: #f47fc0; }
+:root[data-accent='orange']  { --accent: #f0761a; --accent-hover: #c65e13; --accent-text: #f5a25d; }
+:root[data-accent='rouge']   { --accent: #da373c; --accent-hover: #a12d2f; --accent-text: #f07579; }
+:root[data-accent='cyan']    { --accent: #00a8fc; --accent-hover: #0087ca; --accent-text: #4fc3ff; }
+:root[data-accent='gris']    { --accent: #4e5058; --accent-hover: #6d6f78; --accent-text: #b5bac1; }
 
-/* Le mode monochrome neutralise la chroma sans toucher a la structure. */
-:root[data-accent='mono'] {
-  --accent: oklch(62% 0 0);
-  --accent-hover: oklch(70% 0 0);
-  --accent-text: oklch(72% 0 0);
-  --secondary: oklch(60% 0 0);
-  --tertiary: oklch(66% 0 0);
-  --gradient-accent: linear-gradient(135deg, oklch(70% 0 0), oklch(45% 0 0));
-  --gradient-aurora: linear-gradient(120deg, oklch(75% 0 0), oklch(40% 0 0), oklch(65% 0 0));
-}
+:root[data-accent='blurple'] .accent-soft,
+:root[data-accent] { --accent-soft: color-mix(in srgb, var(--accent) 18%, transparent); }
 
 /* ==================================================================
    Densite
    ================================================================== */
 
 :root[data-density='compact'] {
-  --row-padding-y: var(--space-1);
+  --row-padding-y: 1px;
   --row-gap: var(--space-3);
-  --avatar-size: 30px;
-  --message-leading: var(--leading-normal);
+  --avatar-size: 24px;
+  --message-leading: 1.3;
 }
 
 :root[data-density='spacious'] {
-  --row-padding-y: var(--space-5);
+  --row-padding-y: var(--space-3);
   --row-gap: var(--space-5);
-  --avatar-size: 48px;
-  --message-leading: var(--leading-relaxed);
+  --avatar-size: 44px;
+  --message-leading: 1.5;
 }
 
 /* ==================================================================
    Accessibilite du mouvement
-
-   Coupe aussi les effets 3D : une carte qui penche sous le curseur est
-   exactement ce que le reglage systeme demande d'eviter.
    ================================================================== */
 
 @media (prefers-reduced-motion: reduce) {
@@ -386,8 +338,6 @@
     --duration-normal: 0ms;
     --duration-slow: 0ms;
     --duration-slower: 0ms;
-    --tilt-max: 0deg;
-    --lift: 0px;
   }
 }
 
@@ -397,6 +347,4 @@
   --duration-normal: 0ms;
   --duration-slow: 0ms;
   --duration-slower: 0ms;
-  --tilt-max: 0deg;
-  --lift: 0px;
 }

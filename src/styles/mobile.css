@@ -279,3 +279,40 @@
     contain-intrinsic-size: auto 108px;
   }
 }
+
+/* ==========================================================================
+   Cibles tactiles
+
+   38 px suffisent a la souris et correspondent aux controles de Discord ; au
+   doigt, la recommandation d'accessibilite est de 44. On agrandit donc la ou
+   il n'y a pas de survol, plutot que d'imposer partout la taille du cas le
+   plus contraint.
+   ========================================================================== */
+
+@media (hover: none) {
+  .btn {
+    min-height: 44px;
+  }
+
+  .btn--sm {
+    min-height: 38px;
+  }
+
+  .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .auth__link,
+  .btn--link {
+    min-height: 44px;
+  }
+
+  /* Les onglets de connexion sont des cibles comme les autres, meme s'ils ne
+     portent pas la classe des boutons. */
+  .auth__tab,
+  .mod-tab,
+  .segmented__item {
+    min-height: 44px;
+  }
+}

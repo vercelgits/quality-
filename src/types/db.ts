@@ -37,6 +37,8 @@ export interface Profile {
   theme_hue: number | null;
   status: PresenceStatus;
   custom_status: string | null;
+  /** Faux tant que le pseudo a ete deduit de l'adresse plutot que choisi. */
+  username_chosen: boolean;
   created_at: ISODate;
 }
 
