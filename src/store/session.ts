@@ -41,6 +41,16 @@ export interface Preferences {
    * bougent en permanence est fatigante a lire, et coute cher en decodage.
    */
   animateAvatars: 'always' | 'hover' | 'never';
+  /**
+   * Effets de transparence.
+   *
+   * `system` suit le reglage du systeme — sur Windows, « Effets de
+   * transparence » dans Personnalisation. Ce reglage existe pour de bonnes
+   * raisons : le flou gene la lecture pour une partie des gens. On ne le
+   * contourne donc pas par defaut, mais on laisse le choix, faute de quoi
+   * l'interface parait cassee a qui a coupe la transparence sans y penser.
+   */
+  transparency: 'system' | 'on' | 'off';
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -51,6 +61,7 @@ const DEFAULT_PREFERENCES: Preferences = {
   sendOnEnter: true,
   showTimestamps: true,
   animateAvatars: 'hover',
+  transparency: 'system',
 };
 
 const STORAGE_KEY = 'orbit:preferences';
@@ -76,6 +87,21 @@ function persistPreferences(preferences: Preferences): void {
   }
 }
 
+/**
+ * Traduit le choix de transparence en `on` ou `off`.
+ *
+ * Sur Windows, couper « Effets de transparence » remonte jusqu'ici. C'est un
+ * reglage pose pour de bonnes raisons — le flou gene la lecture pour une
+ * partie des gens — donc il fait foi tant qu'on ne l'a pas contredit
+ * explicitement dans l'application.
+ */
+function resolveTransparency(choice: Preferences['transparency']): 'on' | 'off' {
+  if (choice !== 'system') return choice;
+
+  if (typeof window === 'undefined' || !window.matchMedia) return 'on';
+  return window.matchMedia('(prefers-reduced-transparency: reduce)').matches ? 'off' : 'on';
+}
+
 /** Reporte les preferences sur l'element racine, ou le CSS les lit. */
 export function applyPreferences(preferences: Preferences): void {
   const root = document.documentElement;
@@ -89,6 +115,11 @@ export function applyPreferences(preferences: Preferences): void {
   root.setAttribute('data-density', preferences.density);
   root.setAttribute('data-accent', preferences.accent);
   root.setAttribute('data-animate', preferences.animateAvatars);
+
+  // `system` est resolu ici plutot qu'en CSS : la feuille de style n'a alors
+  // qu'une seule condition a porter, au lieu de repeter chaque repli sous
+  // `prefers-reduced-transparency` puis sous le reglage de l'application.
+  root.setAttribute('data-transparency', resolveTransparency(preferences.transparency));
 
   if (preferences.reduceMotion) {
     root.setAttribute('data-motion', 'reduced');

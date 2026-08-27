@@ -569,6 +569,12 @@ function AppearanceSection() {
   const preferences = useSession((state) => state.preferences);
   const setPreference = useSession((state) => state.setPreference);
 
+  // Sert a expliquer pourquoi « Systeme » ne donne pas de verre sur cette
+  // machine : sans cette phrase, le reglage parait sans effet.
+  const systemReducesTransparency =
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-transparency: reduce)').matches === true;
+
   return (
     <div className="settings__page">
       <h1 className="settings__title">Apparence</h1>
@@ -634,6 +640,41 @@ function AppearanceSection() {
               <span className="settings__card-hint">{option.hint}</span>
             </button>
           ))}
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Transparence</h2>
+
+        <div className="settings__field">
+          <span className="settings__label">Effets de verre</span>
+          <div className="settings__segmented">
+            {(
+              [
+                { value: 'system', label: 'Systeme' },
+                { value: 'on', label: 'Toujours' },
+                { value: 'off', label: 'Jamais' },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                className={
+                  'settings__seg' +
+                  (preferences.transparency === option.value ? ' is-active' : '')
+                }
+                aria-pressed={preferences.transparency === option.value}
+                onClick={() => setPreference('transparency', option.value)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          <p className="settings__hint">
+            {systemReducesTransparency
+              ? 'Votre systeme demande moins de transparence — sur Windows, « Effets de transparence » dans Personnalisation puis Couleurs. « Systeme » suit ce reglage : choisissez « Toujours » pour le contredire ici.'
+              : 'Le flou gene la lecture pour certaines personnes. « Systeme » suit le reglage de votre appareil.'}
+          </p>
         </div>
       </section>
 

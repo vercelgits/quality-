@@ -39,7 +39,7 @@ export default defineConfig({
       name: 'authentifie',
       use: { ...devices['Desktop Chrome'], storageState: STATE_FILE },
       dependencies: ['setup'],
-      testMatch: /(messaging|spaces|friends|settings|voice)\.spec\.ts/,
+      testMatch: /(messaging|spaces|friends|settings|voice|_apercu|_diag2)\.spec\.ts/,
     },
 
     {

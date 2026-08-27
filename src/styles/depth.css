@@ -346,23 +346,42 @@
  * contraste. Les deux reglages qui demandent moins d'effets le retirent
  * entierement, en rendant les surfaces opaques.
  */
-@media (prefers-reduced-transparency: reduce) {
-  .modal__panel,
-  .palette,
-  .emoji-picker,
-  .dm-picker,
-  .message__actions,
-  .voice-controls,
-  .toast,
-  .composer {
-    background: var(--bg-raised);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
+/*
+ * Repli opaque.
+ *
+ * `data-transparency` est resolu par l'application : il vaut `off` quand le
+ * systeme demande moins de transparence, ou quand on l'a coupee dans les
+ * parametres. Une seule condition ici, plutot que de repeter chaque repli sous
+ * la requete media puis sous le reglage.
+ */
+/*
+ * Repli opaque.
+ *
+ * `data-transparency` est resolu par l'application : il vaut `off` quand le
+ * systeme demande moins de transparence — sur Windows, « Effets de
+ * transparence » desactive — ou quand on l'a coupee dans les parametres. Une
+ * seule condition ici, plutot que de repeter chaque repli sous la requete
+ * media puis sous le reglage.
+ */
+:root[data-transparency='off'] {
+  --glass-blur: 0px;
+}
 
-  .modal::backdrop {
-    backdrop-filter: none;
-  }
+:root[data-transparency='off'] .modal__panel,
+:root[data-transparency='off'] .palette,
+:root[data-transparency='off'] .emoji-picker,
+:root[data-transparency='off'] .dm-picker,
+:root[data-transparency='off'] .message__actions,
+:root[data-transparency='off'] .voice-controls,
+:root[data-transparency='off'] .toast,
+:root[data-transparency='off'] .composer {
+  background: var(--bg-raised);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-transparency='off'] .modal::backdrop {
+  backdrop-filter: none;
 }
 
 [data-motion='reduced'] .btn,
@@ -445,4 +464,169 @@
   .workspace.is-collapsed .sidebar {
     border-radius: var(--radius-lg);
   }
+}
+
+
+/* ==========================================================================
+   Second passage : la coquille elle-meme devient un materiau
+
+   Le rail, la barre laterale, l'en-tete et la conversation cessent d'etre des
+   aplats opaques. Ils laissent passer le fond teinte, qui devient alors
+   perceptible partout et non plus seulement dans les gouttieres.
+
+   Le texte reste le juge : chaque surface garde une opacite suffisante pour
+   que le contraste tienne. Une barre laterale a 30 % serait jolie sur une
+   capture et illisible a l'usage.
+   ========================================================================== */
+
+@media (min-width: 861px) {
+  .rail {
+    background: var(--shell-rail);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    box-shadow: inset -1px 0 0 var(--glass-border);
+  }
+
+  .sidebar {
+    background: var(--shell-sidebar);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  }
+
+  .main {
+    background: var(--shell-main);
+    backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  }
+
+  /*
+   * L'en-tete flotte au-dessus de la conversation qui defile dessous.
+   *
+   * `position: sticky` plutot qu'un simple fond : sans cela le flou n'aurait
+   * rien a montrer, l'en-tete etant deja hors du flux de defilement.
+   */
+  .channel-header {
+    background: var(--shell-header);
+    backdrop-filter: blur(16px) saturate(160%);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+  }
+
+  .side-panel {
+    background: var(--shell-sidebar);
+    backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Grain                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Un grain tres fin sur le plan de travail.
+ *
+ * C'est ce qui separe un verre credible d'un aplat translucide : sans lui, les
+ * degrades du fond montrent des bandes, et les grandes surfaces floues
+ * paraissent plastiques. Le motif est genere en SVG, donc sans fichier a
+ * charger.
+ */
+.workspace::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+/* -------------------------------------------------------------------------- */
+/* Accents en degrade                                                          */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Le degrade est reserve a ce qui porte l'action principale — un bouton par
+ * ecran, l'espace ouvert, l'auteur d'un message. Etendu a tout, il ne
+ * distinguerait plus rien.
+ */
+.btn--primary {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--accent) 88%, white),
+    var(--accent) 55%,
+    color-mix(in oklab, var(--accent) 88%, black)
+  );
+  border: 1px solid color-mix(in oklab, var(--accent) 70%, black);
+}
+
+.btn--primary:not(:disabled):hover {
+  background-image: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--accent) 78%, white),
+    var(--accent) 60%,
+    var(--accent)
+  );
+}
+
+/* Le trait qui marque l'espace ouvert devient une pastille lumineuse. */
+.rail__indicator.is-active {
+  background: linear-gradient(var(--accent), color-mix(in oklab, var(--accent) 70%, #eb459e));
+  box-shadow: 0 0 12px color-mix(in oklab, var(--accent) 60%, transparent);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Messages                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/*
+ * Au survol, la ligne se detache legerement du fond : un liseré d'accent a
+ * gauche, une teinte, et un coin arrondi qui la fait lire comme un objet
+ * plutot que comme une bande.
+ */
+.message {
+  border-radius: var(--radius-sm);
+}
+
+.message:hover {
+  box-shadow: var(--shadow-xs);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Avatars                                                                     */
+/* -------------------------------------------------------------------------- */
+
+/* Un anneau clair separe l'avatar du fond, quelle que soit l'image. */
+.avatar {
+  box-shadow: var(--shadow-sm), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Retrait des effets                                                          */
+/* -------------------------------------------------------------------------- */
+
+:root[data-transparency='off'] .rail {
+  background: var(--bg-rail);
+}
+
+:root[data-transparency='off'] .sidebar,
+:root[data-transparency='off'] .side-panel {
+  background: var(--bg-sidebar);
+}
+
+:root[data-transparency='off'] .main,
+:root[data-transparency='off'] .channel-header {
+  background: var(--bg-app);
+}
+
+:root[data-transparency='off'] .rail,
+:root[data-transparency='off'] .sidebar,
+:root[data-transparency='off'] .main,
+:root[data-transparency='off'] .channel-header,
+:root[data-transparency='off'] .side-panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+:root[data-transparency='off'] .workspace::after {
+  display: none;
 }
