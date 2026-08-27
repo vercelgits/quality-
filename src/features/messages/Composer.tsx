@@ -366,7 +366,14 @@ export function Composer({ channelId, threadId = null, placeholder, autoFocus }:
 
   return (
     <div
-      className={'composer-wrap' + (dragging ? ' is-dragging' : '')}
+      className={
+        'composer-wrap' +
+        (dragging ? ' is-dragging' : '') +
+        // L'aide de mise en forme n'apparait qu'une fois la frappe commencee :
+        // le compositeur recoit le focus a l'ouverture, donc la conditionner au
+        // focus reviendrait a l'afficher en permanence.
+        (value.length > 0 ? ' is-writing' : '')
+      }
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
       onDragOver={(event) => event.preventDefault()}

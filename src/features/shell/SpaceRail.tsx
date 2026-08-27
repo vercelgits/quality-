@@ -1,6 +1,6 @@
 import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
-import { hueFor, initialsFor } from '@/constants';
+import { initialsFor } from '@/constants';
 import { Icon } from '@/components/Icon';
 
 /**
@@ -90,12 +90,6 @@ export function SpaceRail() {
                 type="button"
                 className={
                   'rail__button' + (isActive && view === 'space' ? ' is-active' : '')
-                }
-                style={
-                  {
-                    '--space-accent': hueFor(space.id),
-                    '--space-ink': '#fff',
-                  } as React.CSSProperties
                 }
                 onClick={() => selectSpace(space.id)}
                 aria-current={isActive ? 'true' : undefined}

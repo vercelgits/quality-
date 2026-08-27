@@ -103,14 +103,6 @@
     padding: 0;
   }
 
-  .channel-header__action-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
   /* Marges laterales resserrees : sur 375 px, 23 px de chaque cote mangent
      un huitieme de la largeur utile. */
   .message,

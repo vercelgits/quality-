@@ -561,24 +561,3 @@
   color: var(--text-muted);
 }
 
-/* Les libelles de l'en-tete disparaissent quand la place manque, mais le
-   bouton garde son `title` et son icone : on ne perd que le confort. */
-.channel-header__action-text {
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-}
-
-@media (max-width: 1100px) {
-  .channel-header__action {
-    width: 40px;
-    padding: 0;
-  }
-  .channel-header__action-text {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
-  }
-}

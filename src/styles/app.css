@@ -206,6 +206,11 @@
      regroupe le rail et la barre des salons pour pouvoir coulisser d'un bloc
      sur petit ecran. */
   grid-template-columns: auto minmax(0, 1fr) auto;
+  /* Sans ligne declaree, la grille se dimensionne sur son contenu : une liste
+     de salons un peu longue poussait alors la barre laterale au-dela de la
+     fenetre, et la barre utilisateur passait sous le pli. `minmax(0, 1fr)`
+     force la ligne a tenir dans la hauteur disponible. */
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
   overflow: hidden;
   /* Transparent : c'est le fond d'ambiance qui se voit a travers les panneaux. */
@@ -215,6 +220,8 @@
 .workspace__nav {
   display: flex;
   min-height: 0;
+  height: 100%;
+  overflow: hidden;
 }
 
 .workspace.is-collapsed .sidebar {
@@ -258,7 +265,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--space-2);
+  gap: var(--space-3);
   padding: var(--space-3) 0;
   background: var(--bg-rail);
   border-right: 1px solid var(--border-subtle);
@@ -295,53 +302,53 @@
    a seulement des messages non lus. */
 .rail__indicator {
   position: absolute;
-  left: 0;
-  width: 3px;
+  left: -4px;
+  width: 4px;
   height: 0;
-  border-radius: 0 var(--radius-full) var(--radius-full) 0;
+  border-radius: 0 4px 4px 0;
   background: var(--text-primary);
-  transition: height var(--duration-normal) var(--ease-out);
+  transition: height var(--duration-normal) var(--ease-in-out);
 }
 
 .rail__indicator.is-active {
-  height: 26px;
+  height: 40px;
 }
 
 .rail__indicator.is-unread {
   height: 8px;
 }
 
+/* Rond au repos, carre arrondi au survol et a l'etat actif : c'est la
+   signature du rail de Discord, et le seul mouvement qu'il s'autorise.
+   Le fond reste gris — la couleur est reservee a l'espace actif, sinon le rail
+   devient un damier et l'on ne repere plus rien. */
 .rail__button {
   display: grid;
   place-items: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-lg);
-  background: var(--space-accent, var(--bg-raised));
-  color: var(--space-ink, var(--text-on-accent));
-  font-weight: var(--weight-semibold);
-  font-size: var(--text-sm);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-app);
+  color: var(--text-secondary);
+  font-weight: var(--weight-medium);
+  font-size: var(--text-base);
   overflow: hidden;
   transition:
-    border-radius var(--duration-normal) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    border-radius var(--duration-normal) var(--ease-in-out),
+    background-color var(--duration-normal) var(--ease-in-out),
+    color var(--duration-normal) var(--ease-in-out);
 }
 
 .rail__button:hover {
-  border-radius: var(--radius-md);
-  transform: translateY(-1px);
+  border-radius: 16px;
+  background: var(--accent);
+  color: #fff;
 }
 
 .rail__button.is-active {
-  border-radius: var(--radius-md);
-}
-
-.rail__button {
-  box-shadow: var(--shadow-sm), var(--edge-light);
-}
-
-.rail__button.is-active {
-  box-shadow: var(--shadow-md), var(--edge-light);
+  border-radius: 16px;
+  background: var(--accent);
+  color: #fff;
 }
 
 .rail__button--ghost {
@@ -485,18 +492,22 @@
 
 /* ------------------------------------------------------------------- Salons */
 
+/* Ligne de 32 px : c'est la densite qui permet d'avoir une vingtaine de
+   salons a l'ecran sans defiler. */
 .channel {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
-  padding: var(--space-2) var(--space-3);
+  height: 32px;
+  padding: 0 var(--space-3);
   border-radius: var(--radius-sm);
-  font-size: var(--text-sm);
-  color: var(--text-muted);
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  color: var(--text-faint);
   transition:
-    background-color var(--duration-fast) var(--ease-out),
-    color var(--duration-fast) var(--ease-out);
+    background-color var(--duration-fast) var(--ease-in-out),
+    color var(--duration-fast) var(--ease-in-out);
 }
 
 .channel:hover {
@@ -506,13 +517,11 @@
 
 .channel.is-active {
   background: var(--bg-selected);
-  color: var(--text-primary);
-  font-weight: var(--weight-medium);
+  color: #fff;
 }
 
 .channel.is-unread {
   color: var(--text-primary);
-  font-weight: var(--weight-semibold);
 }
 
 .channel__name {
@@ -782,10 +791,11 @@
   align-items: center;
   gap: var(--space-2);
   height: var(--header-height);
-  padding: 0 var(--space-5);
-  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.08);
   background: transparent;
   flex: none;
+  z-index: 2;
 }
 
 .channel-header__toggle {
@@ -799,8 +809,9 @@
 }
 
 .channel-header__name {
-  font-size: var(--text-md);
+  font-size: var(--text-base);
   font-weight: var(--weight-semibold);
+  color: var(--text-primary);
   max-width: 30ch;
 }
 
@@ -971,12 +982,15 @@
  * derniere hauteur mesuree : sans lui, chaque message hors champ compterait
  * pour la valeur estimee et la barre de defilement sauterait au parcours.
  */
+/* Marge gauche de 72 px : l'avatar occupe la gouttiere, et les messages
+   groupes s'alignent dessous sans la repeter. */
 .message {
   position: relative;
-  padding: var(--row-padding-y) var(--space-6);
-  transition: background-color var(--duration-fast) var(--ease-out);
+  padding: var(--row-padding-y) var(--space-6) var(--row-padding-y) 0;
+  margin-left: var(--space-4);
+  transition: background-color var(--duration-fast) var(--ease-in-out);
   content-visibility: auto;
-  contain-intrinsic-size: auto 62px;
+  contain-intrinsic-size: auto 44px;
 }
 
 .message:hover {
@@ -1006,7 +1020,7 @@
 }
 
 .message:not(.is-grouped) {
-  margin-top: var(--space-3);
+  margin-top: var(--space-5);
 }
 
 .message__body {
@@ -1044,6 +1058,7 @@
   min-width: 0;
   flex: 1;
   line-height: var(--message-leading);
+  color: var(--text-secondary);
 }
 
 .message__header {
@@ -1055,7 +1070,8 @@
 
 .message__author {
   font-size: var(--text-base);
-  font-weight: var(--weight-semibold);
+  font-weight: var(--weight-medium);
+  color: var(--text-primary);
 }
 
 .message__time {
@@ -1346,7 +1362,7 @@
 
 .composer-wrap {
   position: relative;
-  padding: 0 var(--space-6) var(--space-4);
+  padding: 0 var(--space-4) var(--space-6);
   flex: none;
 }
 
@@ -1355,20 +1371,28 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-3);
+  padding: 0 var(--space-4) 0 var(--space-3);
   border-radius: var(--composer-radius);
-  background: var(--bg-raised);
-  border: 1.5px solid var(--border-default);
-  box-shadow: var(--shadow-xs);
-  transition:
-    border-color var(--duration-fast) var(--ease-out),
-    box-shadow var(--duration-normal) var(--ease-out);
+  /* Le champ de saisie a son propre gris, plus clair que la conversation :
+     c'est ce qui le detache sans avoir besoin d'une bordure. */
+  background: #383a40;
+  border: none;
 }
 
-.composer:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
+:root[data-theme='light'] .composer,
+:root:not([data-theme='dark']) .composer {
+  background: var(--bg-sunken);
 }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .composer {
+    background: #383a40;
+  }
+}
+
+/* Pas d'anneau au focus : le champ occupe deja toute la largeur et rien
+   d'autre ne prend la saisie a cet endroit. L'anneau reste sur les boutons,
+   ou il sert reellement a se reperer au clavier. */
 
 .composer:focus-within {
   border-color: var(--accent);
@@ -1378,13 +1402,14 @@
   flex: 1;
   min-width: 0;
   max-height: 320px;
-  padding: var(--space-3) 0;
+  padding: var(--space-4) 0;
   resize: none;
   font-size: var(--text-base);
-  line-height: var(--leading-normal);
+  line-height: 1.375;
   background: none;
   overflow-y: auto;
   scrollbar-width: thin;
+  color: var(--text-secondary);
 }
 
 .composer__input::placeholder {
@@ -1423,11 +1448,26 @@
   opacity: 0.5;
 }
 
+/* L'aide de mise en forme n'apparait que pendant la frappe : affichee en
+   permanence, elle occupe une ligne sous chaque conversation pour un rappel
+   qu'on ne lit qu'une fois. */
 .composer__hint {
-  margin-top: var(--space-2);
+  max-height: 0;
+  overflow: hidden;
   padding: 0 var(--space-2);
   font-size: var(--text-2xs);
   color: var(--text-faint);
+  opacity: 0;
+  transition:
+    max-height var(--duration-normal) var(--ease-in-out),
+    opacity var(--duration-fast) var(--ease-in-out),
+    margin-top var(--duration-normal) var(--ease-in-out);
+}
+
+.composer-wrap.is-writing .composer__hint {
+  max-height: 3em;
+  margin-top: var(--space-2);
+  opacity: 1;
 }
 
 .composer-reply {
