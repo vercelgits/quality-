@@ -84,6 +84,37 @@ export function applyPreferences(preferences: Preferences): void {
   }
 }
 
+/**
+ * Recupere une erreur renvoyee dans l'adresse apres une redirection.
+ *
+ * Quand une connexion par fournisseur tiers echoue, Supabase ne renvoie pas
+ * d'objet d'erreur : il redirige vers l'application en placant le detail dans
+ * l'adresse, tantot en fragment, tantot en parametres. Sans cette lecture,
+ * l'utilisateur revient sur un ecran de connexion muet, ou pire, voit passer
+ * du JSON brut.
+ *
+ * L'adresse est nettoyee ensuite : garder l'erreur la ferait reapparaitre a
+ * chaque rechargement.
+ */
+function readRedirectError(set: (patch: { error: string }) => void): void {
+  if (typeof window === 'undefined') return;
+
+  const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const query = new URLSearchParams(window.location.search);
+
+  const description =
+    fragment.get('error_description') ??
+    query.get('error_description') ??
+    fragment.get('error') ??
+    query.get('error');
+
+  if (!description) return;
+
+  set({ error: errorMessage({ message: decodeURIComponent(description) }) });
+
+  window.history.replaceState(null, '', window.location.pathname);
+}
+
 /* -------------------------------------------------------------------------- */
 /* Etat de session                                                             */
 /* -------------------------------------------------------------------------- */
@@ -140,6 +171,7 @@ export const useSession = create<SessionState>((set, get) => ({
    */
   initialize: () => {
     applyPreferences(get().preferences);
+    readRedirectError(set);
 
     void supabase.auth.getSession().then(({ data }) => {
       set({ session: data.session, loading: false });
