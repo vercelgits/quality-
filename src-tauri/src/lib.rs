@@ -18,6 +18,37 @@ use tauri::{
     Manager, WindowEvent,
 };
 
+/// Masque la fenetre technique creee par le greffon d'instance unique.
+///
+/// Sur Windows, ce greffon ouvre une fenetre de seize pixels nommee d'apres
+/// l'identifiant de l'application. Elle sert a recevoir le message d'une
+/// seconde instance, et devrait rester invisible — mais elle ne l'est pas.
+///
+/// Les consequences se voient : Windows la designe comme fenetre principale du
+/// processus, si bien que la barre des taches affiche « app.orbit.desktop-siw »
+/// au lieu d'« Orbit », et elle apparait dans la liste des fenetres a partager.
+///
+/// La masquer ne l'empeche pas de recevoir des messages : une fenetre cachee
+/// garde sa file. Le greffon continue donc de fonctionner.
+#[cfg(windows)]
+fn hide_single_instance_window(identifier: &str) {
+    use windows::core::HSTRING;
+    use windows::Win32::UI::WindowsAndMessaging::{FindWindowW, ShowWindow, SW_HIDE};
+
+    let name = HSTRING::from(format!("{identifier}-siw"));
+
+    // Sans classe, la recherche porte sur le seul titre — ce qui suffit, le nom
+    // etant derive d'un identifiant unique a l'application.
+    if let Ok(handle) = unsafe { FindWindowW(None, &name) } {
+        if !handle.is_invalid() {
+            let _ = unsafe { ShowWindow(handle, SW_HIDE) };
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn hide_single_instance_window(_identifier: &str) {}
+
 /// Ramene la fenetre au premier plan, en la restaurant si elle etait reduite.
 fn focus_main(app: &tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {
@@ -39,6 +70,10 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .setup(|app| {
+            // Le greffon a deja cree sa fenetre a ce stade : la masquer plus
+            // tot ne trouverait rien.
+            hide_single_instance_window(&app.config().identifier);
+
             let show = MenuItem::with_id(app, "show", "Ouvrir Orbit", true, None::<&str>)?;
             let quit = MenuItem::with_id(app, "quit", "Quitter", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &quit])?;
