@@ -81,7 +81,19 @@ test.describe('Espaces et salons', () => {
 
     // La ligne du salon, pas son bouton de reglages : ce dernier porte aussi le
     // nom du salon dans son etiquette.
-    await expect(page.locator('.channel', { hasText: channelName })).toBeVisible({
+    const row = page.locator('.channel', { hasText: channelName });
+    await expect(row).toBeVisible({ timeout: 15_000 });
+
+    // Le salon cree est supprime dans la foulee. C'est l'aller-retour complet,
+    // et cela evite d'accumuler un salon par execution dans un vrai projet.
+    await row.hover();
+    await row.locator('.channel__manage').click();
+
+    const dialog = openDialog(page);
+    await dialog.getByRole('textbox', { name: /Tapez .* pour confirmer/ }).fill(channelName);
+    await dialog.getByRole('button', { name: 'Supprimer' }).click();
+
+    await expect(page.locator('.channel', { hasText: channelName })).toHaveCount(0, {
       timeout: 15_000,
     });
   });

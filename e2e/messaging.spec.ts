@@ -142,12 +142,13 @@ test.describe('Parcours authentifies', () => {
       .poll(async () => message.evaluate((node) => getComputedStyle(node).backgroundColor))
       .not.toBe(before);
 
-    // Le liseré d'accent apparait le long du bord gauche.
-    const marker = await message.evaluate((node) => {
-      const style = getComputedStyle(node, '::before');
-      return { transform: style.transform, opacity: style.opacity };
-    });
-    expect(marker.opacity).toBe('1');
+    // Le liseré d'accent apparait le long du bord gauche. On interroge jusqu'a
+    // la fin de la transition : lue trop tot, l'opacite est encore en route.
+    await expect
+      .poll(async () =>
+        message.evaluate((node) => Number(getComputedStyle(node, '::before').opacity)),
+      )
+      .toBeGreaterThan(0.95);
   });
 
   test('la palette de commandes s ouvre et ferme au clavier', async ({ page }) => {
