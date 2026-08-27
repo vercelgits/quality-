@@ -19,3 +19,6 @@ playwright-report/
 blob-report/
 playwright/.cache/
 playwright/.auth/
+
+# Captures de verification, produites a la demande.
+apercu-*.png
