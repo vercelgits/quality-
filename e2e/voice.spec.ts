@@ -138,6 +138,52 @@ test.describe('Salon vocal', () => {
     await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
   });
 
+  test('la sourdine rend le micro tel qu il etait', async ({ page }) => {
+    if (!(await openVoiceChannel(page))) return;
+    await page.getByRole('button', { name: 'Rejoindre le salon vocal' }).click();
+
+    const micro = () => stage(page).locator('.icon-btn').first();
+    const sourdine = () => stage(page).locator('.icon-btn').nth(1);
+
+    await expect(stage(page).getByRole('button', { name: 'Couper le micro' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // Sourd puis plus sourd : le micro doit revenir a son etat d'avant, et non
+    // rester coupe — le contraire obligeait a un second clic inexplicable.
+    await sourdine().click();
+    await expect(micro()).toHaveAttribute('aria-pressed', 'true');
+    await sourdine().click();
+    await expect(micro()).toHaveAttribute('aria-pressed', 'false');
+
+    // Micro deja coupe avant la sourdine : il doit le rester apres.
+    await micro().click();
+    await sourdine().click();
+    await sourdine().click();
+    await expect(micro()).toHaveAttribute('aria-pressed', 'true');
+
+    await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
+  });
+
+  test('des bascules rapides laissent un etat coherent', async ({ page }) => {
+    if (!(await openVoiceChannel(page))) return;
+    await page.getByRole('button', { name: 'Rejoindre le salon vocal' }).click();
+    await expect(stage(page).getByRole('button', { name: 'Couper le micro' })).toBeVisible({
+      timeout: 20_000,
+    });
+
+    // Trente clics sans laisser le temps du rendu entre deux : un nombre pair
+    // doit ramener exactement au point de depart.
+    for (let i = 0; i < 30; i += 1) {
+      await stage(page).locator('.icon-btn').first().click({ force: true, noWaitAfter: true });
+    }
+
+    await expect(stage(page).getByRole('button', { name: 'Couper le micro' })).toBeVisible();
+    await expect(page.locator('.voice-tile')).toHaveCount(1);
+
+    await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
+  });
+
   test('le test du micro demarre et s arrete', async ({ page }) => {
     await openApp(page);
 

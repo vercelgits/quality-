@@ -163,6 +163,9 @@ let audioContext: AudioContext | null = null;
 let speechTimer: number | null = null;
 const analysers = new Map<UUID, AnalyserNode>();
 
+/** Etat du micro avant la sourdine, pour le retablir en sortant. */
+let mutedBeforeDeafen = false;
+
 /** Plage couverte par `getByteFrequencyData`, de l'octet 0 a l'octet 255. */
 export const ANALYSER_FLOOR = -100;
 export const ANALYSER_CEILING = -20;
@@ -649,15 +652,29 @@ export const useVoice = create<VoiceState>((set, get) => {
       publishState();
     },
 
+    /**
+     * Sourdine.
+     *
+     * Se rendre sourd coupe aussi le micro, comme partout ailleurs. Le
+     * retablir doit rendre le micro tel qu'il etait avant — et non le laisser
+     * coupe, ce qui obligeait a un second clic sans qu'on comprenne pourquoi,
+     * et se voyait surtout apres plusieurs bascules d'affilee.
+     */
     toggleDeafen: () => {
-      const { deafened, localStream } = get();
+      const { deafened, muted, localStream } = get();
       const next = !deafened;
 
-      // Se rendre sourd coupe aussi le micro, comme partout ailleurs.
+      // L'etat du micro est retenu au moment ou l'on devient sourd, pas apres :
+      // ensuite il vaut forcement « coupe » et l'information est perdue.
+      if (next) mutedBeforeDeafen = muted;
+
+      const nextMuted = next ? true : mutedBeforeDeafen;
+
       for (const track of localStream?.getAudioTracks() ?? []) {
-        track.enabled = !next;
+        track.enabled = !nextMuted;
       }
-      set({ deafened: next, muted: next ? true : get().muted });
+
+      set({ deafened: next, muted: nextMuted });
       playCue(next ? 'deafen' : 'undeafen');
       publishState();
     },

@@ -151,6 +151,49 @@ test.describe('Parcours authentifies', () => {
       .toBeGreaterThan(0.95);
   });
 
+  test('le clic droit sur un message ouvre les actions de la personne', async ({ page }) => {
+    await openApp(page);
+
+    const text = uniqueText('Menu');
+    await page.locator('.composer__input').fill(text);
+    await page.keyboard.press('Enter');
+    const message = await settledMessage(page, text);
+
+    await message.click({ button: 'right' });
+
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: /profil/i })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Copier le pseudo' })).toBeVisible();
+
+    // Echap referme : un menu qu'on ne peut fermer qu'en cliquant ailleurs
+    // piege qui navigue au clavier.
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+  });
+
+  test('le menu se replace pour ne pas sortir de l ecran', async ({ page }) => {
+    await openApp(page);
+
+    const text = uniqueText('Bord');
+    await page.locator('.composer__input').fill(text);
+    await page.keyboard.press('Enter');
+    const message = await settledMessage(page, text);
+
+    // Clic tout pres du bord droit : le menu doit basculer vers l'interieur.
+    const boite = (await message.boundingBox())!;
+    await page.mouse.click(boite.x + boite.width - 4, boite.y + 6, { button: 'right' });
+
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+
+    const rect = (await menu.boundingBox())!;
+    const largeur = page.viewportSize()!.width;
+    expect(rect.x + rect.width).toBeLessThanOrEqual(largeur);
+
+    await page.keyboard.press('Escape');
+  });
+
   test('la palette de commandes s ouvre et ferme au clavier', async ({ page }) => {
     await openApp(page);
 

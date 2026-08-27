@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useContextMenu } from '@/components/ContextMenu';
+import { UserContextMenu } from '@/features/profile/UserContextMenu';
 import { useVoice } from './useVoice';
 import { useDevices, applySink } from '@/store/devices';
 import { useChat } from '@/store/chat';
@@ -6,7 +8,7 @@ import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { formatDuration } from '@/lib/time';
-import type { Channel, VoiceParticipant } from '@/types/db';
+import type { Channel, UUID, VoiceParticipant } from '@/types/db';
 
 /** Tableau vide partage : une nouvelle instance casserait la memoisation. */
 const EMPTY_PARTICIPANTS: VoiceParticipant[] = [];
@@ -158,8 +160,9 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           const isSpeaking = speaking[participant.user_id] ?? false;
 
           return (
-            <li
+            <VoiceTile
               key={participant.user_id}
+              userId={participant.user_id}
               // Un seul etat porte l'anneau a la fois, du plus grave au plus
               // anodin : sourd, puis micro coupe, puis en train de parler.
               // Les cumuler donnerait deux couleurs sur le meme bord.
@@ -194,7 +197,7 @@ export function VoiceStage({ channel }: { channel: Channel }) {
               {!isMe ? (
                 <RemoteAudio stream={remoteAudio[participant.user_id]} muted={deafened} />
               ) : null}
-            </li>
+            </VoiceTile>
           );
         })}
       </ul>
@@ -411,5 +414,34 @@ function CameraTile({ stream, mirrored }: { stream: MediaStream | undefined; mir
       playsInline
       muted
     />
+  );
+}
+
+
+/**
+ * Tuile d'un participant.
+ *
+ * Extraite pour que chaque tuile porte son propre menu : un etat unique
+ * partage par la grille ouvrirait le menu de la derniere personne survolee,
+ * pas de celle sur laquelle on a clique.
+ */
+function VoiceTile({
+  userId,
+  className,
+  children,
+}: {
+  userId: UUID;
+  className: string;
+  children: ReactNode;
+}) {
+  const menu = useContextMenu();
+
+  return (
+    <li className={className} onContextMenu={menu.open}>
+      {children}
+      {menu.position ? (
+        <UserContextMenu userId={userId} position={menu.position} onClose={menu.close} />
+      ) : null}
+    </li>
   );
 }

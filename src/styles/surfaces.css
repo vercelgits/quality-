@@ -617,3 +617,119 @@
     align-items: stretch;
   }
 }
+
+/* ==========================================================================
+   Menu contextuel
+   ========================================================================== */
+
+.ctx-menu {
+  position: fixed;
+  z-index: 300;
+  min-width: 208px;
+  max-width: 280px;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(160%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-lg), var(--edge-light);
+  animation: ctx-in var(--duration-fast) var(--ease-out);
+}
+
+@keyframes ctx-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-4px);
+  }
+}
+
+[data-motion='reduced'] .ctx-menu {
+  animation: none;
+}
+
+:root[data-transparency='off'] .ctx-menu {
+  background: var(--bg-floating);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.ctx-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-instant) var(--ease-out),
+    color var(--duration-instant) var(--ease-out);
+}
+
+.ctx-menu__item:hover:not(:disabled),
+.ctx-menu__item:focus-visible {
+  outline: none;
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+/* Le rouge ne parait qu'au survol : une liste ou trois entrees sont deja
+   rouges ne signale plus rien. */
+.ctx-menu__item.is-danger:hover:not(:disabled),
+.ctx-menu__item.is-danger:focus-visible {
+  background: var(--danger);
+  color: #fff;
+}
+
+.ctx-menu__item:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.ctx-menu__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.ctx-menu__rule {
+  height: 1px;
+  margin: var(--space-2) var(--space-1);
+  border: 0;
+  background: var(--border-subtle);
+}
+
+/* Les points d'entree vers une personne, dans un message. */
+.message__author {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.message__author:hover:not(:disabled) {
+  text-decoration: underline;
+}
+
+.message__author:disabled {
+  cursor: default;
+}
+
+.message__avatar-button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}

@@ -9,6 +9,8 @@ import { PollCard } from '@/features/polls/PollCard';
 import { AttachmentList } from './AttachmentList';
 import { LinkPreviews } from './LinkPreview';
 import type { Message, Profile, UUID } from '@/types/db';
+import { useContextMenu } from '@/components/ContextMenu';
+import { UserContextMenu } from '@/features/profile/UserContextMenu';
 
 interface MessageItemProps {
   message: Message;
@@ -68,6 +70,7 @@ function MessageItemInner({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
+  const menu = useContextMenu();
 
   const isMine = message.author_id === currentUserId;
   const mentionsMe =
@@ -111,7 +114,11 @@ function MessageItemInner({
       }
       id={`message-${message.id}`}
       data-message-id={message.id}
+      onContextMenu={author ? menu.open : undefined}
     >
+      {menu.position && author ? (
+        <UserContextMenu userId={author.id} position={menu.position} onClose={menu.close} />
+      ) : null}
       {replyTo ? (
         <button
           type="button"
@@ -137,16 +144,29 @@ function MessageItemInner({
               </time>
             ) : null
           ) : (
-            <Avatar profile={author} size={undefined} />
+            <button
+              type="button"
+              className="message__avatar-button"
+              onClick={(event) => menu.openAt(event.currentTarget)}
+              title={author ? `Actions pour ${author.display_name}` : undefined}
+              aria-label={author ? `Actions pour ${author.display_name}` : 'Auteur inconnu'}
+            >
+              <Avatar profile={author} size={undefined} />
+            </button>
           )}
         </div>
 
         <div className="message__content">
           {!grouped ? (
             <header className="message__header">
-              <span className="message__author">
+              <button
+                type="button"
+                className="message__author"
+                onClick={(event) => menu.openAt(event.currentTarget)}
+                disabled={!author}
+              >
                 {author?.display_name ?? 'Compte supprime'}
-              </span>
+              </button>
               <time
                 className="message__time"
                 dateTime={message.created_at}
