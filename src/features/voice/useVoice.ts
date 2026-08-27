@@ -6,6 +6,9 @@ import {
   audioConstraints,
   videoConstraints,
   screenConstraints,
+  screenBitrate,
+  cameraBitrate,
+  applyEncoding,
 } from '@/store/devices';
 import type { UUID, VoiceParticipant, VoiceSignal } from '@/types/db';
 
@@ -314,6 +317,13 @@ export const useVoice = create<VoiceState>((set, get) => {
     const screenTrack = screen?.getVideoTracks()[0];
     if (screen && screenTrack) {
       peer.screenSender = connection.addTrack(screenTrack, screen);
+      // Un pair qui arrive en cours de partage doit recevoir la meme qualite
+      // que les autres : sans cela il herite du debit par defaut.
+      void applyEncoding(
+        peer.screenSender,
+        screenBitrate(useDevices.getState().media),
+        useDevices.getState().media.screenPriority,
+      );
       announceStream(peerId, screen.id, 'screen');
     }
 
@@ -321,6 +331,7 @@ export const useVoice = create<VoiceState>((set, get) => {
     const cameraTrack = camera?.getVideoTracks()[0];
     if (camera && cameraTrack) {
       peer.cameraSender = connection.addTrack(cameraTrack, camera);
+      void applyEncoding(peer.cameraSender, cameraBitrate(useDevices.getState().media), 'detail');
       announceStream(peerId, camera.id, 'camera');
     }
 
@@ -639,6 +650,12 @@ export const useVoice = create<VoiceState>((set, get) => {
       const [videoTrack] = display.getVideoTracks();
       if (!videoTrack) return;
 
+      // L'indice de contenu oriente l'encodeur avant meme la negociation :
+      // « motion » lui dit de sacrifier la nettete plutot que la fluidite.
+      // Sans lui, un 1080p a soixante images est traite comme une webcam.
+      videoTrack.contentHint =
+        useDevices.getState().media.screenPriority === 'motion' ? 'motion' : 'detail';
+
       // Le partage s'arrete aussi depuis la barre du navigateur. Sans suivre cet
       // evenement, l'interface afficherait un partage qui n'existe plus.
       videoTrack.addEventListener('ended', () => {
@@ -652,8 +669,11 @@ export const useVoice = create<VoiceState>((set, get) => {
         publishState();
       });
 
+      const media = useDevices.getState().media;
+
       for (const [peerId, peer] of peers) {
         peer.screenSender = peer.connection.addTrack(videoTrack, display);
+        void applyEncoding(peer.screenSender, screenBitrate(media), media.screenPriority);
         announceStream(peerId, display.id, 'screen');
       }
 
@@ -701,6 +721,9 @@ export const useVoice = create<VoiceState>((set, get) => {
       const [videoTrack] = camera.getVideoTracks();
       if (!videoTrack) return;
 
+      // Un visage bouge peu : la nettete prime sur la fluidite.
+      videoTrack.contentHint = 'detail';
+
       // La camera peut etre coupee depuis le systeme : sans suivre cet
       // evenement, l'interface afficherait une video qui n'existe plus.
       videoTrack.addEventListener('ended', () => {
@@ -716,6 +739,7 @@ export const useVoice = create<VoiceState>((set, get) => {
 
       for (const [peerId, peer] of peers) {
         peer.cameraSender = peer.connection.addTrack(videoTrack, camera);
+        void applyEncoding(peer.cameraSender, cameraBitrate(useDevices.getState().media), 'detail');
         announceStream(peerId, camera.id, 'camera');
       }
 

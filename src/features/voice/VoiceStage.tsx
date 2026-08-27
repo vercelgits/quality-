@@ -298,6 +298,8 @@ function ScreenTile({
   onToggleFocus?: () => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const frameRef = useRef<HTMLElement>(null);
+  const [fullscreen, setFullscreen] = useState(false);
 
   useEffect(() => {
     const node = ref.current;
@@ -306,8 +308,39 @@ function ScreenTile({
     void node.play().catch(() => undefined);
   }, [stream]);
 
+  /*
+   * Le plein ecran porte sur la vignette entiere, pas sur la video.
+   *
+   * Mettre la balise video en plein ecran rend la main au lecteur du
+   * navigateur : on perd le nom de la personne, le bouton de sortie et le
+   * reste de l'interface. En agrandissant le cadre, tout reste a sa place.
+   */
+  const toggleFullscreen = () => {
+    const frame = frameRef.current;
+    if (!frame) return;
+
+    if (document.fullscreenElement === frame) {
+      void document.exitFullscreen().catch(() => undefined);
+    } else {
+      void frame.requestFullscreen?.().catch(() => undefined);
+    }
+  };
+
+  // La sortie peut venir d'Echap ou du systeme : suivre l'evenement evite de
+  // garder un bouton qui annonce le contraire de l'etat reel.
+  useEffect(() => {
+    const onChange = () => setFullscreen(document.fullscreenElement === frameRef.current);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
   return (
-    <figure className={'screen-tile' + (focused ? ' is-focused' : '')}>
+    <figure
+      ref={frameRef}
+      className={
+        'screen-tile' + (focused ? ' is-focused' : '') + (fullscreen ? ' is-fullscreen' : '')
+      }
+    >
       <video ref={ref} className="screen-tile__video" autoPlay playsInline muted />
 
       <figcaption className="screen-tile__label">
@@ -331,11 +364,11 @@ function ScreenTile({
         <button
           type="button"
           className="screen-tile__action"
-          onClick={() => void ref.current?.requestFullscreen?.().catch(() => undefined)}
-          title="Plein ecran"
-          aria-label="Afficher en plein ecran"
+          onClick={toggleFullscreen}
+          title={fullscreen ? 'Quitter le plein ecran' : 'Plein ecran'}
+          aria-label={fullscreen ? 'Quitter le plein ecran' : 'Afficher en plein ecran'}
         >
-          <Icon name="monitor" size={15} />
+          <Icon name={fullscreen ? 'minus' : 'monitor'} size={15} />
         </button>
       </div>
     </figure>

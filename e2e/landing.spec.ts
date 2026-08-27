@@ -4,6 +4,25 @@ import { test, expect } from '@playwright/test';
  * Page de presentation : la premiere chose que voit un visiteur.
  */
 
+test.describe('Ecran de chargement', () => {
+  test('couvre la page avant le premier rendu, puis disparait', async ({ page }) => {
+    // Le voile est ecrit dans le document, pas rendu par React : il doit donc
+    // etre la des la reception du HTML, avant l'execution du script.
+    await page.goto('/', { waitUntil: 'commit' });
+    await expect(page.locator('#splash')).toBeAttached();
+
+    // Puis il s'efface de lui-meme une fois l'application peinte : le laisser
+    // reviendrait a bloquer l'interface derriere un voile.
+    await expect(page.locator('#splash')).toHaveCount(0, { timeout: 15_000 });
+  });
+
+  test('le voile ne masque pas un ecran deja pret', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByRole('button', { name: /Commencer|Entrer/ }).first()).toBeVisible();
+    await expect(page.locator('#splash')).toHaveCount(0);
+  });
+});
+
 test.describe('Presentation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/');

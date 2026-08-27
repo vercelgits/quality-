@@ -40,6 +40,29 @@ async function root() {
   return <App />;
 }
 
+/**
+ * Retire l'ecran de chargement une fois la premiere image peinte.
+ *
+ * Deux images d'attente plutot qu'un retrait immediat : React rend son arbre
+ * de maniere synchrone, mais le navigateur n'a pas encore peint. Retirer le
+ * voile a cet instant laisse voir une fraction de seconde de page nue.
+ */
+function dismissSplash(): void {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      splash.classList.add('is-leaving');
+      splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+      // Filet de securite : si la transition ne se declenche pas — animations
+      // coupees, onglet en arriere-plan — le voile resterait pour toujours.
+      window.setTimeout(() => splash.remove(), 600);
+    }),
+  );
+}
+
 void root().then((screen) => {
   createRoot(container).render(<StrictMode>{screen}</StrictMode>);
+  dismissSplash();
 });

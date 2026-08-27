@@ -35,6 +35,14 @@ export interface MediaPreferences {
   screenQuality: '720p' | '1080p' | 'source';
   /** Images par seconde du partage d'ecran. */
   screenFrameRate: 15 | 30 | 60;
+  /**
+   * Ce qu'on privilegie quand le reseau ne suit plus.
+   *
+   * `motion` garde la fluidite et laisse la nettete baisser — ce qu'il faut
+   * pour un jeu ou une video. `detail` fait l'inverse : le texte d'un editeur
+   * reste lisible, au prix de saccades.
+   */
+  screenPriority: 'motion' | 'detail';
 }
 
 const DEFAULTS: MediaPreferences = {
@@ -48,7 +56,8 @@ const DEFAULTS: MediaPreferences = {
   speakingThreshold: -50,
   videoQuality: '720p',
   screenQuality: '1080p',
-  screenFrameRate: 30,
+  screenFrameRate: 60,
+  screenPriority: 'motion',
 };
 
 const STORAGE_KEY = 'orbit:media';
@@ -228,8 +237,73 @@ export function screenConstraints(media: MediaPreferences): MediaTrackConstraint
   const size = SCREEN_SIZES[media.screenQuality];
   return {
     ...(size ? { width: { ideal: size.width }, height: { ideal: size.height } } : {}),
-    frameRate: { ideal: media.screenFrameRate },
+    frameRate: { ideal: media.screenFrameRate, max: media.screenFrameRate },
   };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Debit                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Debit vise pour un partage d'ecran, en bits par seconde.
+ *
+ * Sans consigne, WebRTC s'installe autour de deux megabits : correct pour une
+ * webcam, franchement mauvais pour un 1080p a soixante images — le texte bave
+ * et les aplats se pixellisent des qu'il y a du mouvement. C'est la difference
+ * la plus visible entre un partage qui parait « propre » et un autre non.
+ *
+ * Ce sont des plafonds, pas des reservations : la couche de congestion
+ * descend d'elle-meme si la liaison ne suit pas.
+ */
+export function screenBitrate(media: MediaPreferences): number {
+  const hauteur =
+    media.screenQuality === '720p' ? 720 : media.screenQuality === '1080p' ? 1080 : 1440;
+
+  const base = hauteur >= 1440 ? 12_000_000 : hauteur >= 1080 ? 8_000_000 : 4_000_000;
+
+  // Doubler les images par seconde ne double pas le debit necessaire : deux
+  // images consecutives se ressemblent, et l'encodeur ne transmet que l'ecart.
+  const facteur = media.screenFrameRate >= 60 ? 1 : media.screenFrameRate >= 30 ? 0.65 : 0.4;
+
+  return Math.round(base * facteur);
+}
+
+/** Debit vise pour la camera. Une webcam n'a pas besoin du meme budget. */
+export function cameraBitrate(media: MediaPreferences): number {
+  return media.videoQuality === '1080p' ? 2_500_000 : media.videoQuality === '720p' ? 1_500_000 : 800_000;
+}
+
+/**
+ * Impose debit et arbitrage a un flux sortant.
+ *
+ * `setParameters` echoue si l'emetteur n'a pas encore d'encodage — cela arrive
+ * quand la negociation n'est pas terminee. On abandonne alors sans bruit :
+ * la qualite reste celle par defaut, ce qui est desagreable mais pas casse.
+ */
+export async function applyEncoding(
+  sender: RTCRtpSender,
+  bitrate: number,
+  priority: 'motion' | 'detail',
+): Promise<void> {
+  try {
+    const parameters = sender.getParameters();
+    if (!parameters.encodings || parameters.encodings.length === 0) return;
+
+    for (const encoding of parameters.encodings) {
+      encoding.maxBitrate = bitrate;
+      // Sans plancher, l'encodeur peut descendre a quelques images par seconde
+      // avant meme que le reseau ne soit sature.
+      encoding.maxFramerate = undefined;
+    }
+
+    parameters.degradationPreference =
+      priority === 'motion' ? 'maintain-framerate' : 'maintain-resolution';
+
+    await sender.setParameters(parameters);
+  } catch {
+    // Encodage pas encore pret, ou navigateur qui refuse : sans consequence.
+  }
 }
 
 /**

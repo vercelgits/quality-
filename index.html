@@ -24,6 +24,117 @@
     />
   </head>
   <body>
+    <!--
+      Ecran de chargement, ecrit directement dans la page.
+
+      Il s'affiche avant meme que le paquet JavaScript soit telecharge : c'est
+      tout son interet. Le construire en React reviendrait a montrer une
+      fenetre blanche pendant le temps qu'il cherche a couvrir — sur le client
+      de bureau, ce vide est particulierement visible au lancement.
+
+      Les couleurs sont ecrites en dur : les jetons de theme vivent dans une
+      feuille qui n'est pas encore chargee a cet instant.
+    -->
+    <div id="splash" role="status" aria-live="polite">
+      <div class="splash__mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <polygon points="16.2 7.8 14.1 14.1 7.8 16.2 9.9 9.9" />
+        </svg>
+      </div>
+      <p class="splash__name">Orbit</p>
+      <div class="splash__bar" aria-hidden="true"><span></span></div>
+      <p class="splash__hint">Chargement…</p>
+    </div>
+
+    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        background:
+          radial-gradient(50rem 34rem at 15% -10%, rgba(88, 101, 242, 0.22), transparent 62%),
+          radial-gradient(42rem 30rem at 100% 108%, rgba(235, 69, 158, 0.16), transparent 62%),
+          #0f0f12;
+        color: #f2f3f5;
+        font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+        transition: opacity 260ms ease-out;
+      }
+
+      @media (prefers-color-scheme: light) {
+        #splash {
+          background:
+            radial-gradient(50rem 34rem at 15% -10%, rgba(88, 101, 242, 0.1), transparent 62%),
+            #f2f3f5;
+          color: #060607;
+        }
+      }
+
+      #splash.is-leaving {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .splash__mark {
+        width: 56px;
+        height: 56px;
+        color: #5865f2;
+      }
+
+      .splash__mark svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .splash__name {
+        margin: 0;
+        font-size: 20px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+
+      /* Une barre qui va et vient, plutot qu'un pourcentage : on ne sait pas
+         combien de temps cela va prendre, et un faux pourcentage ment. */
+      .splash__bar {
+        width: 168px;
+        height: 3px;
+        border-radius: 999px;
+        background: rgba(128, 132, 142, 0.24);
+        overflow: hidden;
+      }
+
+      .splash__bar span {
+        display: block;
+        width: 40%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #5865f2, #eb459e);
+        animation: splash-slide 1.15s ease-in-out infinite;
+      }
+
+      @keyframes splash-slide {
+        0% { transform: translateX(-110%); }
+        100% { transform: translateX(360%); }
+      }
+
+      .splash__hint {
+        margin: 0;
+        font-size: 13px;
+        opacity: 0.62;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .splash__bar span { animation: none; width: 100%; }
+        #splash { transition: none; }
+      }
+    </style>
+
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

@@ -3,6 +3,7 @@ import {
   useDevices,
   audioConstraints,
   videoConstraints,
+  screenBitrate,
   type MediaPreferences,
 } from '@/store/devices';
 import { byteToDecibels, ANALYSER_FLOOR, ANALYSER_CEILING } from '@/features/voice/useVoice';
@@ -192,9 +193,32 @@ export function VoiceSettings() {
           }
         />
 
+        <Choice
+          label="Quand le reseau ne suit plus"
+          value={media.screenPriority}
+          options={[
+            { value: 'motion', label: 'Fluidite' },
+            { value: 'detail', label: 'Nettete' },
+          ]}
+          onChange={(value) => setMedia('screenPriority', value)}
+        />
+
         <p className="settings__hint">
-          Ce sont des demandes, pas des garanties : la source peut refuser, et le
-          navigateur baisse la definition si le reseau ne suit pas.
+          « Fluidite » garde les images par seconde et laisse la nettete
+          baisser : c'est ce qu'il faut pour un jeu ou une video. « Nettete »
+          fait l'inverse, et garde le texte d'un editeur lisible au prix de
+          quelques saccades.
+        </p>
+
+        <p className="settings__hint">
+          Le debit vise est calcule d'apres ces choix — environ {Math.round(screenBitrate(media) / 100_000) / 10}{' '}
+          Mb/s ici. Sans consigne, WebRTC s'installe bien plus bas, et un 1080p
+          a soixante images se pixellise des qu'il y a du mouvement.
+        </p>
+
+        <p className="settings__hint">
+          Ce sont des demandes, pas des garanties : la source peut refuser, et
+          la couche de congestion descend d'elle-meme si la liaison ne suit pas.
         </p>
       </section>
     </div>
