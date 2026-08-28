@@ -355,6 +355,41 @@ impl Client {
         Ok(messages)
     }
 
+    /// Relit un message precis.
+    ///
+    /// Utile pour verifier qu'une ecriture a bien atteint la base : chercher le
+    /// message parmi les derniers depend du trafic du salon, et echoue des que
+    /// d'autres messages s'intercalent.
+    pub fn message_par_id(
+        &self,
+        session: &Session,
+        id: &str,
+    ) -> Result<Option<MessageBrut>, String> {
+        let reponse = self
+            .authentifie(
+                self.http.get(format!("{}/rest/v1/messages", self.config.url)),
+                session,
+            )
+            .query(&[
+                ("id", format!("eq.{id}")),
+                ("select", "id,author_id,content,created_at".into()),
+            ])
+            .send()
+            .map_err(|_| "Serveur injoignable.".to_string())?;
+
+        let statut = reponse.status();
+        let corps = reponse.text().unwrap_or_default();
+
+        if !statut.is_success() {
+            return Err(Self::expliquer(&corps, statut.as_u16()));
+        }
+
+        let trouves: Vec<MessageBrut> =
+            serde_json::from_str(&corps).map_err(|e| format!("Message illisible : {e}"))?;
+
+        Ok(trouves.into_iter().next())
+    }
+
     /// Envoie un message dans un salon.
     pub fn envoyer(
         &self,
