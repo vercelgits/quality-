@@ -90,7 +90,7 @@
  */
 .profile__banner {
   position: relative;
-  height: 132px;
+  height: 180px;
   overflow: hidden;
 }
 
@@ -134,8 +134,8 @@
 .profile__avatar {
   display: flex;
   justify-content: flex-start;
-  margin-top: -44px;
-  padding-left: var(--space-5);
+  margin-top: -56px;
+  padding-left: var(--space-6);
   /* Sort du plan de la carte : l'avatar avance vers le lecteur quand la carte
      penche, ce qui produit la parallaxe qui donne l'illusion de relief. */
   transform: translateZ(40px);
@@ -266,48 +266,76 @@
   text-decoration: none;
 }
 
-.profile__stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: var(--space-2);
-  margin: var(--space-6) var(--space-5) 0;
-  transform: translateZ(16px);
+/* --------------------------------------------------------------------------
+   Espaces en commun
+   -------------------------------------------------------------------------- */
+
+.profile__mutual {
+  padding: var(--space-5) var(--space-6) 0;
 }
 
-.profile-stat {
+.profile__section-title {
+  margin: 0 0 var(--space-3);
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.profile__mutual-list {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 2px;
-  padding: var(--space-3) var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Au-dela de quatre ou cinq espaces la carte s'allongerait sans fin ; on
+     defile a l'interieur plutot que de pousser le bouton hors de l'ecran. */
+  max-height: 168px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.profile-mutual {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
   border-radius: var(--radius-md);
-  background: var(--bg-sunken);
-  border: 1px solid var(--border-subtle);
-}
-
-.profile-stat__icon {
-  color: var(--accent-text);
-  margin-bottom: 2px;
-}
-
-.profile-stat__value {
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
   font-size: var(--text-md);
+  font-weight: var(--weight-medium);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.profile-mutual:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.profile-mutual__icon {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+}
+
+.profile-mutual__icon--letter {
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-size: var(--text-sm);
   font-weight: var(--weight-bold);
-  font-variant-numeric: tabular-nums;
-  line-height: 1;
-}
-
-.profile-stat__skeleton {
-  display: block;
-  width: 28px;
-  height: 16px;
-}
-
-.profile-stat__label {
-  font-size: var(--text-2xs);
-  color: var(--text-muted);
-  text-align: center;
-  line-height: 1.25;
 }
 
 .profile__since {
@@ -756,4 +784,112 @@
   background: none;
   cursor: pointer;
   line-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Changer sa banniere et sa photo, depuis la fiche
+   -------------------------------------------------------------------------- */
+
+.profile__banner-edit {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, var(--bg-sunken) 72%, transparent);
+  backdrop-filter: blur(14px) saturate(150%);
+  -webkit-backdrop-filter: blur(14px) saturate(150%);
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  /* Discret tant qu'on ne s'y interesse pas : la banniere reste l'objet
+     principal, le bouton se declare au survol de la carte. */
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.profile__card:hover .profile__banner-edit,
+.profile__banner-edit:focus-visible {
+  opacity: 1;
+  transform: none;
+}
+
+.profile__banner-edit:hover {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.profile__avatar-edit {
+  position: relative;
+  display: block;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  cursor: pointer;
+}
+
+.profile__avatar-veil {
+  position: absolute;
+  inset: 5px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-full);
+  background: color-mix(in oklab, #000 58%, transparent);
+  color: #fff;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.profile__avatar-edit:hover .profile__avatar-veil,
+.profile__avatar-edit:focus-visible .profile__avatar-veil {
+  opacity: 1;
+}
+
+:root[data-transparency='off'] .profile__banner-edit {
+  background: var(--bg-sunken);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+[data-motion='reduced'] .profile__banner-edit,
+[data-motion='reduced'] .profile__avatar-veil {
+  transition: none;
+}
+
+/* Sans survol possible, le bouton doit rester visible en permanence. */
+@media (hover: none) {
+  .profile__banner-edit {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Le message qu'on s'apprete a supprimer, rappele dans la confirmation : on
+   ne confirme pas a l'aveugle une action definitive. */
+.confirm-quote {
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border-left: 3px solid var(--border-strong);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  /* Un message long ne doit pas repousser les boutons hors de la boite. */
+  max-height: 8em;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }

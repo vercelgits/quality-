@@ -42,13 +42,11 @@ export interface Profile {
   created_at: ISODate;
 }
 
-/** Chiffres calcules a la demande, jamais stockes. */
+/** Ce qu'on affiche d'une fiche de profil, calcule a la demande. */
 export interface ProfileStats {
-  messages: number;
-  threads_opened: number;
-  reactions_given: number;
-  shared_spaces: number;
   joined_at: ISODate;
+  /** Espaces partages avec la personne consultee. Vide sur sa propre fiche. */
+  mutual_spaces: { id: UUID; name: string; icon_url: string | null }[];
   roles: SpaceRole[];
 }
 

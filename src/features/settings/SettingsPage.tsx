@@ -24,15 +24,40 @@ import {
  * perdre une saisie en cours.
  */
 
-const SECTIONS: { value: SettingsSection; label: string; icon: IconName }[] = [
-  { value: 'compte', label: 'Mon compte', icon: 'key' },
-  { value: 'profil', label: 'Profil', icon: 'smile' },
-  { value: 'confidentialite', label: 'Confidentialite', icon: 'shield' },
-  { value: 'voix', label: 'Voix et video', icon: 'mic' },
-  { value: 'apparence', label: 'Apparence', icon: 'moon' },
-  { value: 'notifications', label: 'Notifications', icon: 'bell' },
-  { value: 'raccourcis', label: 'Raccourcis', icon: 'keyboard' },
-  { value: 'avance', label: 'Avance', icon: 'sliders' },
+/*
+ * La liste est groupee.
+ *
+ * A huit entrees en file continue, on relisait toute la colonne pour retrouver
+ * un reglage : rien n'indiquait que « Profil » parle de soi et « Apparence » de
+ * l'application. Les intitules de groupe donnent ce reperage, et laissent la
+ * place a de nouvelles sections sans que la liste redevienne illisible.
+ */
+const GROUPES: { titre: string; entrees: { value: SettingsSection; label: string; icon: IconName }[] }[] = [
+  {
+    titre: 'Vous',
+    entrees: [
+      { value: 'compte', label: 'Mon compte', icon: 'key' },
+      { value: 'profil', label: 'Profil', icon: 'smile' },
+      { value: 'confidentialite', label: 'Confidentialite', icon: 'shield' },
+    ],
+  },
+  {
+    titre: 'Application',
+    entrees: [
+      { value: 'apparence', label: 'Apparence', icon: 'moon' },
+      { value: 'accessibilite', label: 'Accessibilite', icon: 'sun' },
+      { value: 'discussion', label: 'Discussion', icon: 'thread' },
+      { value: 'voix', label: 'Voix et video', icon: 'mic' },
+      { value: 'notifications', label: 'Notifications', icon: 'bell' },
+    ],
+  },
+  {
+    titre: 'Divers',
+    entrees: [
+      { value: 'raccourcis', label: 'Raccourcis', icon: 'keyboard' },
+      { value: 'avance', label: 'Avance', icon: 'sliders' },
+    ],
+  },
 ];
 
 export function SettingsPage() {
@@ -76,18 +101,24 @@ export function SettingsPage() {
         <div className="settings__nav-inner">
           <p className="settings__nav-title">Parametres</p>
 
-          {SECTIONS.map((entry) => (
-            <button
-              key={entry.value}
-              ref={section === entry.value ? activeRef : undefined}
-              type="button"
-              className={'settings__navitem' + (section === entry.value ? ' is-active' : '')}
-              aria-current={section === entry.value ? 'page' : undefined}
-              onClick={() => openSettings(entry.value)}
-            >
-              <Icon name={entry.icon} size={16} />
-              {entry.label}
-            </button>
+          {GROUPES.map((groupe) => (
+            <div className="settings__nav-group" key={groupe.titre}>
+              <p className="settings__nav-group-title">{groupe.titre}</p>
+
+              {groupe.entrees.map((entry) => (
+                <button
+                  key={entry.value}
+                  ref={section === entry.value ? activeRef : undefined}
+                  type="button"
+                  className={'settings__navitem' + (section === entry.value ? ' is-active' : '')}
+                  aria-current={section === entry.value ? 'page' : undefined}
+                  onClick={() => openSettings(entry.value)}
+                >
+                  <Icon name={entry.icon} size={16} />
+                  {entry.label}
+                </button>
+              ))}
+            </div>
           ))}
 
           <hr className="settings__nav-rule" />
@@ -110,6 +141,8 @@ export function SettingsPage() {
           {section === 'confidentialite' ? <PrivacySection /> : null}
           {section === 'voix' ? <VoiceSettings /> : null}
           {section === 'apparence' ? <AppearanceSection /> : null}
+          {section === 'accessibilite' ? <AccessibilitySection /> : null}
+          {section === 'discussion' ? <ChatSection /> : null}
           {section === 'notifications' ? <NotificationsSection /> : null}
           {section === 'raccourcis' ? <ShortcutsSection /> : null}
           {section === 'avance' ? <AdvancedSection /> : null}
@@ -564,6 +597,203 @@ const ACCENTS: { value: AccentName; label: string }[] = [
   { value: 'rose', label: 'Rose' },
   { value: 'mono', label: 'Neutre' },
 ];
+
+/* ========================================================================== */
+/* Accessibilite                                                              */
+/* ========================================================================== */
+
+/**
+ * Une page de cases a cocher.
+ *
+ * Ces reglages n'ont pas de valeur par defaut « correcte » : ils dependent de
+ * la vue, de la fatigue, du materiel. Ils vivent donc a part plutot que
+ * dissemines dans « Apparence », ou personne ne serait alle les chercher.
+ */
+function AccessibilitySection() {
+  const preferences = useSession((state) => state.preferences);
+  const setPreference = useSession((state) => state.setPreference);
+
+  return (
+    <div className="settings__page">
+      <h1 className="settings__title">Accessibilite</h1>
+      <p className="settings__lede">
+        Ces reglages ne valent que sur cet appareil, et s&rsquo;appliquent
+        immediatement.
+      </p>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Lecture</h2>
+
+        <div className="settings__stack">
+          <SwitchRow
+            label="Souligner les liens"
+            hint="La couleur seule ne distingue pas un lien pour tout le monde."
+            checked={preferences.underlineLinks}
+            onChange={(value) => setPreference('underlineLinks', value)}
+          />
+          <SwitchRow
+            label="Toujours montrer le contour de selection"
+            hint="Le cadre qui suit la navigation au clavier reste visible en permanence."
+            checked={preferences.alwaysShowFocus}
+            onChange={(value) => setPreference('alwaysShowFocus', value)}
+          />
+          <SwitchRow
+            label="Reduire les animations"
+            hint="Supprime transitions et mouvements, au-dela du reglage du systeme."
+            checked={preferences.reduceMotion}
+            onChange={(value) => setPreference('reduceMotion', value)}
+          />
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Taille du texte</h2>
+        <p className="settings__hint">
+          Independante de la densite : on peut vouloir un affichage serre et de
+          gros caracteres.
+        </p>
+
+        <div className="settings__segmented settings__segmented--wide">
+          {(
+            [
+              { value: 'normal', label: 'Normale' },
+              { value: 'grand', label: 'Grande' },
+              { value: 'tres-grand', label: 'Tres grande' },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={
+                'settings__seg' +
+                (preferences.textScale === option.value ? ' is-active' : '')
+              }
+              onClick={() => setPreference('textScale', option.value)}
+              aria-pressed={preferences.textScale === option.value}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Saturation des couleurs</h2>
+        <p className="settings__hint">
+          Attenue les teintes vives sans toucher aux contrastes du texte.
+        </p>
+
+        <label className="settings__slider">
+          <input
+            type="range"
+            min={40}
+            max={100}
+            step={5}
+            value={preferences.saturation}
+            onChange={(event) => setPreference('saturation', Number(event.target.value))}
+          />
+          <span className="settings__slider-value">{preferences.saturation} %</span>
+        </label>
+      </section>
+    </div>
+  );
+}
+
+/* ========================================================================== */
+/* Discussion                                                                 */
+/* ========================================================================== */
+
+function ChatSection() {
+  const preferences = useSession((state) => state.preferences);
+  const setPreference = useSession((state) => state.setPreference);
+
+  return (
+    <div className="settings__page">
+      <h1 className="settings__title">Discussion</h1>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Affichage des messages</h2>
+
+        <div className="settings__stack">
+          <SwitchRow
+            label="Regrouper les messages consecutifs"
+            hint="Plusieurs messages d'affilee d'une meme personne partagent son nom et son avatar."
+            checked={preferences.groupMessages}
+            onChange={(value) => setPreference('groupMessages', value)}
+          />
+          <SwitchRow
+            label="Afficher l'heure de chaque message"
+            hint="Sinon, seule l'heure du premier message d'un groupe apparait."
+            checked={preferences.showTimestamps}
+            onChange={(value) => setPreference('showTimestamps', value)}
+          />
+          <SwitchRow
+            label="Deplier les apercus de liens"
+            hint="Titre, description et image des adresses partagees."
+            checked={preferences.showLinkPreviews}
+            onChange={(value) => setPreference('showLinkPreviews', value)}
+          />
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Ecriture</h2>
+
+        <div className="settings__stack">
+          <SwitchRow
+            label="Envoyer avec Entree"
+            hint="Sinon, Entree passe a la ligne et Ctrl+Entree envoie."
+            checked={preferences.sendOnEnter}
+            onChange={(value) => setPreference('sendOnEnter', value)}
+          />
+          <SwitchRow
+            label="Correction orthographique"
+            hint="Souligne les mots que le systeme ne reconnait pas."
+            checked={preferences.spellcheck}
+            onChange={(value) => setPreference('spellcheck', value)}
+          />
+          <SwitchRow
+            label="Confirmer avant de supprimer"
+            hint="Supprimer voisine Modifier dans la barre d'actions : la confirmation evite l'irreparable."
+            checked={preferences.confirmDelete}
+            onChange={(value) => setPreference('confirmDelete', value)}
+          />
+        </div>
+      </section>
+
+      <section className="settings__group">
+        <h2 className="settings__group-title">Images animees</h2>
+        <p className="settings__hint">
+          Une liste ou dix images bougent en permanence est fatigante a lire, et
+          coute cher a decoder.
+        </p>
+
+        <div className="settings__segmented settings__segmented--wide">
+          {(
+            [
+              { value: 'always', label: 'Toujours' },
+              { value: 'hover', label: 'Au survol' },
+              { value: 'never', label: 'Jamais' },
+            ] as const
+          ).map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={
+                'settings__seg' +
+                (preferences.animateAvatars === option.value ? ' is-active' : '')
+              }
+              onClick={() => setPreference('animateAvatars', option.value)}
+              aria-pressed={preferences.animateAvatars === option.value}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
 
 function AppearanceSection() {
   const preferences = useSession((state) => state.preferences);

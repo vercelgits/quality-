@@ -13,9 +13,10 @@ import { AnimatedImage, isAnimatable } from '@/components/AnimatedImage';
 /**
  * Carte de profil.
  *
- * Les chiffres viennent de `profile_stats`, qui compte a la demande en
- * respectant les politiques RLS : deux personnes ne voient donc pas
- * forcement le meme total, puisqu'on ne compte que ce qu'on a le droit de lire.
+ * Elle ne montre aucun compteur d'activite. Le nombre de messages ecrits ne
+ * renseigne sur personne, et place sous un visage il se lit comme une note.
+ * Ce qu'on garde repond a la question qu'on se pose vraiment en ouvrant une
+ * fiche : qui est cette personne, et d'ou est-ce que je la connais.
  */
 
 const ROLE_ICON: Record<SpaceRole, IconName> = {
@@ -25,13 +26,6 @@ const ROLE_ICON: Record<SpaceRole, IconName> = {
   member: 'users',
 };
 
-const STAT_LABELS: { key: keyof ProfileStats; label: string; icon: IconName }[] = [
-  { key: 'messages', label: 'Messages', icon: 'thread' },
-  { key: 'threads_opened', label: 'Fils ouverts', icon: 'inbox' },
-  { key: 'reactions_given', label: 'Reactions', icon: 'smile' },
-  { key: 'shared_spaces', label: 'Espaces en commun', icon: 'compass' },
-];
-
 export function ProfileCard({ userId }: { userId: UUID }) {
   const profiles = useChat((state) => state.profiles);
   const openDm = useChat((state) => state.openDm);
@@ -40,6 +34,7 @@ export function ProfileCard({ userId }: { userId: UUID }) {
   const openModal = useUI((state) => state.openModal);
   const closeModal = useUI((state) => state.closeModal);
   const selectChannel = useUI((state) => state.selectChannel);
+  const selectSpace = useUI((state) => state.selectSpace);
   const showDirectMessages = useUI((state) => state.showDirectMessages);
   const [opening, setOpening] = useState(false);
 
@@ -51,7 +46,20 @@ export function ProfileCard({ userId }: { userId: UUID }) {
 
     void (async () => {
       const { data } = await supabase.rpc('profile_stats', { p_user_id: userId });
-      if (!cancelled && data) setStats(data as ProfileStats);
+      if (cancelled || !data) return;
+
+      /*
+       * La fonction SQL peut dater d'avant la migration qui a remplace les
+       * compteurs par la liste des espaces communs. Elle renvoie alors un objet
+       * sans `mutual_spaces`, et lire `.length` dessus ferait disparaitre toute
+       * la fiche. On normalise plutot que de faire confiance a la forme.
+       */
+      const brut = data as Partial<ProfileStats>;
+      setStats({
+        joined_at: brut.joined_at ?? new Date().toISOString(),
+        mutual_spaces: Array.isArray(brut.mutual_spaces) ? brut.mutual_spaces : [],
+        roles: Array.isArray(brut.roles) ? brut.roles : [],
+      });
     })();
 
     return () => {
@@ -107,8 +115,38 @@ export function ProfileCard({ userId }: { userId: UUID }) {
           )}
         </div>
 
+        {/*
+          Sur sa propre fiche, la banniere et la photo sont les deux surfaces
+          qu'on essaie d'abord de cliquer pour les changer. Elles mènent donc a
+          l'editeur, plutot que de renvoyer vers un bouton en bas de carte.
+        */}
+        {isMe ? (
+          <button
+            type="button"
+            className="profile__banner-edit"
+            onClick={() => openModal({ kind: 'edit-profile' })}
+          >
+            <Icon name="camera" size={15} />
+            Changer la banniere
+          </button>
+        ) : null}
+
         <div className="profile__avatar">
-          <Avatar profile={profile} size={92} status={profile.status} showStatus />
+          {isMe ? (
+            <button
+              type="button"
+              className="profile__avatar-edit"
+              onClick={() => openModal({ kind: 'edit-profile' })}
+              aria-label="Changer ma photo de profil"
+            >
+              <Avatar profile={profile} size={108} status={profile.status} showStatus />
+              <span className="profile__avatar-veil" aria-hidden="true">
+                <Icon name="camera" size={22} />
+              </span>
+            </button>
+          ) : (
+            <Avatar profile={profile} size={108} status={profile.status} showStatus />
+          )}
         </div>
 
         <div className="profile__identity">
@@ -161,23 +199,43 @@ export function ProfileCard({ userId }: { userId: UUID }) {
           </ul>
         ) : null}
 
-        <div className="profile__stats">
-          {STAT_LABELS.map((item) => (
-            <div className="profile-stat" key={item.key}>
-              <span className="profile-stat__icon" aria-hidden="true">
-                <Icon name={item.icon} size={15} />
-              </span>
-              <span className="profile-stat__value">
-                {stats ? (
-                  new Intl.NumberFormat('fr-FR').format(Number(stats[item.key] ?? 0))
-                ) : (
-                  <span className="skeleton profile-stat__skeleton" />
-                )}
-              </span>
-              <span className="profile-stat__label">{item.label}</span>
-            </div>
-          ))}
-        </div>
+        {stats && stats.mutual_spaces.length > 0 ? (
+          <section className="profile__mutual">
+            <h3 className="profile__section-title">
+              {stats.mutual_spaces.length === 1
+                ? '1 espace en commun'
+                : `${stats.mutual_spaces.length} espaces en commun`}
+            </h3>
+
+            <ul className="profile__mutual-list">
+              {stats.mutual_spaces.map((space) => (
+                <li key={space.id}>
+                  <button
+                    type="button"
+                    className="profile-mutual"
+                    onClick={() => {
+                      selectSpace(space.id);
+                      closeModal();
+                    }}
+                  >
+                    {space.icon_url ? (
+                      <img src={space.icon_url} alt="" className="profile-mutual__icon" />
+                    ) : (
+                      <span
+                        className="profile-mutual__icon profile-mutual__icon--letter"
+                        style={{ background: hueFor(space.id) }}
+                        aria-hidden="true"
+                      >
+                        {space.name.slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="truncate">{space.name}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         <p className="profile__since">
           {stats

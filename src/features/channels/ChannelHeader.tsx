@@ -40,7 +40,10 @@ export function ChannelHeader({ channel }: { channel: Channel }) {
     : undefined;
 
   return (
-    <header className="channel-header">
+    // La barre de titre du systeme etant retiree, c'est cet en-tete qui sert
+    // a deplacer la fenetre. L'attribut ne vaut que pour l'element qui le
+    // porte : les boutons a l'interieur gardent leur clic.
+    <header className="channel-header" data-tauri-drag-region>
       <button
         type="button"
         className="icon-btn channel-header__toggle"

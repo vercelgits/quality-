@@ -27,8 +27,10 @@ test.describe('Parametres', () => {
       'Mon compte',
       'Profil',
       'Confidentialite',
-      'Voix et video',
       'Apparence',
+      'Accessibilite',
+      'Discussion',
+      'Voix et video',
       'Notifications',
       'Raccourcis',
       'Avance',
@@ -40,7 +42,14 @@ test.describe('Parametres', () => {
   test('chaque section affiche son propre titre', async ({ page }) => {
     await openSettings(page);
 
-    for (const label of ['Voix et video', 'Apparence', 'Notifications', 'Raccourcis']) {
+    for (const label of [
+      'Voix et video',
+      'Apparence',
+      'Accessibilite',
+      'Discussion',
+      'Notifications',
+      'Raccourcis',
+    ]) {
       await page.getByRole('button', { name: label }).click();
       await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible();
     }
@@ -110,5 +119,41 @@ test.describe('Parametres', () => {
     const ask = page.getByRole('button', { name: /Autoriser les notifications/ });
 
     await expect(granted.or(denied).or(ask).first()).toBeVisible();
+  });
+
+  /*
+   * Une case a cocher qui ne coche rien est pire que pas de reglage : on croit
+   * avoir agi. Ce test verifie qu'un interrupteur atteint bien la page, et
+   * qu'il survit a un rechargement.
+   */
+  test('un interrupteur d accessibilite agit vraiment, et tient au rechargement', async ({
+    page,
+  }) => {
+    await openSettings(page);
+    await page.getByRole('button', { name: 'Accessibilite' }).click();
+
+    const racine = page.locator('html');
+    await expect(racine).toHaveAttribute('data-underline-links', 'off');
+
+    await page.getByText('Souligner les liens').click();
+    await expect(racine).toHaveAttribute('data-underline-links', 'on');
+
+    await page.reload();
+    await expect(racine).toHaveAttribute('data-underline-links', 'on');
+
+    // On repart d'un etat propre : le reglage est enregistre pour ce compte.
+    await page.getByRole('button', { name: 'Preferences' }).click();
+    await page.getByRole('button', { name: 'Accessibilite' }).click();
+    await page.getByText('Souligner les liens').click();
+    await expect(racine).toHaveAttribute('data-underline-links', 'off');
+  });
+
+  test('la page Discussion regroupe ses reglages sous des intitules', async ({ page }) => {
+    await openSettings(page);
+    await page.getByRole('button', { name: 'Discussion' }).click();
+
+    for (const titre of ['Affichage des messages', 'Ecriture', 'Images animees']) {
+      await expect(page.getByRole('heading', { level: 2, name: titre })).toBeVisible();
+    }
   });
 });

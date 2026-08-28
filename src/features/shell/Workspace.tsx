@@ -9,6 +9,7 @@ import { SpaceRail } from './SpaceRail';
 import { Sidebar } from './Sidebar';
 import { SidePanel } from './SidePanel';
 import { ChannelHeader } from '@/features/channels/ChannelHeader';
+import { WindowControls } from '@/components/WindowControls';
 import { MessageList } from '@/features/messages/MessageList';
 import { Composer } from '@/features/messages/Composer';
 import { VoiceStage } from '@/features/voice/VoiceStage';
@@ -301,6 +302,12 @@ export function Workspace() {
         (navOpen ? ' is-nav-open' : '')
       }
     >
+      {/* Reduire, agrandir, fermer — la barre du systeme est desactivee, ces
+          commandes vivent maintenant dans l'application. Posees une seule fois
+          et en position fixe : elles doivent rester atteignables quelle que
+          soit la vue, y compris quand aucun salon n'est ouvert. */}
+      <WindowControls />
+
       {/* Sur petit ecran, la navigation recouvre la conversation : il faut un
           voile pour la refermer, et l'ecarter des lecteurs d'ecran quand elle
           est fermee. */}

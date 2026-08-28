@@ -1,0 +1,113 @@
+import { useEffect, useState } from 'react';
+import { Icon } from './Icon';
+
+/**
+ * Commandes de fenetre integrees a l'application.
+ *
+ * La barre de titre du systeme est desactivee (`decorations: false`) : elle
+ * imposait un bandeau gris au-dessus d'une interface sombre, avec ses propres
+ * coins carres par-dessus les notres. On la redessine donc ici, dans l'en-tete,
+ * avec le reste.
+ *
+ * En echange, deux choses reviennent a notre charge :
+ *  - deplacer la fenetre, confie a `data-tauri-drag-region` sur l'en-tete ;
+ *  - les boutons ci-dessous.
+ *
+ * Le composant ne rend rien hors du bureau : sur le web, la fenetre appartient
+ * au navigateur.
+ */
+
+const DANS_TAURI = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
+
+export function WindowControls() {
+  const [agrandie, setAgrandie] = useState(false);
+
+  useEffect(() => {
+    if (!DANS_TAURI) return;
+    let annule = false;
+    let detacher: (() => void) | undefined;
+
+    void (async () => {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      const fenetre = getCurrentWindow();
+
+      setAgrandie(await fenetre.isMaximized());
+      if (annule) return;
+
+      // Le double-clic sur la zone de deplacement, et le glisser vers le haut,
+      // agrandissent la fenetre sans passer par nos boutons : l'icone doit
+      // suivre, sinon elle propose de restaurer une fenetre qui ne l'est pas.
+      const arret = await fenetre.onResized(() => {
+        void fenetre.isMaximized().then((valeur) => {
+          if (!annule) setAgrandie(valeur);
+        });
+      });
+
+      if (annule) arret();
+      else detacher = arret;
+    })();
+
+    return () => {
+      annule = true;
+      detacher?.();
+    };
+  }, []);
+
+  if (!DANS_TAURI) return null;
+
+  const agir = (action: 'reduire' | 'basculer' | 'fermer') => {
+    void (async () => {
+      const { getCurrentWindow } = await import('@tauri-apps/api/window');
+      const fenetre = getCurrentWindow();
+
+      if (action === 'reduire') await fenetre.minimize();
+      else if (action === 'fermer') await fenetre.close();
+      else await fenetre.toggleMaximize();
+    })();
+  };
+
+  return (
+    <div className="window-controls">
+      <button
+        type="button"
+        className="window-control"
+        onClick={() => agir('reduire')}
+        aria-label="Reduire la fenetre"
+        title="Reduire"
+      >
+        <svg viewBox="0 0 10 10" aria-hidden="true">
+          <path d="M0 5h10" />
+        </svg>
+      </button>
+
+      <button
+        type="button"
+        className="window-control"
+        onClick={() => agir('basculer')}
+        aria-label={agrandie ? 'Restaurer la fenetre' : 'Agrandir la fenetre'}
+        title={agrandie ? 'Restaurer' : 'Agrandir'}
+      >
+        {agrandie ? (
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M2.5 2.5V0.5h7v7h-2" />
+            <path d="M0.5 2.5h7v7h-7Z" />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 10 10" aria-hidden="true">
+            <path d="M0.5 0.5h9v9h-9Z" />
+          </svg>
+        )}
+      </button>
+
+      <button
+        type="button"
+        className="window-control window-control--close"
+        onClick={() => agir('fermer')}
+        aria-label="Fermer la fenetre"
+        title="Fermer"
+      >
+        <Icon name="x" size={14} />
+      </button>
+    </div>
+  );
+}

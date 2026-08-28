@@ -40,7 +40,9 @@ export type SettingsSection =
   | 'profil'
   | 'confidentialite'
   | 'voix'
+  | 'discussion'
   | 'apparence'
+  | 'accessibilite'
   | 'notifications'
   | 'raccourcis'
   | 'avance';

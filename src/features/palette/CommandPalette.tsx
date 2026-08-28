@@ -72,6 +72,34 @@ export function CommandPalette() {
     requestAnimationFrame(() => inputRef.current?.focus());
   }, [open]);
 
+  /*
+   * Echap ferme la palette, quoi qu'il ait le focus.
+   *
+   * La touche n'etait ecoutee que sur le champ de saisie, lui-meme mis au
+   * focus dans une frame d'animation. Quand cette frame tombait au mauvais
+   * moment — machine chargee, rendu concurrent — le focus restait ailleurs et
+   * la palette devenait impossible a fermer au clavier : elle recouvrait
+   * l'application sans qu'aucune touche n'ait d'effet. Ecouter sur la fenetre
+   * ne depend plus de rien.
+   *
+   * La capture est utilisee pour passer avant les autres consommateurs
+   * d'Echap : la palette est la couche la plus haute, c'est elle qui doit
+   * partir en premier.
+   */
+  useEffect(() => {
+    if (!open) return;
+
+    const surTouche = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpen(false);
+    };
+
+    window.addEventListener('keydown', surTouche, true);
+    return () => window.removeEventListener('keydown', surTouche, true);
+  }, [open, setOpen]);
+
   const commands = useMemo((): Command[] => {
     const list: Command[] = [];
 

@@ -467,3 +467,47 @@
   --duration-slow: 0ms;
   --duration-slower: 0ms;
 }
+
+/* ==========================================================================
+   Reglages d'accessibilite
+   ========================================================================== */
+
+/*
+ * Taille du texte.
+ *
+ * Le facteur porte sur la racine ; toutes les mesures typographiques etant
+ * exprimees en `rem`, la page entiere suit sans qu'aucune valeur ait a etre
+ * redite. Les espacements, eux, restent en pixels : c'est le texte qu'on
+ * veut agrandir, pas les gouttieres.
+ */
+:root[data-text-scale='grand']      { font-size: 17px; }
+:root[data-text-scale='tres-grand'] { font-size: 19px; }
+
+/* Souligner les liens, pour qui ne les distingue pas a la couleur. */
+:root[data-underline-links='on'] a,
+:root[data-underline-links='on'] .link {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/*
+ * Contour de selection permanent.
+ *
+ * `:focus-visible` le reserve au clavier ; sous ce reglage on repasse a
+ * `:focus`, qui s'allume aussi a la souris.
+ */
+:root[data-focus='always'] :focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/*
+ * Saturation.
+ *
+ * L'attribut n'est pose que lorsque la saturation a ete baissee : voir
+ * `applyPreferences`. Un filtre permanent, meme neutre, ferait du corps de
+ * page le bloc de reference de tout ce qui est en `position: fixed`.
+ */
+:root[data-saturated='on'] body {
+  filter: saturate(var(--saturation, 1));
+}

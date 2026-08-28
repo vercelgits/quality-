@@ -62,6 +62,11 @@ const PATHS = {
   screen: 'M2 4h20v12H2Z M8 20h8 M12 16v4',
   'phone-off': 'M2 2l20 20 M10.7 5.3A16 16 0 0 1 12 5a2 2 0 0 1 2 2v1.5 M5.4 9.6A16 16 0 0 0 5 12c0 4.4 5.2 8 9 8 .8 0 1.6-.1 2.4-.4',
   video: 'M22 8l-6 4 6 4V8Z M2 6h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2Z',
+  // Appareil photo, distinct du camescope `video` : celui-ci sert a changer
+  // une image (photo de profil, banniere), l'autre a filmer.
+  camera:
+    'M3 7h3l2-2h8l2 2h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1Z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
+  image: 'M3 4h18v16H3Z M3 16l5-5 4 4 3-3 6 6 M9 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z',
   bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9 M13.7 21a2 2 0 0 1-3.4 0',
   'bell-off': 'M2 2l20 20 M8.7 3.7A6 6 0 0 1 18 8c0 2.3.3 4.1.8 5.4 M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h13 M13.7 21a2 2 0 0 1-3.4 0',
   moon: 'M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z',

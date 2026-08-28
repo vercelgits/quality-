@@ -4,6 +4,8 @@ import { UserContextMenu } from '@/features/profile/UserContextMenu';
 import { useVoice } from './useVoice';
 import { useDevices, applySink } from '@/store/devices';
 import { useChat } from '@/store/chat';
+import { useUI } from '@/store/ui';
+import { SharePanel } from './SharePanel';
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
@@ -17,6 +19,8 @@ const EMPTY_PARTICIPANTS: VoiceParticipant[] = [];
 export function VoiceStage({ channel }: { channel: Channel }) {
   const profile = useSession((state) => state.profile);
   const profiles = useChat((state) => state.profiles);
+  const openModal = useUI((state) => state.openModal);
+  const [panneauPartage, setPanneauPartage] = useState(false);
 
   const channelId = useVoice((state) => state.channelId);
   const connecting = useVoice((state) => state.connecting);
@@ -185,17 +189,63 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                   mirrored={isMe}
                 />
               ) : (
-                <Avatar profile={person} size={64} />
+                // Comme dans la conversation : le visage et le nom mènent au
+                // profil, le clic droit aux actions.
+                <button
+                  type="button"
+                  className="voice-tile__face"
+                  onClick={() => openModal({ kind: 'profile', userId: participant.user_id })}
+                  aria-label={
+                    person ? `Voir le profil de ${person.display_name}` : 'Voir le profil'
+                  }
+                >
+                  <Avatar profile={person} size={64} />
+                </button>
               )}
-              <span className="voice-tile__name truncate">
+              <button
+                type="button"
+                className="voice-tile__name truncate"
+                onClick={() => openModal({ kind: 'profile', userId: participant.user_id })}
+              >
                 {person?.display_name ?? 'Quelqu’un'}
                 {isMe ? ' (vous)' : ''}
-              </span>
+              </button>
               <span className="voice-tile__icons">
                 {participant.muted ? <Icon name="mic-off" size={14} /> : null}
                 {participant.deafened ? <Icon name="headphones-off" size={14} /> : null}
-                {participant.sharing ? <Icon name="screen" size={14} /> : null}
               </span>
+
+              {/*
+                Un partage en cours s'annonce sur la tuile de la personne, avec
+                de quoi l'ouvrir. Sans ce bouton, il fallait deviner que la
+                vignette du bas etait cliquable — et sur une grille chargee elle
+                passe inapercue.
+              */}
+              {participant.sharing ? (
+                <div className="voice-tile__live">
+                  <span className="voice-tile__badge">
+                    <span className="voice-tile__pulse" aria-hidden="true" />
+                    EN DIRECT
+                  </span>
+
+                  <button
+                    type="button"
+                    className="voice-tile__watch"
+                    onClick={() =>
+                      focusShare(
+                        focusedShare === participant.user_id ? null : participant.user_id,
+                      )
+                    }
+                  >
+                    <Icon name="screen" size={14} />
+                    {focusedShare === participant.user_id
+                      ? 'Masquer'
+                      : isMe
+                        ? 'Voir mon partage'
+                        : 'Regarder'}
+                  </button>
+                </div>
+              ) : null}
               {!isMe ? (
                 <RemoteAudio stream={remoteAudio[participant.user_id]} muted={deafened} />
               ) : null}
@@ -254,15 +304,30 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           <Icon name="video" size={18} />
         </button>
 
+        {/*
+          Demarrer passe par notre panneau ; arreter est immediat.
+          La definition et la cadence se fixent a l'ouverture du flux : les
+          demander apres coup imposerait de relancer la capture, et donc de
+          couper le partage devant ceux qui regardent.
+        */}
         <button
           type="button"
           className={'icon-btn' + (sharing ? ' is-broadcasting' : '')}
-          onClick={() => void toggleScreenShare()}
+          onClick={() => (sharing ? void toggleScreenShare() : setPanneauPartage(true))}
           aria-pressed={sharing}
           title={sharing ? 'Arreter le partage' : 'Partager l’ecran'}
         >
           <Icon name="screen" size={18} />
         </button>
+
+        <SharePanel
+          open={panneauPartage}
+          onClose={() => setPanneauPartage(false)}
+          onStart={() => {
+            setPanneauPartage(false);
+            void toggleScreenShare();
+          }}
+        />
 
         {/*
           Reglages de qualite, atteignables pendant le partage.

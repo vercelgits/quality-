@@ -876,3 +876,83 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================================================
+   Navigation groupee
+   ========================================================================== */
+
+.settings__nav-group + .settings__nav-group {
+  margin-top: var(--space-5);
+}
+
+.settings__nav-group-title {
+  margin: 0 0 var(--space-2);
+  padding-left: var(--space-3);
+  font-size: 10px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* En bandeau horizontal, les intitules de groupe couperaient la ligne en
+   trois : sur petit ecran la liste redevient continue. */
+@media (max-width: 860px) {
+  .settings__nav-group-title { display: none; }
+  .settings__nav-group + .settings__nav-group { margin-top: 0; }
+}
+
+/* ==========================================================================
+   Empilement de cases a cocher
+   ========================================================================== */
+
+/*
+ * Les interrupteurs forment un bloc unique plutot qu'une suite de cartes :
+ * une bordure par ligne decoupait la page en tranches et faisait perdre le
+ * fil de ce qui allait ensemble.
+ */
+.settings__stack {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--bg-raised);
+  box-shadow: var(--shadow-sm), var(--edge-light);
+  overflow: hidden;
+}
+
+.settings__stack .switchrow {
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.settings__stack .switchrow + .switchrow {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.settings__stack .switchrow:hover {
+  background: var(--bg-hover);
+}
+
+/* ==========================================================================
+   Curseur
+   ========================================================================== */
+
+.settings__slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.settings__slider input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+
+.settings__slider-value {
+  min-width: 4ch;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}

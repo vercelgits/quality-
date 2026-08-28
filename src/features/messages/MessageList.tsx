@@ -5,6 +5,7 @@ import { useSession } from '@/store/session';
 import { MessageItem } from './MessageItem';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
+import { Modal } from '@/components/Modal';
 import { canGroup, formatDayLabel, isSameDay } from '@/lib/time';
 import type { RichTextContext } from '@/lib/richtext';
 import type { Message, Profile, UUID } from '@/types/db';
@@ -42,6 +43,9 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
 
   const profile = useSession((state) => state.profile);
   const showTimestamps = useSession((state) => state.preferences.showTimestamps);
+  const confirmDelete = useSession((state) => state.preferences.confirmDelete);
+  const [pendingDelete, setPendingDelete] = useState<UUID | null>(null);
+  const groupMessages = useSession((state) => state.preferences.groupMessages);
 
   const setReplyingTo = useUI((state) => state.setReplyingTo);
   const editingId = useUI((state) => state.editingId);
@@ -171,9 +175,22 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
     [editMessage, view, setEditingId],
   );
 
+  /*
+   * Supprimer demande confirmation.
+   *
+   * L'action etait immediate et definitive, declenchee par un bouton voisin de
+   * « Modifier » dans une barre qui apparait au survol. Une visee approximative
+   * suffisait a effacer un message sans retour possible.
+   *
+   * Le garde-fou se desactive dans les parametres, pour qui fait le menage
+   * souvent et sait ce qu'il fait.
+   */
   const handleDelete = useCallback(
-    (id: UUID) => void deleteMessage(view, id),
-    [deleteMessage, view],
+    (id: UUID) => {
+      if (confirmDelete) setPendingDelete(id);
+      else void deleteMessage(view, id);
+    },
+    [confirmDelete, deleteMessage, view],
   );
 
   const handleReact = useCallback(
@@ -262,6 +279,7 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
               (!previous || previous.created_at <= unreadBoundary);
 
             const grouped =
+              groupMessages &&
               !newDay &&
               !crossesUnread &&
               previous !== undefined &&
@@ -340,6 +358,41 @@ export function MessageList({ channelId, threadId = null, compact = false }: Mes
           Revenir en bas
         </button>
       ) : null}
+
+      <Modal
+        open={pendingDelete !== null}
+        title="Supprimer ce message ?"
+        description="Il disparaitra pour tout le monde. Cette action est definitive."
+        onClose={() => setPendingDelete(null)}
+        width={420}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setPendingDelete(null)}>
+              Annuler
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={() => {
+                if (pendingDelete) void deleteMessage(view, pendingDelete);
+                setPendingDelete(null);
+              }}
+            >
+              <Icon name="trash" size={15} />
+              Supprimer
+            </button>
+          </>
+        }
+      >
+        {pendingDelete ? (
+          <blockquote className="confirm-quote">
+            {messages?.find((entry) => entry.id === pendingDelete)?.content ??
+              'Ce message ne contient que des pieces jointes.'}
+          </blockquote>
+        ) : null}
+      </Modal>
+
+
     </div>
   );
 }

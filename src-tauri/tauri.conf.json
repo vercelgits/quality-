@@ -21,7 +21,7 @@
         "resizable": true,
         "center": true,
         "maximized": true,
-        "decorations": true,
+        "decorations": false,
         "transparent": false,
         "theme": null,
         "dragDropEnabled": false

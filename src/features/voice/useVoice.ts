@@ -175,6 +175,18 @@ let audioContext: AudioContext | null = null;
 let speechTimer: number | null = null;
 const analysers = new Map<UUID, AnalyserNode>();
 
+/**
+ * Cadence maximale des annonces d'etat vocal.
+ *
+ * Deux cents millisecondes : imperceptible a l'usage, et bien en deca de la
+ * limite de Realtime meme en enchainant les clics.
+ */
+const INTERVALLE_PUBLICATION = 200;
+
+let publicationDifferee: number | null = null;
+let etatEnAttente = false;
+let instantArrivee = 0;
+
 /** Etat du micro avant la sourdine, pour le retablir en sortant. */
 let mutedBeforeDeafen = false;
 
@@ -204,20 +216,107 @@ function teardownPeers(): void {
   analysers.clear();
 }
 
+/**
+ * Traduit un echec de capture en phrase utile.
+ *
+ * `getUserMedia` echoue pour des raisons tres differentes, et le message
+ * generique — « Camera inaccessible » — les melangeait toutes : refus de
+ * l'utilisateur, peripherique absent, ou simplement encore tenu par le salon
+ * qu'on vient de quitter. Le dernier cas est le plus frequent en changeant de
+ * salon, et c'est le seul ou il n'y a rien a corriger : il suffit d'attendre.
+ */
+function messageDeCapture(cause: unknown, quoi: 'micro' | 'camera'): string {
+  const nom = cause instanceof DOMException ? cause.name : '';
+  const article = quoi === 'micro' ? 'Le micro' : 'La camera';
+
+  if (nom === 'NotAllowedError' || nom === 'SecurityError') {
+    return quoi === 'micro'
+      ? "Acces au micro refuse. Autorisez-le dans les reglages du site, puis reessayez."
+      : "Acces a la camera refuse. Autorisez-le dans les reglages du site, puis reessayez.";
+  }
+
+  if (nom === 'NotFoundError' || nom === 'OverconstrainedError') {
+    return quoi === 'micro'
+      ? "Aucun micro detecte. Branchez-en un, ou choisissez-en un autre dans les parametres."
+      : "Aucune camera detectee. Branchez-en une, ou choisissez-en une autre dans les parametres.";
+  }
+
+  if (nom === 'NotReadableError' || nom === 'AbortError') {
+    return `${article} est utilise par une autre application. Fermez-la, puis reessayez.`;
+  }
+
+  return `${article} n'a pas pu demarrer. Reessayez dans un instant.`;
+}
+
+/**
+ * Capture, avec une seconde tentative.
+ *
+ * En changeant de salon, le systeme n'a pas toujours fini de rendre le
+ * peripherique que la session precedente tenait. L'echec est alors temporaire
+ * et se resout tout seul : une deuxieme demande, une demi-seconde plus tard,
+ * aboutit. Sans elle on affichait une erreur pour un probleme deja passe.
+ */
+async function capturer(contraintes: MediaStreamConstraints): Promise<MediaStream> {
+  try {
+    return await navigator.mediaDevices.getUserMedia(contraintes);
+  } catch (cause) {
+    const recuperable =
+      cause instanceof DOMException &&
+      (cause.name === 'NotReadableError' || cause.name === 'AbortError');
+
+    if (!recuperable) throw cause;
+
+    await new Promise((resoudre) => setTimeout(resoudre, 500));
+    return navigator.mediaDevices.getUserMedia(contraintes);
+  }
+}
+
 export const useVoice = create<VoiceState>((set, get) => {
+  /**
+   * Publie l'etat vocal, au plus une fois par intervalle.
+   *
+   * Chaque bascule declenchait un envoi. Enchainer les clics sur le micro
+   * depassait la limite de Realtime, les envois suivants etaient abandonnes, et
+   * l'anneau des participants restait fige sur un etat perime — c'est le defaut
+   * qu'on observe en spammant le bouton.
+   *
+   * Le dernier etat est toujours emis : ce qui est ecarte, ce sont les etats
+   * intermediaires, que personne n'a besoin de voir passer.
+   */
   function publishState(): void {
     const state = get();
     if (!room || !state.channelId || !state.userId) return;
 
-    void room.track({
-      user_id: state.userId,
-      channel_id: state.channelId,
-      muted: state.muted,
-      deafened: state.deafened,
-      sharing: state.sharing,
-      video: state.cameraOn,
-      joined_at: Date.now(),
-    } satisfies VoiceParticipant);
+    etatEnAttente = true;
+
+    if (publicationDifferee !== null) return;
+
+    const emettre = () => {
+      publicationDifferee = null;
+      if (!etatEnAttente) return;
+      etatEnAttente = false;
+
+      const courant = get();
+      if (!room || !courant.channelId || !courant.userId) return;
+
+      void room.track({
+        user_id: courant.userId,
+        channel_id: courant.channelId,
+        muted: courant.muted,
+        deafened: courant.deafened,
+        sharing: courant.sharing,
+        video: courant.cameraOn,
+        // L'instant d'arrivee, fige : le reactualiser a chaque envoi ferait
+        // paraitre chaque mise a jour comme une nouvelle arrivee.
+        joined_at: instantArrivee,
+      } satisfies VoiceParticipant);
+
+      // Une nouvelle fenetre s'ouvre : si un changement survient pendant
+      // celle-ci, il sera emis a sa fermeture.
+      publicationDifferee = window.setTimeout(emettre, INTERVALLE_PUBLICATION);
+    };
+
+    emettre();
   }
 
   /**
@@ -624,24 +723,30 @@ export const useVoice = create<VoiceState>((set, get) => {
 
     join: async (channelId, userId) => {
       if (get().channelId === channelId) return;
-      if (get().channelId) await get().leave();
+
+      if (get().channelId) {
+        await get().leave();
+        // Le systeme ne rend pas le micro instantanement : le redemander
+        // aussitot echoue avec « peripherique inaccessible », surtout quand un
+        // logiciel de routage audio est en jeu. Une image d'attente suffit a
+        // laisser la liberation aboutir.
+        await new Promise((resoudre) => setTimeout(resoudre, 120));
+      }
 
       set({ connecting: true, error: null });
 
       let localStream: MediaStream;
       try {
-        localStream = await navigator.mediaDevices.getUserMedia({
+        localStream = await capturer({
           audio: audioConstraints(useDevices.getState().media),
           video: false,
         });
-      } catch {
-        set({
-          connecting: false,
-          error: "Micro inaccessible. Verifiez l'autorisation du navigateur, puis reessayez.",
-        });
+      } catch (cause) {
+        set({ connecting: false, error: messageDeCapture(cause, 'micro') });
         return;
       }
 
+      instantArrivee = Date.now();
       set({ channelId, userId, localStream, connecting: false });
 
       // Son propre micro passe par le meme analyseur que ceux des autres.
@@ -687,6 +792,14 @@ export const useVoice = create<VoiceState>((set, get) => {
       if (get().channelId) playCue('leave');
       const { localStream, localScreen, localCamera, channelId } = get();
 
+      // La publication differee doit s'arreter avec le salon : sinon elle
+      // tenterait d'annoncer un etat sur un canal deja ferme.
+      if (publicationDifferee !== null) {
+        window.clearTimeout(publicationDifferee);
+        publicationDifferee = null;
+      }
+      etatEnAttente = false;
+
       stopSpeechDetection();
       stopStats();
       teardownPeers();
@@ -697,10 +810,29 @@ export const useVoice = create<VoiceState>((set, get) => {
       for (const track of localScreen?.getTracks() ?? []) track.stop();
       for (const track of localCamera?.getTracks() ?? []) track.stop();
 
+      /*
+       * Le canal est ferme sans attendre.
+       *
+       * `untrack` puis `removeChannel` sont deux allers-retours reseau. Les
+       * attendre avant de vider l'etat laissait l'interface figee une seconde
+       * ou deux apres le clic sur « Quitter » — on croyait que rien ne s'etait
+       * passe et on recliquait.
+       *
+       * Rien ne depend de leur reponse : les pistes sont deja coupees, et la
+       * presence expire d'elle-meme a la fermeture du socket.
+       */
       if (room) {
-        await room.untrack();
-        await supabase.removeChannel(room);
+        const ferme = room;
         room = null;
+
+        void (async () => {
+          try {
+            await ferme.untrack();
+            await supabase.removeChannel(ferme);
+          } catch {
+            // Le socket se refermera seul ; la presence expirera avec lui.
+          }
+        })();
       }
 
       set((state) => {
@@ -904,12 +1036,12 @@ export const useVoice = create<VoiceState>((set, get) => {
 
       let camera: MediaStream;
       try {
-        camera = await navigator.mediaDevices.getUserMedia({
+        camera = await capturer({
           video: videoConstraints(useDevices.getState().media),
           audio: false,
         });
-      } catch {
-        set({ error: 'Camera inaccessible. Verifiez l’autorisation du navigateur.' });
+      } catch (cause) {
+        set({ error: messageDeCapture(cause, 'camera') });
         return;
       }
 

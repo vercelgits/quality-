@@ -373,19 +373,21 @@
 }
 
 .channel {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 7px;
   width: 100%;
-  height: 32px;
-  padding: 0 8px;
-  border-radius: var(--radius-sm);
+  height: 36px;
+  padding: 0 10px;
+  border-radius: var(--radius-lg);
   font-size: var(--text-base);
   font-weight: var(--weight-medium);
   color: var(--text-faint);
   transition:
     background-color var(--duration-fast) var(--ease-in-out),
-    color var(--duration-fast) var(--ease-in-out);
+    color var(--duration-fast) var(--ease-in-out),
+    transform var(--duration-fast) var(--spring);
 }
 
 .channel svg {
@@ -398,13 +400,40 @@
   color: var(--text-secondary);
 }
 
+/* Un decalage d'un pixel : assez pour que la ligne reponde au survol, trop
+   peu pour deranger la lecture de la liste. */
+.channel:hover:not(.is-active) {
+  transform: translateX(2px);
+}
+
 .channel:hover svg {
   color: var(--text-secondary);
 }
 
+/*
+ * Le salon ouvert.
+ *
+ * Un aplat uni le distinguait a peine des lignes survolees. Il porte
+ * maintenant un degre de relief : fond legerement translucide, liseré clair
+ * en haut, et un trait d'accent sur le bord gauche — le meme repere que le
+ * rail des espaces, pour que les deux colonnes se lisent de la meme facon.
+ */
 .channel.is-active {
   background: var(--bg-selected);
   color: #fff;
+  box-shadow: var(--shadow-sm), var(--edge-light);
+}
+
+.channel.is-active::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -6px;
+  width: 3px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  transform: translateY(-50%);
 }
 
 .channel.is-active svg {
@@ -1512,4 +1541,120 @@
   min-width: 0;
   flex: 1;
   color: var(--text-faint);
+}
+
+/* ==========================================================================
+   Commandes de fenetre integrees
+   ========================================================================== */
+
+/*
+ * Posees au-dessus de tout, dans le coin. La barre du systeme etant retiree,
+ * ce sont les seules commandes pour reduire, agrandir et fermer : elles ne
+ * doivent jamais passer sous un panneau.
+ */
+.window-controls {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 900;
+  display: flex;
+  height: 34px;
+  -webkit-app-region: no-drag;
+}
+
+.window-control {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.window-control svg {
+  width: 10px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.1;
+}
+
+.window-control:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* La fermeture vire au rouge, comme partout sous Windows : c'est le repere
+   qui evite de la confondre avec « reduire » en visant vite. */
+.window-control--close:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/*
+ * L'en-tete doit s'arreter avant les commandes, sinon son dernier bouton
+ * passe dessous. La reserve n'existe que sur le bureau : dans un navigateur,
+ * le composant ne rend rien et la place serait perdue.
+ */
+:root[data-desktop='true'] .channel-header {
+  padding-right: calc(var(--space-4) + 138px);
+}
+
+/* Le curseur de deplacement n'a de sens que la ou le glissement fonctionne. */
+:root[data-desktop='true'] .channel-header {
+  cursor: default;
+}
+
+/* ==========================================================================
+   Rail des espaces : relief et matiere
+   ========================================================================== */
+
+/*
+ * Les pastilles gagnent une profondeur.
+ *
+ * Un cercle en aplat sur un fond sombre ne se detache de rien : on ne
+ * distinguait un espace du fond que par sa lettre. Un liseré clair en haut et
+ * une ombre portee suffisent a poser la pastille sur la colonne plutot que
+ * dedans.
+ */
+.rail__button {
+  box-shadow: var(--shadow-sm), var(--edge-light);
+}
+
+.rail__button:hover,
+.rail__button.is-active {
+  box-shadow: var(--shadow-md), var(--edge-light);
+  /* La pastille avance d'un cheveu vers le lecteur. Combine a l'arrondi qui
+     se resserre, le geste se lit comme une carte qu'on souleve. */
+  transform: translateY(-1px);
+}
+
+.rail__button {
+  transition:
+    border-radius var(--duration-normal) var(--ease-in-out),
+    background-color var(--duration-normal) var(--ease-in-out),
+    color var(--duration-normal) var(--ease-in-out),
+    box-shadow var(--duration-normal) var(--ease-out),
+    transform var(--duration-normal) var(--spring);
+}
+
+.rail__button:active {
+  transform: scale(0.93);
+}
+
+[data-motion='reduced'] .rail__button,
+[data-motion='reduced'] .channel {
+  transition: none;
+  transform: none;
+}
+
+[data-motion='reduced'] .rail__button:hover,
+[data-motion='reduced'] .rail__button:active,
+[data-motion='reduced'] .channel:hover:not(.is-active) {
+  transform: none;
 }

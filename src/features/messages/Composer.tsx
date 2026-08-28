@@ -63,6 +63,7 @@ export function Composer({ channelId, threadId = null, placeholder, autoFocus }:
 
   const profile = useSession((state) => state.profile);
   const sendOnEnter = useSession((state) => state.preferences.sendOnEnter);
+  const spellcheck = useSession((state) => state.preferences.spellcheck);
 
   const replyingTo = useUI((state) => state.replyingTo);
   const setReplyingTo = useUI((state) => state.setReplyingTo);
@@ -488,6 +489,7 @@ export function Composer({ channelId, threadId = null, placeholder, autoFocus }:
           className="composer__input"
           value={value}
           rows={1}
+          spellCheck={spellcheck}
           maxLength={LIMITS.messageLength}
           placeholder={
             placeholder ??

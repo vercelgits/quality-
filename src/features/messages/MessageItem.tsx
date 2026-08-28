@@ -11,6 +11,8 @@ import { LinkPreviews } from './LinkPreview';
 import type { Message, Profile, UUID } from '@/types/db';
 import { useContextMenu } from '@/components/ContextMenu';
 import { UserContextMenu } from '@/features/profile/UserContextMenu';
+import { useUI } from '@/store/ui';
+import { useSession } from '@/store/session';
 
 interface MessageItemProps {
   message: Message;
@@ -71,6 +73,8 @@ function MessageItemInner({
   const [draft, setDraft] = useState(message.content);
   const editRef = useRef<HTMLTextAreaElement>(null);
   const menu = useContextMenu();
+  const openModal = useUI((state) => state.openModal);
+  const showLinkPreviews = useSession((state) => state.preferences.showLinkPreviews);
 
   const isMine = message.author_id === currentUserId;
   const mentionsMe =
@@ -148,12 +152,16 @@ function MessageItemInner({
               </time>
             ) : null
           ) : (
+            // Clic gauche : le profil. Clic droit : les actions. Un visage se
+            // clique pour voir a qui on parle — c'est le geste qu'on tente en
+            // premier ; les actions restent la ou on les cherche ailleurs dans
+            // l'application.
             <button
               type="button"
               className="message__avatar-button"
-              onClick={(event) => menu.openAt(event.currentTarget)}
-              title={author ? `Actions pour ${author.display_name}` : 'Actions'}
-              aria-label={author ? `Actions pour ${author.display_name}` : 'Actions'}
+              onClick={() => author && openModal({ kind: 'profile', userId: author.id })}
+              title={author ? `Voir le profil de ${author.display_name}` : 'Profil'}
+              aria-label={author ? `Voir le profil de ${author.display_name}` : 'Profil'}
             >
               <Avatar profile={author} size={undefined} />
             </button>
@@ -166,7 +174,8 @@ function MessageItemInner({
               <button
                 type="button"
                 className="message__author"
-                onClick={(event) => menu.openAt(event.currentTarget)}
+                onClick={() => author && openModal({ kind: 'profile', userId: author.id })}
+                title={author ? `Voir le profil de ${author.display_name}` : undefined}
               >
                 {author?.display_name ?? 'Compte supprime'}
               </button>
@@ -211,7 +220,7 @@ function MessageItemInner({
             </>
           )}
 
-          {!editing ? <LinkPreviews content={message.content} /> : null}
+          {!editing && showLinkPreviews ? <LinkPreviews content={message.content} /> : null}
 
           {message.poll ? <PollCard poll={message.poll} /> : null}
 

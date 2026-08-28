@@ -51,6 +51,44 @@ export interface Preferences {
    * l'interface parait cassee a qui a coupe la transparence sans y penser.
    */
   transparency: 'system' | 'on' | 'off';
+
+  /* -- Discussion -------------------------------------------------------- */
+
+  /** Deplie les apercus des liens partages. */
+  showLinkPreviews: boolean;
+  /** Regroupe les messages consecutifs d'une meme personne sous un seul nom. */
+  groupMessages: boolean;
+  /** Correction orthographique dans la zone de saisie. */
+  spellcheck: boolean;
+  /** Demande confirmation avant de supprimer un message. */
+  confirmDelete: boolean;
+
+  /* -- Accessibilite ----------------------------------------------------- */
+
+  /**
+   * Souligne tous les liens.
+   *
+   * La couleur seule ne suffit pas a distinguer un lien pour qui ne percoit
+   * pas les contrastes de teinte. Le soulignement, lui, ne depend d'aucune
+   * perception des couleurs.
+   */
+  underlineLinks: boolean;
+  /**
+   * Taille du texte, independante de la densite.
+   *
+   * La densite change l'espacement, pas la lisibilite des lettres : quelqu'un
+   * peut vouloir un affichage serre et de gros caracteres.
+   */
+  textScale: 'normal' | 'grand' | 'tres-grand';
+  /**
+   * Montre en permanence l'anneau de focus.
+   *
+   * Par defaut il n'apparait qu'a la navigation au clavier ; certaines
+   * personnes ont besoin de le voir tout le temps pour se reperer.
+   */
+  alwaysShowFocus: boolean;
+  /** Attenue les couleurs vives, qui fatiguent a la longue. */
+  saturation: number;
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -62,6 +100,16 @@ const DEFAULT_PREFERENCES: Preferences = {
   showTimestamps: true,
   animateAvatars: 'hover',
   transparency: 'system',
+
+  showLinkPreviews: true,
+  groupMessages: true,
+  spellcheck: true,
+  confirmDelete: true,
+
+  underlineLinks: false,
+  textScale: 'normal',
+  alwaysShowFocus: false,
+  saturation: 100,
 };
 
 const STORAGE_KEY = 'orbit:preferences';
@@ -106,6 +154,11 @@ function resolveTransparency(choice: Preferences['transparency']): 'on' | 'off' 
 export function applyPreferences(preferences: Preferences): void {
   const root = document.documentElement;
 
+  // L'application de bureau dessine sa propre barre de titre : les en-tetes
+  // doivent lui reserver la place. Dans un navigateur, cette place n'existe
+  // pas et la reserver la gaspillerait.
+  if ('__TAURI_INTERNALS__' in window) root.setAttribute('data-desktop', 'true');
+
   if (preferences.theme === 'system') {
     root.removeAttribute('data-theme');
   } else {
@@ -120,6 +173,26 @@ export function applyPreferences(preferences: Preferences): void {
   // qu'une seule condition a porter, au lieu de repeter chaque repli sous
   // `prefers-reduced-transparency` puis sous le reglage de l'application.
   root.setAttribute('data-transparency', resolveTransparency(preferences.transparency));
+  root.setAttribute('data-text-scale', preferences.textScale);
+  root.setAttribute('data-underline-links', preferences.underlineLinks ? 'on' : 'off');
+  root.setAttribute('data-focus', preferences.alwaysShowFocus ? 'always' : 'auto');
+
+  /*
+   * La saturation n'est filtree que si on l'a reellement baissee.
+   *
+   * Un `filter` sur le corps de page, meme neutre, a deux couts : il force la
+   * composition de toute la page sur le processeur graphique, et il fait du
+   * corps le bloc de reference des elements en `position: fixed`. Poser la
+   * regle en permanence pour la valeur par defaut serait payer les deux pour
+   * rien. L'attribut n'existe donc que lorsqu'il y a quelque chose a faire.
+   */
+  if (preferences.saturation >= 100) {
+    root.removeAttribute('data-saturated');
+    root.style.removeProperty('--saturation');
+  } else {
+    root.setAttribute('data-saturated', 'on');
+    root.style.setProperty('--saturation', String(preferences.saturation / 100));
+  }
 
   if (preferences.reduceMotion) {
     root.setAttribute('data-motion', 'reduced');

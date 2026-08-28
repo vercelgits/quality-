@@ -102,6 +102,14 @@ test.describe('Parcours authentifies', () => {
     await message.hover();
     await message.getByRole('button', { name: 'Supprimer' }).click();
 
+    // Supprimer est definitif et le bouton voisine « Modifier » : une
+    // confirmation s'interpose, et elle rappelle le message vise.
+    const confirmation = page.getByRole('dialog', { name: 'Supprimer ce message ?' });
+    await expect(confirmation).toBeVisible();
+    await expect(confirmation.locator('.confirm-quote')).toContainText(text);
+
+    await confirmation.getByRole('button', { name: 'Supprimer' }).click();
+
     // La disparition demande un aller-retour vers la base : le delai par
     // defaut de cinq secondes est parfois trop court sur une liaison lente.
     await expect(messageRow(page, text)).toHaveCount(0, { timeout: 15_000 });
