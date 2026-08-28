@@ -27,6 +27,18 @@ export global Theme {
     out property <brush> survol: #ffffff0a;
     out property <brush> actif: #ffffff14;
 
+    // Relief. Deux couches par niveau, comme sur le web : une courte et dense
+    // qui pose l'objet, une longue et diffuse qui donne la hauteur. Slint
+    // n'accepte qu'une ombre portee par element, alors la courte est rendue par
+    // une bordure claire sur l'arete superieure.
+    out property <color> ombre: #00000070;
+    out property <length> ombre-flou: 24px;
+    out property <length> ombre-y: 6px;
+    out property <color> arete: #ffffff0d;
+
+    // Ecart entre les panneaux detaches, et retrait du bord de la fenetre.
+    out property <length> ecart: 8px;
+
     // Mesures. Les memes que la version web, pour que passer de l'une a
     // l'autre ne demande pas de reapprendre ou se trouvent les choses.
     out property <length> rail: 72px;
@@ -39,4 +51,5 @@ export global Theme {
     out property <length> rayon-sm: 10px;
     out property <length> rayon-md: 14px;
     out property <length> rayon-lg: 18px;
+    out property <length> rayon-xl: 24px;
 }

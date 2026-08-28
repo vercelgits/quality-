@@ -105,7 +105,8 @@ fn accueillir(
         garde.session = Some(session);
     }
 
-    fenetre.set_nom_affiche(profil.display_name.into());
+    fenetre.set_mes_initiales(initiales(&profil.display_name).into());
+    fenetre.set_nom_affiche(profil.display_name.clone().into());
     fenetre.set_pseudo(format!("@{}", profil.username).into());
     fenetre.set_erreur("".into());
     // Le mot de passe ne doit pas trainer en memoire une fois la session
@@ -115,6 +116,34 @@ fn accueillir(
     fenetre.set_connecte(true);
 
     charger_donnees(fenetre, etat);
+}
+
+/// Teinte stable tiree d'un identifiant.
+///
+/// La meme idee que sur le web : la couleur vient de l'identifiant et non du
+/// nom, donc renommer quelqu'un ne change pas la nuance a laquelle on l'a
+/// associe. Sans cela, tous les avatars sont du meme bleu et plus rien ne
+/// distingue les personnes d'un coup d'oeil.
+fn teinte(identifiant: &str) -> slint::Brush {
+    // Palette reprise du client web, pour que quelqu'un garde la meme couleur
+    // d'une version a l'autre.
+    const PALETTE: [(u8, u8, u8); 10] = [
+        (0x63, 0x66, 0xf1),
+        (0x8b, 0x5c, 0xf6),
+        (0xec, 0x48, 0x99),
+        (0xf4, 0x3f, 0x5e),
+        (0xf9, 0x73, 0x16),
+        (0xea, 0xb3, 0x08),
+        (0x22, 0xc5, 0x5e),
+        (0x14, 0xb8, 0xa6),
+        (0x06, 0xb6, 0xd4),
+        (0x3b, 0x82, 0xf6),
+    ];
+
+    let somme: u32 = identifiant.bytes().map(u32::from).sum();
+    let (r, v, b) = PALETTE[(somme as usize) % PALETTE.len()];
+
+    slint::Brush::SolidColor(slint::Color::from_rgb_u8(r, v, b))
 }
 
 /// Initiales tirees d'un nom, pour la pastille du rail.
@@ -221,8 +250,25 @@ fn rafraichir_vue(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
         .map(|c| format!("#  {}", c.name))
         .unwrap_or_default();
 
+    // Les membres viennent des profils de l'amorce : ce sont les personnes
+    // qu'on est susceptible de croiser, et la liste est deja en memoire.
+    let membres: Vec<MembreVu> = amorce
+        .profiles
+        .iter()
+        .map(|profil| MembreVu {
+            nom: profil.display_name.clone().into(),
+            initiales: initiales(&profil.display_name).into(),
+            teinte: teinte(&profil.id),
+            // La presence en direct n'est pas encore branchee : afficher tout
+            // le monde en ligne serait un mensonge, tout le monde hors ligne
+            // aussi. On garde la nuance pour quand elle aura un sens.
+            en_ligne: true,
+        })
+        .collect();
+
     fenetre.set_espaces(ModelRc::new(VecModel::from(espaces)));
     fenetre.set_salons(ModelRc::new(VecModel::from(salons)));
+    fenetre.set_membres(ModelRc::new(VecModel::from(membres)));
     fenetre.set_espace_actif(nom_espace.into());
     fenetre.set_salon_actif(nom_salon.into());
 }
@@ -277,10 +323,12 @@ fn charger_messages(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
                     auteur_precedent = Some(&brut.author_id);
 
                     vus.push(MessageVu {
-                        auteur: if groupe { "".into() } else { nom.into() },
+                        auteur: if groupe { "".into() } else { nom.clone().into() },
                         heure: heure(&brut.created_at).into(),
                         corps: brut.content.clone().into(),
                         groupe,
+                        initiales: initiales(&nom).into(),
+                        teinte: teinte(&brut.author_id),
                     });
                 }
 

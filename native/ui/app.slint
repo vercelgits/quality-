@@ -6,7 +6,33 @@ import { EcranConnexion } from "connexion.slint";
 // tromper.
 export struct EspaceVu { id: string, nom: string, initiales: string, actif: bool }
 export struct SalonVu { id: string, nom: string, vocal: bool, actif: bool }
-export struct MessageVu { auteur: string, heure: string, corps: string, groupe: bool }
+export struct MessageVu {
+    auteur: string,
+    heure: string,
+    corps: string,
+    groupe: bool,
+    initiales: string,
+    teinte: brush,
+}
+export struct MembreVu { nom: string, initiales: string, teinte: brush, en-ligne: bool }
+
+// Panneau detache.
+//
+// Le geste qui change le plus la lecture de l'ensemble : les colonnes quittent
+// les bords de la fenetre et flottent sur le fond teinte. Une interface collee
+// aux quatre bords et separee par des traits d'un pixel est exactement ce qui
+// date une application — c'est le meme choix que sur le web.
+component Panneau inherits Rectangle {
+    in property <brush> teinte: Theme.fond-lateral;
+
+    background: root.teinte;
+    border-radius: Theme.rayon-lg;
+    border-width: 1px;
+    border-color: Theme.arete;
+    drop-shadow-blur: Theme.ombre-flou;
+    drop-shadow-offset-y: Theme.ombre-y;
+    drop-shadow-color: Theme.ombre;
+}
 
 // Bouton du rail des espaces : cercle qui se carre au survol.
 component BoutonRail inherits Rectangle {
@@ -95,6 +121,7 @@ component Message inherits Rectangle {
     in property <string> heure;
     in property <string> corps;
     in property <bool> groupe: false;
+    in property <string> initiales;
     in property <brush> teinte: Theme.accent;
 
     height: root.groupe ? 24px : 60px;
@@ -102,6 +129,17 @@ component Message inherits Rectangle {
     border-radius: Theme.rayon-sm;
 
     animate background { duration: 100ms; }
+
+    // Liseré d'accent le long du bord gauche, comme sur le web. Il apparait en
+    // opacite et non en largeur : une largeur animee decalerait le texte a
+    // chaque passage de souris.
+    Rectangle {
+        x: 0;
+        width: 2px;
+        background: Theme.accent;
+        opacity: zone.has-hover ? 1 : 0;
+        animate opacity { duration: 120ms; }
+    }
 
     HorizontalLayout {
         padding-left: 16px;
@@ -119,7 +157,7 @@ component Message inherits Rectangle {
             background: root.groupe ? transparent : root.teinte;
 
             Text {
-                text: root.groupe ? "" : root.auteur;
+                text: root.groupe ? "" : root.initiales;
                 color: Theme.texte;
                 font-size: 14px;
                 font-weight: 600;
@@ -161,7 +199,9 @@ component Message inherits Rectangle {
 
 export component Coquille inherits Window {
     title: "Orbit";
-    background: Theme.fond-creux;
+    // Le fond porte les halos : sans eux, les gouttieres entre panneaux sont
+    // du gris mort, et le relief ne se lit pas.
+    background: @radial-gradient(circle, #2a2550 0%, Theme.fond-creux 62%);
     default-font-family: "Inter";
     preferred-width: 1280px;
     preferred-height: 820px;
@@ -178,12 +218,14 @@ export component Coquille inherits Window {
     in property <string> erreur;
     in property <string> nom-affiche;
     in property <string> pseudo;
+    in property <string> mes-initiales;
     in-out property <string> email;
     in-out property <string> mot-de-passe;
 
     in property <[EspaceVu]> espaces;
     in property <[SalonVu]> salons;
     in property <[MessageVu]> messages;
+    in property <[MembreVu]> membres;
     in property <string> espace-actif;
     in property <string> salon-actif;
     in property <string> sujet-salon;
@@ -263,14 +305,15 @@ export component Coquille inherits Window {
             connecter => { root.connecter(); }
         }
 
-        // Quatre colonnes.
+        // Quatre colonnes, detachees des bords et les unes des autres.
         if root.connecte: HorizontalLayout {
-            spacing: 0px;
+            spacing: Theme.ecart;
+            padding: Theme.ecart;
 
             // 1. Rail des espaces.
-            Rectangle {
+            Panneau {
                 width: Theme.rail;
-                background: Theme.fond-rail;
+                teinte: Theme.fond-rail;
 
                 VerticalLayout {
                     padding-top: 12px;
@@ -286,9 +329,8 @@ export component Coquille inherits Window {
             }
 
             // 2. Salons.
-            Rectangle {
+            Panneau {
                 width: Theme.lateral;
-                background: Theme.fond-lateral;
 
                 VerticalLayout {
                     spacing: 0px;
@@ -323,12 +365,75 @@ export component Coquille inherits Window {
                             clic => { root.choisir-salon(salon.id); }
                         }
                     }
+
+                    // Pousse la barre utilisateur au pied de la colonne.
+                    Rectangle {}
+
+                    // Barre utilisateur, comme sur le web : on doit voir qui
+                    // l'on est sans avoir a ouvrir quoi que ce soit.
+                    Rectangle {
+                        height: 52px;
+                        background: Theme.fond-creux;
+                        border-radius: 0px;
+
+                        HorizontalLayout {
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 10px;
+                            alignment: start;
+
+                            Rectangle {
+                                width: 32px;
+                                height: 32px;
+                                border-radius: 16px;
+                                background: Theme.accent;
+
+                                Text {
+                                    text: root.mes-initiales;
+                                    color: white;
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
+
+                                // Pastille de presence, posee sur le bord.
+                                Rectangle {
+                                    x: parent.width - 11px;
+                                    y: parent.height - 11px;
+                                    width: 11px;
+                                    height: 11px;
+                                    border-radius: 6px;
+                                    background: Theme.succes;
+                                    border-width: 2px;
+                                    border-color: Theme.fond-creux;
+                                }
+                            }
+
+                            VerticalLayout {
+                                alignment: center;
+                                spacing: 1px;
+
+                                Text {
+                                    text: root.nom-affiche;
+                                    color: Theme.texte;
+                                    font-size: 13px;
+                                    font-weight: 600;
+                                    overflow: elide;
+                                }
+                                Text {
+                                    text: root.pseudo;
+                                    color: Theme.texte-faible;
+                                    font-size: 11px;
+                                    overflow: elide;
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
             // 3. Conversation.
-            Rectangle {
-                background: Theme.fond-app;
+            Panneau {
+                teinte: Theme.fond-app;
                 horizontal-stretch: 1;
 
                 VerticalLayout {
@@ -367,6 +472,8 @@ export component Coquille inherits Window {
                             heure: message.heure;
                             corps: message.corps;
                             groupe: message.groupe;
+                            initiales: message.initiales;
+                            teinte: message.teinte;
                         }
                     }
 
@@ -423,9 +530,8 @@ export component Coquille inherits Window {
             }
 
             // 4. Membres.
-            Rectangle {
+            Panneau {
                 width: Theme.membres;
-                background: Theme.fond-lateral;
 
                 VerticalLayout {
                     padding: 8px;
@@ -433,12 +539,12 @@ export component Coquille inherits Window {
                     spacing: 4px;
                     alignment: start;
 
-                    TitreCategorie { titre: "EN LIGNE — 2"; }
+                    TitreCategorie { titre: "MEMBRES — " + root.membres.length; }
 
-                    Rectangle {
+                    for membre in root.membres: Rectangle {
                         height: 42px;
                         border-radius: Theme.rayon-xs;
-                        background: zone-m1.has-hover ? Theme.survol : transparent;
+                        background: zone-membre.has-hover ? Theme.survol : transparent;
                         animate background { duration: 120ms; }
 
                         HorizontalLayout {
@@ -450,47 +556,27 @@ export component Coquille inherits Window {
                                 width: 32px;
                                 height: 32px;
                                 border-radius: 16px;
-                                background: Theme.succes;
+                                background: membre.teinte;
+                                opacity: membre.en-ligne ? 1 : 0.4;
+
+                                Text {
+                                    text: membre.initiales;
+                                    color: white;
+                                    font-size: 12px;
+                                    font-weight: 600;
+                                }
                             }
+
                             Text {
-                                text: root.nom-affiche;
-                                color: Theme.texte-second;
+                                text: membre.nom;
+                                color: membre.en-ligne ? Theme.texte-second : Theme.texte-faible;
                                 font-size: 14px;
                                 font-weight: 500;
                                 vertical-alignment: center;
                             }
                         }
 
-                        zone-m1 := TouchArea {}
-                    }
-
-                    Rectangle {
-                        height: 42px;
-                        border-radius: Theme.rayon-xs;
-                        background: zone-m2.has-hover ? Theme.survol : transparent;
-                        animate background { duration: 120ms; }
-
-                        HorizontalLayout {
-                            padding-left: 8px;
-                            spacing: 10px;
-                            alignment: start;
-
-                            Rectangle {
-                                width: 32px;
-                                height: 32px;
-                                border-radius: 16px;
-                                background: Theme.accent;
-                            }
-                            Text {
-                                text: root.pseudo;
-                                color: Theme.texte-second;
-                                font-size: 14px;
-                                font-weight: 500;
-                                vertical-alignment: center;
-                            }
-                        }
-
-                        zone-m2 := TouchArea {}
+                        zone-membre := TouchArea {}
                     }
                 }
             }

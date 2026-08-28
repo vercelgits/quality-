@@ -25,6 +25,11 @@ l'application de référence tant que la parité n'est pas atteinte.
 - **Temps réel** : les messages des autres arrivent sans rechargement, avec une
   pastille d'état dans la barre de titre
 - Messages groupés par auteur, comme sur le web
+- **Même langage visuel que le web** : panneaux détachés du bord et les uns des
+  autres, fond teinté visible dans les gouttières, relief, coins arrondis,
+  liseré d'accent au survol d'un message, couleur d'avatar dérivée de
+  l'identifiant
+- Liste des membres et barre utilisateur
 - Compile et s'exécute sur Windows
 
 ### Vérification

@@ -184,8 +184,12 @@ fn envoi_puis_relecture() {
 
     // Relu depuis la base : l'ecriture a vraiment abouti, et pas seulement
     // renvoye ce qu'on lui a donne.
+    //
+    // Vingt derniers plutot que cinq : les tests s'executent en parallele et
+    // d'autres messages peuvent s'intercaler, ce qui ferait echouer ce test
+    // pour une raison qui ne le concerne pas.
     let messages = client
-        .messages(session, &salon.id, 5)
+        .messages(session, &salon.id, 20)
         .expect("relecture")
         .into_iter()
         .map(|m| m.content)
