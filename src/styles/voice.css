@@ -720,3 +720,209 @@ button.voice-tile__name:hover {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   Selecteur de partage
+   ========================================================================== */
+
+.picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.picker__tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.picker__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  position: relative;
+  padding: 0 var(--space-4) var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.picker__tab:hover { color: var(--text-secondary); }
+.picker__tab.is-active { color: var(--text-primary); }
+
+.picker__tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: var(--space-4);
+  right: var(--space-4);
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+
+.picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  /* Une trentaine de fenetres ouvertes ne doit pas etirer la boite au-dela de
+     l'ecran : la grille defile, les reglages restent visibles dessous. */
+  max-height: 46vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.picker__source {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  border: 2px solid transparent;
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  color: var(--text-secondary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-normal) var(--spring);
+}
+
+.picker__source:hover { transform: translateY(-2px); }
+
+.picker__source.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+/* Le rapport est fixe : des vignettes de hauteurs differentes donneraient une
+   grille en dents de scie, ou l'oeil ne retrouve plus les lignes. */
+.picker__apercu {
+  display: block;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-md);
+  background: var(--bg-app);
+  overflow: hidden;
+}
+
+.picker__apercu img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.picker__apercu-vide {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-faint);
+}
+
+.picker__titre {
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.picker__taille {
+  font-size: var(--text-2xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.picker__note {
+  margin: 0;
+  padding: var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--bg-sunken);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-faint);
+}
+
+.picker__note--erreur { color: var(--danger); }
+
+.picker__squelette {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-lg);
+}
+
+.picker__reglages {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.picker__reglage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.picker__etiquette {
+  font-size: 11px;
+  font-weight: var(--weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.picker__choix {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+}
+
+.picker__pastille {
+  padding: 4px var(--space-4);
+  border: 0;
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  cursor: pointer;
+}
+
+.picker__pastille.is-active {
+  background: var(--accent);
+  color: var(--text-on-accent);
+}
+
+.picker__son {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.picker__son input { accent-color: var(--accent); }
+
+[data-motion='reduced'] .picker__source {
+  transition: none;
+}
+
+[data-motion='reduced'] .picker__source:hover {
+  transform: none;
+}

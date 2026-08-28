@@ -6,6 +6,10 @@ import { useDevices, applySink } from '@/store/devices';
 import { useChat } from '@/store/chat';
 import { useUI } from '@/store/ui';
 import { SharePanel } from './SharePanel';
+import { SourcePicker } from './SourcePicker';
+
+/** Le selecteur natif n'existe que dans l'application de bureau. */
+const DANS_TAURI = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 import { useSession } from '@/store/session';
 import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
@@ -348,14 +352,31 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           <Icon name="screen" size={18} />
         </button>
 
-        <SharePanel
-          open={panneauPartage}
-          onClose={() => setPanneauPartage(false)}
-          onStart={() => {
-            setPanneauPartage(false);
-            void toggleScreenShare();
-          }}
-        />
+        {/*
+          Sur le bureau, notre propre selecteur : les sources viennent du
+          systeme, avec leurs vignettes. Dans un navigateur, ces sources
+          n'existent pas — c'est lui qui les demande — et le panneau de
+          reglages fait office d'etape prealable.
+        */}
+        {DANS_TAURI ? (
+          <SourcePicker
+            open={panneauPartage}
+            onClose={() => setPanneauPartage(false)}
+            onStart={() => {
+              setPanneauPartage(false);
+              void toggleScreenShare();
+            }}
+          />
+        ) : (
+          <SharePanel
+            open={panneauPartage}
+            onClose={() => setPanneauPartage(false)}
+            onStart={() => {
+              setPanneauPartage(false);
+              void toggleScreenShare();
+            }}
+          />
+        )}
 
         {/*
           Reglages de qualite, atteignables pendant le partage.

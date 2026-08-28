@@ -58,9 +58,13 @@ fn focus_main(app: &tauri::AppHandle) {
     }
 }
 
+/// Enumeration des sources partageables, pour notre propre selecteur.
+mod capture;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![capture::sources_partageables])
         // Une seconde instance ne cree pas de fenetre : elle reveille celle qui
         // existe deja. Sans cela, cliquer deux fois sur l'icone ouvrirait deux
         // applications connectees au meme compte.

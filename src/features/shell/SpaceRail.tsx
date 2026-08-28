@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useChat } from '@/store/chat';
 import { useSession } from '@/store/session';
-import { useContextMenu } from '@/components/ContextMenu';
 import { SpaceContextMenu } from '@/features/spaces/SpaceContextMenu';
 import { Modal } from '@/components/Modal';
 import type { UUID } from '@/types/db';
@@ -31,13 +30,20 @@ export function SpaceRail() {
   const leaveSpace = useChat((state) => state.leaveSpace);
   const moi = useSession((state) => state.profile);
 
-  const menu = useContextMenu();
-  // Le menu est unique et se deplace : en monter un par pastille en
-  // fabriquerait autant que d'espaces, tous inutiles sauf un.
-  const [cible, setCible] = useState<UUID | null>(null);
+  /*
+   * La position et la cible ne font qu'un.
+   *
+   * Le menu est unique et se deplace — en monter un par pastille en
+   * fabriquerait autant que d'espaces, tous inutiles sauf un. Mais tant que la
+   * position et l'espace vise vivaient dans deux etats separes, un rendu
+   * pouvait tomber entre les deux : le menu avait une position sans savoir
+   * quoi afficher, et ne rendait rien du tout. Un seul objet ne peut pas se
+   * desynchroniser d'avec lui-meme.
+   */
+  const [menu, setMenu] = useState<{ x: number; y: number; spaceId: UUID } | null>(null);
   const [aQuitter, setAQuitter] = useState<UUID | null>(null);
 
-  const espaceVise = spaces.find((space) => space.id === cible);
+  const espaceVise = menu ? spaces.find((space) => space.id === menu.spaceId) : undefined;
   const espaceAQuitter = spaces.find((space) => space.id === aQuitter);
 
   const rangDans = (spaceId: UUID) =>
@@ -51,12 +57,12 @@ export function SpaceRail() {
 
   return (
     <nav className="rail" aria-label="Navigation principale">
-      {menu.position && espaceVise ? (
+      {menu && espaceVise ? (
         <SpaceContextMenu
           space={espaceVise}
           role={rangDans(espaceVise.id)}
-          position={menu.position}
-          onClose={menu.close}
+          position={{ x: menu.x, y: menu.y }}
+          onClose={() => setMenu(null)}
           onLeave={() => setAQuitter(espaceVise.id)}
         />
       ) : null}
@@ -142,8 +148,8 @@ export function SpaceRail() {
               key={space.id}
               className="rail__item"
               onContextMenu={(event) => {
-                setCible(space.id);
-                menu.open(event);
+                event.preventDefault();
+                setMenu({ x: event.clientX, y: event.clientY, spaceId: space.id });
               }}
             >
               <span
