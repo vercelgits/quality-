@@ -21,6 +21,9 @@ l'application de référence tant que la parité n'est pas atteinte.
 - **Vos vraies données** : espaces, salons et messages, chargés par la même
   fonction SQL `bootstrap()` que le client web
 - Navigation entre espaces et salons
+- **Envoi de messages**
+- **Temps réel** : les messages des autres arrivent sans rechargement, avec une
+  pastille d'état dans la barre de titre
 - Messages groupés par auteur, comme sur le web
 - Compile et s'exécute sur Windows
 
@@ -60,12 +63,16 @@ moindre.
 
 ## Ce qui reste, par ordre de difficulté
 
-### 1. Données — faible risque, à moitié fait
+### 1. Données — fait
 
-L'authentification est **faite et vérifiée**. Le reste des données suit le même
-chemin : PostgREST pour les lectures et les écritures, `tokio-tungstenite` pour
-le flux temps réel. Toute la logique métier — le SQL, les politiques RLS, les
-fonctions — est réutilisée telle quelle.
+Authentification, lecture, écriture et temps réel : tout passe, et c'est
+vérifié contre le vrai projet. Toute la logique métier — le SQL, les politiques
+RLS, les fonctions — est réutilisée sans une ligne réécrite.
+
+Le temps réel parle le protocole de Phoenix : on rejoint un sujet, puis on
+envoie un battement toutes les vingt-cinq secondes. Sans lui le serveur coupe
+au bout d'une minute — et un salon calme est précisément inactif. Une coupure
+relance la connexion en espaçant les tentatives.
 
 ### 2. Interface — long mais sans piège
 
@@ -106,6 +113,15 @@ Pour vérifier que l'accès aux données tient sans lancer l'interface :
 npm run natif:test
 ```
 
-Trois tests ouvrent une vraie session, lisent le profil à travers les politiques
-RLS, chargent l'amorce et les messages. Ils s'ignorent proprement si `.env.e2e`
-est absent.
+Cinq tests ouvrent une vraie session, lisent le profil à travers les politiques
+RLS, chargent l'amorce et les messages, **envoient un message puis le relisent**,
+et vérifient que le flux temps réel s'annonce connecté. Ils s'ignorent proprement
+si `.env.e2e` est absent.
+
+```
+amorce : 6 espace(s), 15 salon(s), 20 message(s) dans #general
+connexion, profil et rafraichissement : verifies
+envoi et relecture : verifies dans #general
+flux temps reel : connecte
+refus annonce : Identifiants incorrects.
+```

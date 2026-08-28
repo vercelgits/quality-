@@ -24,6 +24,12 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+uuid = { version = "1", features = ["v4"] }
+
+# Flux temps reel. La variante bloquante suffit : le fil dedie ne fait
+# qu'attendre des messages, il n'a rien a executer en parallele.
+tungstenite = { version = "0.24", features = ["rustls-tls-webpki-roots"] }
+url = "2"
 
 # Emplacement des donnees de l'application, selon les conventions du systeme.
 directories = "5"

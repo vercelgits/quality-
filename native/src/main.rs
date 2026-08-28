@@ -12,6 +12,7 @@
 
 mod api;
 mod config;
+mod temps_reel;
 
 use std::collections::HashMap;
 use std::rc::Rc;
@@ -30,6 +31,16 @@ struct Etat {
     amorce: Option<api::Amorce>,
     espace_actif: Option<String>,
     salon_actif: Option<String>,
+    temps_reel_ouvert: bool,
+}
+
+// Le minuteur vit sur le fil de l'interface et n'est pas transmissible entre
+// fils : le ranger dans l'etat partage rendrait celui-ci intransmissible a son
+// tour, et les appels reseau ne pourraient plus revenir. Il reste donc ici,
+// ou il est cree et ou il se declenche.
+thread_local! {
+    static MINUTEUR: std::cell::RefCell<Option<slint::Timer>> =
+        const { std::cell::RefCell::new(None) };
 }
 
 fn main() -> Result<(), slint::PlatformError> {
@@ -161,6 +172,7 @@ fn charger_donnees(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
 
                 rafraichir_vue(&f, &etat_fil);
                 charger_messages(&f, &etat_fil);
+                brancher_temps_reel(&f, &etat_fil);
             }
             Err(message) => f.set_erreur(message.into()),
         });
@@ -286,6 +298,7 @@ fn brancher_connexion(fenetre: &Coquille, client: Arc<Rc<api::Client>>, etat: Ar
 
     reprendre_session(fenetre, Arc::clone(&etat));
     brancher_navigation(fenetre, Arc::clone(&etat));
+    brancher_envoi(fenetre, Arc::clone(&etat));
 
     let faible = fenetre.as_weak();
     let etat_connexion = Arc::clone(&etat);
@@ -365,6 +378,115 @@ fn brancher_navigation(fenetre: &Coquille, etat: Arc<Mutex<Etat>>) {
 
         rafraichir_vue(&f, &etat_salon);
         charger_messages(&f, &etat_salon);
+    });
+}
+
+/// Ouvre le flux temps reel et recharge le salon quand un message arrive.
+///
+/// Le fil de suivi transmet par un canal, et l'interface est touchee depuis sa
+/// propre boucle : ecrire dans l'interface depuis un autre fil est interdit, et
+/// Slint le refuserait.
+fn brancher_temps_reel(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
+    // Un seul flux pour toute la duree de vie de l'application : en ouvrir un
+    // par changement de salon multiplierait les connexions sans rien apporter,
+    // le sujet couvrant deja toute la table.
+    if let Ok(mut garde) = etat.lock() {
+        if garde.temps_reel_ouvert {
+            return;
+        }
+        garde.temps_reel_ouvert = true;
+    }
+
+    let Some(session) = etat.lock().ok().and_then(|g| g.session.clone()) else {
+        return;
+    };
+    let Ok(config) = config::Config::charger() else { return };
+
+    let (envoi, reception) = std::sync::mpsc::channel::<temps_reel::Evenement>();
+
+    std::thread::spawn(move || {
+        temps_reel::suivre(config.url, config.key, session.access_token, envoi);
+    });
+
+    // Le canal est consulte a intervalle regulier depuis la boucle d'interface.
+    // Un intervalle de cent millisecondes est imperceptible a la lecture et
+    // evite d'occuper un fil a attendre.
+    let faible = fenetre.as_weak();
+    let etat_minuteur = Arc::clone(etat);
+
+    let minuteur = slint::Timer::default();
+    minuteur.start(
+        slint::TimerMode::Repeated,
+        std::time::Duration::from_millis(100),
+        move || {
+            let Some(f) = faible.upgrade() else { return };
+
+            while let Ok(evenement) = reception.try_recv() {
+                match evenement {
+                    temps_reel::Evenement::NouveauMessage { salon } => {
+                        let courant = etat_minuteur
+                            .lock()
+                            .ok()
+                            .and_then(|g| g.salon_actif.clone());
+
+                        // Seul le salon ouvert est recharge : un message ailleurs
+                        // ne doit pas provoquer une requete pour une vue qu'on ne
+                        // regarde pas.
+                        if courant.as_deref() == Some(salon.as_str()) {
+                            charger_messages(&f, &etat_minuteur);
+                        }
+                    }
+                    temps_reel::Evenement::Etat { connecte } => {
+                        f.set_temps_reel(connecte);
+                    }
+                }
+            }
+        },
+    );
+
+    // Un minuteur libere cesse de se declencher : on le conserve pour toute la
+    // duree de vie du fil d'interface.
+    MINUTEUR.with(|cellule| *cellule.borrow_mut() = Some(minuteur));
+}
+
+/// Envoi d'un message.
+fn brancher_envoi(fenetre: &Coquille, etat: Arc<Mutex<Etat>>) {
+    let faible = fenetre.as_weak();
+
+    fenetre.on_envoyer(move |texte| {
+        let Some(f) = faible.upgrade() else { return };
+
+        let contenu = texte.trim().to_string();
+        if contenu.is_empty() {
+            return;
+        }
+
+        let (Some(session), Some(salon)) = ({
+            let garde = etat.lock().ok();
+            (
+                garde.as_ref().and_then(|g| g.session.clone()),
+                garde.as_ref().and_then(|g| g.salon_actif.clone()),
+            )
+        }) else {
+            return;
+        };
+
+        let faible_fil = f.as_weak();
+        let etat_fil = Arc::clone(&etat);
+
+        std::thread::spawn(move || {
+            let resultat = config::Config::charger()
+                .and_then(api::Client::nouveau)
+                .and_then(|client| client.envoyer(&session, &salon, &contenu));
+
+            let _ = faible_fil.upgrade_in_event_loop(move |f| match resultat {
+                // On recharge plutot que d'ajouter la ligne a la main : le
+                // groupage depend du message precedent, et le recalculer ici
+                // dupliquerait une regle qui vit deja ailleurs.
+                Ok(_) => charger_messages(&f, &etat_fil),
+                Err(message) => f.set_erreur(message.into()),
+            });
+        });
     });
 }
 

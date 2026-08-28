@@ -156,3 +156,75 @@ fn amorce_puis_messages() {
         salon.name
     );
 }
+
+#[test]
+fn envoi_puis_relecture() {
+    let Some((client, session)) = session_partagee() else {
+        eprintln!("ignore : identifiants absents");
+        return;
+    };
+
+    let amorce = client.amorcer(session).expect("amorce");
+    let salon = amorce
+        .channels
+        .iter()
+        .find(|c| c.kind == "text")
+        .expect("un salon textuel");
+
+    let texte = format!("natif {}", std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis());
+
+    let envoye = client
+        .envoyer(session, &salon.id, &texte)
+        .expect("l'envoi doit aboutir");
+
+    assert_eq!(envoye.content, texte, "le serveur doit renvoyer ce qui a ete ecrit");
+
+    // Relu depuis la base : l'ecriture a vraiment abouti, et pas seulement
+    // renvoye ce qu'on lui a donne.
+    let messages = client
+        .messages(session, &salon.id, 5)
+        .expect("relecture")
+        .into_iter()
+        .map(|m| m.content)
+        .collect::<Vec<_>>();
+
+    assert!(
+        messages.contains(&texte),
+        "le message envoye doit figurer parmi les derniers"
+    );
+
+    eprintln!("envoi et relecture : verifies dans #{}", salon.name);
+}
+
+#[test]
+fn le_flux_temps_reel_s_ouvre() {
+    let Some((_client, session)) = session_partagee() else {
+        eprintln!("ignore : identifiants absents");
+        return;
+    };
+
+    let config = orbit_natif::config::Config::charger().expect("configuration");
+    let (envoi, reception) = std::sync::mpsc::channel();
+
+    let jeton = session.access_token.clone();
+    std::thread::spawn(move || {
+        orbit_natif::temps_reel::suivre(config.url, config.key, jeton, envoi);
+    });
+
+    // On attend l'annonce de connexion : c'est ce qui prouve que le sujet a ete
+    // rejoint, pas seulement que le socket s'est ouvert.
+    let recu = reception
+        .recv_timeout(std::time::Duration::from_secs(15))
+        .expect("le flux doit annoncer son etat sous quinze secondes");
+
+    match recu {
+        orbit_natif::temps_reel::Evenement::Etat { connecte } => {
+            assert!(connecte, "le flux doit s'annoncer connecte");
+            eprintln!("flux temps reel : connecte");
+        }
+        _ => panic!("le premier evenement doit etre un etat"),
+    }
+}

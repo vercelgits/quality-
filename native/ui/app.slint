@@ -187,9 +187,11 @@ export component Coquille inherits Window {
     in property <string> espace-actif;
     in property <string> salon-actif;
     in property <string> sujet-salon;
+    in property <bool> temps-reel: false;
 
     callback choisir-espace(string);
     callback choisir-salon(string);
+    callback envoyer(string);
 
     VerticalLayout {
         spacing: 0px;
@@ -210,6 +212,19 @@ export component Coquille inherits Window {
                     color: Theme.texte-faible;
                     font-size: 12px;
                     vertical-alignment: center;
+                }
+
+                // Etat du flux temps reel. Sans indication, une coupure passe
+                // inapercue : les messages cessent simplement d'arriver.
+                if root.connecte: Rectangle {
+                    width: 18px;
+                    Rectangle {
+                        width: 7px;
+                        height: 7px;
+                        border-radius: 4px;
+                        background: root.temps-reel ? Theme.succes : Theme.alerte;
+                        animate background { duration: 300ms; }
+                    }
                 }
 
                 Rectangle {}
@@ -366,16 +381,39 @@ export component Coquille inherits Window {
                             background: Theme.fond-releve;
                             border-radius: Theme.rayon-lg;
                             border-width: 1px;
-                            border-color: Theme.bordure;
+                            border-color: saisie.has-focus ? Theme.accent : Theme.bordure;
+
+                            animate border-color { duration: 120ms; }
 
                             HorizontalLayout {
                                 padding-left: 16px;
-                                alignment: start;
-                                Text {
-                                    text: "Ecrire dans " + root.salon-actif;
-                                    color: Theme.texte-faible;
-                                    font-size: 15px;
-                                    vertical-alignment: center;
+                                padding-right: 16px;
+
+                                // L'invite reste sous le champ tant qu'il est
+                                // vide : Slint n'a pas de `placeholder`, et un
+                                // champ nu ne dit pas ou l'on ecrit.
+                                Rectangle {
+                                    if saisie.text == "": Text {
+                                        text: "Ecrire dans " + root.salon-actif;
+                                        color: Theme.texte-faible;
+                                        font-size: 15px;
+                                        vertical-alignment: center;
+                                        horizontal-alignment: left;
+                                        x: 0;
+                                    }
+
+                                    saisie := TextInput {
+                                        color: Theme.texte;
+                                        font-size: 15px;
+                                        vertical-alignment: center;
+                                        single-line: true;
+                                        accepted => {
+                                            if (self.text != "") {
+                                                root.envoyer(self.text);
+                                                self.text = "";
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

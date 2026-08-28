@@ -354,4 +354,51 @@ impl Client {
         messages.reverse();
         Ok(messages)
     }
+
+    /// Envoie un message dans un salon.
+    pub fn envoyer(
+        &self,
+        session: &Session,
+        salon: &str,
+        contenu: &str,
+    ) -> Result<MessageBrut, String> {
+        // Fabrique ici et non laisse a la base : l'echo du temps reel revient
+        // avec le meme identifiant, ce qui permet de reconnaitre son propre
+        // message et de ne pas l'afficher deux fois.
+        let id = uuid::Uuid::new_v4().to_string();
+
+        let reponse = self
+            .authentifie(
+                self.http.post(format!("{}/rest/v1/messages", self.config.url)),
+                session,
+            )
+            .header("Prefer", "return=representation")
+            .header("Accept", "application/vnd.pgrst.object+json")
+            .json(&serde_json::json!({
+                "id": id,
+                "channel_id": salon,
+                "author_id": session.user.id,
+                "content": contenu,
+            }))
+            .send()
+            .map_err(|_| "Serveur injoignable.".to_string())?;
+
+        let statut = reponse.status();
+        let corps = reponse.text().unwrap_or_default();
+
+        if !statut.is_success() {
+            // Les refus viennent des politiques RLS ou des limites de debit :
+            // le message brut de PostgREST parlerait de « row-level security ».
+            let detail = Self::expliquer(&corps, statut.as_u16());
+            if detail.contains("row-level security") || detail.contains("violates") {
+                return Err(
+                    "Vous ne pouvez pas ecrire dans ce salon.".to_string()
+                );
+            }
+            return Err(detail);
+        }
+
+        serde_json::from_str(&corps).map_err(|e| format!("Reponse inattendue : {e}"))
+    }
 }
+
