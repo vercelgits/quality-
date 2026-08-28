@@ -15,7 +15,7 @@ export default defineConfig({
   reporter: process.env['CI'] ? [['github'], ['html', { open: 'never' }]] : [['list']],
 
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:4173',
     // Trace et capture uniquement au premier echec : les conserver a chaque
     // execution remplirait le disque pour rien.
     trace: 'on-first-retry',
@@ -55,10 +55,22 @@ export default defineConfig({
     },
   ],
 
+  /*
+   * Les tests visent l'application construite, pas le serveur de
+   * developpement.
+   *
+   * En developpement, Vite sert chaque module separement : le premier
+   * chargement demande des centaines de requetes, et plusieurs navigateurs en
+   * parallele le font depasser trente secondes. Les echecs qui en decoulent ne
+   * disent rien de l'application.
+   *
+   * La version construite est aussi celle qui est livree : la tester est plus
+   * juste que de tester un assemblage qui n'existe qu'ici.
+   */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run build && npm run preview',
+    url: 'http://localhost:4173',
     reuseExistingServer: !process.env['CI'],
-    timeout: 120_000,
+    timeout: 180_000,
   },
 });
