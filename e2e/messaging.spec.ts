@@ -159,6 +159,43 @@ test.describe('Parcours authentifies', () => {
       .toBeGreaterThan(0.95);
   });
 
+  /*
+   * Le geste qu'on tente en premier devant un visage, c'est de cliquer dessus.
+   * Il menait au menu d'actions ; il mene maintenant au profil, et le clic
+   * droit garde les actions. Les deux sont verifies, car intervertir les deux
+   * gestes serait invisible en relecture et evident a l'usage.
+   */
+  test('cliquer l avatar puis le nom ouvre la fiche de profil', async ({ page }) => {
+    await openApp(page);
+
+    /*
+     * On vise une tete de groupe.
+     *
+     * Les messages consecutifs d'une meme personne sont regroupes : seuls les
+     * premiers portent un avatar et un nom, les suivants n'ont qu'une heure
+     * dans la gouttiere. Un message qu'on vient d'ecrire est donc, le plus
+     * souvent, precisement celui qui n'a rien a cliquer.
+     */
+    const message = page.locator('.message:not(.is-grouped)').last();
+    await expect(message).toBeVisible({ timeout: 10_000 });
+
+    const fiche = page.getByRole('dialog', { name: 'Profil' });
+
+    await message.locator('.message__avatar-button').click();
+    await expect(fiche).toBeVisible();
+    await expect(fiche.locator('.profile__name')).toBeVisible();
+
+    // Aucun compteur d'activite : un nombre de messages ne dit rien de
+    // personne, et sous un visage il se lit comme une note.
+    await expect(fiche.locator('.profile-stat')).toHaveCount(0);
+
+    await page.keyboard.press('Escape');
+    await expect(fiche).toBeHidden();
+
+    await message.locator('.message__author').click();
+    await expect(fiche).toBeVisible();
+  });
+
   test('le clic droit sur un message ouvre les actions de la personne', async ({ page }) => {
     await openApp(page);
 

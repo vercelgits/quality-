@@ -475,10 +475,14 @@
 /*
  * Taille du texte.
  *
- * Le facteur porte sur la racine ; toutes les mesures typographiques etant
- * exprimees en `rem`, la page entiere suit sans qu'aucune valeur ait a etre
- * redite. Les espacements, eux, restent en pixels : c'est le texte qu'on
- * veut agrandir, pas les gouttieres.
+ * Le facteur porte sur la racine. Tailles de police et espacements etant tous
+ * exprimes en `rem`, c'est la page entiere qui grandit — pas seulement les
+ * lettres. C'est voulu : agrandir le texte seul dans des gouttieres inchangees
+ * donne des lignes serrees, plus penibles a lire que le point de depart.
+ *
+ * L'echelle reste modeste (16 / 17 / 19 px) : au-dela, la mise en page a trois
+ * colonnes ne tient plus. Pour davantage, le zoom du navigateur ou du systeme
+ * prend le relais, et lui sait reduire le nombre de colonnes.
  */
 :root[data-text-scale='grand']      { font-size: 17px; }
 :root[data-text-scale='tres-grand'] { font-size: 19px; }

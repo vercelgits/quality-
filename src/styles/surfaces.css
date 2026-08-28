@@ -339,7 +339,7 @@
 }
 
 .profile__since {
-  margin: var(--space-5) var(--space-5) var(--space-4);
+  margin: var(--space-5) var(--space-6) var(--space-4);
   font-size: var(--text-xs);
   color: var(--text-faint);
   text-align: left;
@@ -347,14 +347,12 @@
 }
 
 .profile .btn--block {
-  width: calc(100% - var(--space-10));
-  margin: 0 var(--space-5);
-}
-
-@media (max-width: 420px) {
-  .profile__stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  width: calc(100% - var(--space-6) * 2);
+  margin: 0 var(--space-6);
+  /* Le bouton est la seule action de la carte : il merite d'etre a la taille
+     de ce qu'on vient de lire, pas d'une ligne de formulaire. */
+  min-height: 44px;
+  border-radius: var(--radius-lg);
 }
 
 /* --------------------------------------------------------------------------
