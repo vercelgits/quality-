@@ -56,40 +56,18 @@ fn main() -> Result<(), slint::PlatformError> {
         }
     };
 
-    let etat = Arc::new(Mutex::new(Etat::default()));
+    // Taille de depart posee ici : `preferred-` cote Slint n'est qu'un voeu, et
+    // la fenetre s'ouvrait en portrait — colonnes ecrasees, compositeur hors
+    // champ.
+    fenetre.window().set_size(slint::PhysicalSize::new(1440, 900));
 
-    brancher_fenetre(&fenetre);
+    let etat = Arc::new(Mutex::new(Etat::default()));
 
     if let Some(client) = client {
         brancher_connexion(&fenetre, Arc::new(client), Arc::clone(&etat));
     }
 
     fenetre.run()
-}
-
-/// Boutons de la barre de titre.
-fn brancher_fenetre(fenetre: &Coquille) {
-    let faible = fenetre.as_weak();
-    fenetre.on_fermer(move || {
-        if let Some(f) = faible.upgrade() {
-            let _ = f.window().hide();
-        }
-    });
-
-    let faible = fenetre.as_weak();
-    fenetre.on_reduire(move || {
-        if let Some(f) = faible.upgrade() {
-            f.window().set_minimized(true);
-        }
-    });
-
-    let faible = fenetre.as_weak();
-    fenetre.on_agrandir(move || {
-        if let Some(f) = faible.upgrade() {
-            let etendue = f.window().is_maximized();
-            f.window().set_maximized(!etendue);
-        }
-    });
 }
 
 /// Applique une session ouverte a l'interface, et la conserve.
@@ -140,8 +118,16 @@ fn teinte(identifiant: &str) -> slint::Brush {
         (0x3b, 0x82, 0xf6),
     ];
 
-    let somme: u32 = identifiant.bytes().map(u32::from).sum();
-    let (r, v, b) = PALETTE[(somme as usize) % PALETTE.len()];
+    // Melange FNV plutot qu'une somme d'octets : les deux repartissent aussi
+    // bien des UUID, mais la somme donne le meme resultat pour deux chaines
+    // faites des memes caracteres — ce qui arriverait avec des pseudos.
+    let mut empreinte: u32 = 2166136261;
+    for octet in identifiant.bytes() {
+        empreinte ^= u32::from(octet);
+        empreinte = empreinte.wrapping_mul(16777619);
+    }
+
+    let (r, v, b) = PALETTE[(empreinte as usize) % PALETTE.len()];
 
     slint::Brush::SolidColor(slint::Color::from_rgb_u8(r, v, b))
 }
@@ -221,6 +207,7 @@ fn rafraichir_vue(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
             nom: espace.name.clone().into(),
             initiales: initiales(&espace.name).into(),
             actif: garde.espace_actif.as_deref() == Some(espace.id.as_str()),
+            teinte: teinte(&espace.id),
         })
         .collect();
 

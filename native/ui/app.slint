@@ -1,10 +1,11 @@
+import { ScrollView } from "std-widgets.slint";
 import { Theme } from "theme.slint";
 import { EcranConnexion } from "connexion.slint";
 
 // Ce que Rust transmet a l'interface. Les champs portent les memes noms que
 // dans la base : une traduction supplementaire serait un endroit de plus ou se
 // tromper.
-export struct EspaceVu { id: string, nom: string, initiales: string, actif: bool }
+export struct EspaceVu { id: string, nom: string, initiales: string, actif: bool, teinte: brush }
 export struct SalonVu { id: string, nom: string, vocal: bool, actif: bool }
 export struct MessageVu {
     auteur: string,
@@ -43,7 +44,9 @@ component BoutonRail inherits Rectangle {
     width: 48px;
     height: 48px;
     border-radius: root.actif || zone.has-hover ? Theme.rayon-md : 24px;
-    background: root.actif ? root.teinte : Theme.fond-releve;
+    // Teinte permanente, assombrie au repos : un rail de pastilles grises ne
+    // permet pas de reconnaitre un espace du coin de l'oeil.
+    background: root.actif || zone.has-hover ? root.teinte : root.teinte.darker(0.45);
 
     animate border-radius, background { duration: 180ms; easing: ease-out; }
 
@@ -203,12 +206,12 @@ export component Coquille inherits Window {
     // du gris mort, et le relief ne se lit pas.
     background: @radial-gradient(circle, #2a2550 0%, Theme.fond-creux 62%);
     default-font-family: "Inter";
-    preferred-width: 1280px;
-    preferred-height: 820px;
+    // Slint refuse une taille fixe et un minimum sur la meme dimension. On
+    // garde le minimum, qui empeche d'ecraser la mise en page au point qu'elle
+    // n'ait plus de sens, et la taille de depart est posee depuis Rust.
+    min-width: 900px;
+    min-height: 600px;
 
-    callback fermer();
-    callback reduire();
-    callback agrandir();
     callback connecter();
     callback deconnecter();
 
@@ -237,62 +240,6 @@ export component Coquille inherits Window {
 
     VerticalLayout {
         spacing: 0px;
-
-        // Barre de titre dessinee par l'application : le bandeau gris du
-        // systeme au-dessus d'une interface sombre trahit tout de suite un
-        // habillage pose sur autre chose.
-        Rectangle {
-            height: 32px;
-            background: Theme.fond-rail;
-
-            HorizontalLayout {
-                padding-left: 12px;
-                spacing: 0px;
-
-                Text {
-                    text: "Orbit";
-                    color: Theme.texte-faible;
-                    font-size: 12px;
-                    vertical-alignment: center;
-                }
-
-                // Etat du flux temps reel. Sans indication, une coupure passe
-                // inapercue : les messages cessent simplement d'arriver.
-                if root.connecte: Rectangle {
-                    width: 18px;
-                    Rectangle {
-                        width: 7px;
-                        height: 7px;
-                        border-radius: 4px;
-                        background: root.temps-reel ? Theme.succes : Theme.alerte;
-                        animate background { duration: 300ms; }
-                    }
-                }
-
-                Rectangle {}
-
-                Rectangle {
-                    width: 44px;
-                    background: zone-r.has-hover ? Theme.survol : transparent;
-                    Text { text: "—"; color: Theme.texte-second; font-size: 11px; }
-                    zone-r := TouchArea { clicked => { root.reduire(); } }
-                }
-
-                Rectangle {
-                    width: 44px;
-                    background: zone-a.has-hover ? Theme.survol : transparent;
-                    Text { text: "▢"; color: Theme.texte-second; font-size: 11px; }
-                    zone-a := TouchArea { clicked => { root.agrandir(); } }
-                }
-
-                Rectangle {
-                    width: 44px;
-                    background: zone-f.has-hover ? Theme.danger : transparent;
-                    Text { text: "✕"; color: Theme.texte-second; font-size: 11px; }
-                    zone-f := TouchArea { clicked => { root.fermer(); } }
-                }
-            }
-        }
 
         // Tant qu'aucune session n'est ouverte, l'ecran de connexion occupe
         // toute la place : montrer une coquille vide derriere donnerait
@@ -323,6 +270,7 @@ export component Coquille inherits Window {
                     for espace in root.espaces: BoutonRail {
                         initiales: espace.initiales;
                         actif: espace.actif;
+                        teinte: espace.teinte;
                         clic => { root.choisir-espace(espace.id); }
                     }
                 }
@@ -419,11 +367,25 @@ export component Coquille inherits Window {
                                     font-weight: 600;
                                     overflow: elide;
                                 }
-                                Text {
-                                    text: root.pseudo;
-                                    color: Theme.texte-faible;
-                                    font-size: 11px;
-                                    overflow: elide;
+                                HorizontalLayout {
+                                    spacing: 5px;
+                                    alignment: start;
+
+                                    Rectangle {
+                                        width: 6px;
+                                        height: 6px;
+                                        y: 4px;
+                                        border-radius: 3px;
+                                        background: root.temps-reel ? Theme.succes : Theme.alerte;
+                                        animate background { duration: 300ms; }
+                                    }
+
+                                    Text {
+                                        text: root.pseudo;
+                                        color: Theme.texte-faible;
+                                        font-size: 11px;
+                                        overflow: elide;
+                                    }
                                 }
                             }
                         }
@@ -462,22 +424,24 @@ export component Coquille inherits Window {
                     }
                     Rectangle { height: 1px; background: Theme.bordure; }
 
-                    VerticalLayout {
-                        padding-top: 12px;
-                        spacing: 2px;
-                        alignment: start;
+                    ScrollView {
+                        vertical-stretch: 1;
 
-                        for message in root.messages: Message {
-                            auteur: message.auteur;
-                            heure: message.heure;
-                            corps: message.corps;
-                            groupe: message.groupe;
-                            initiales: message.initiales;
-                            teinte: message.teinte;
+                        VerticalLayout {
+                            padding-top: 12px;
+                            spacing: 2px;
+                            alignment: start;
+
+                            for message in root.messages: Message {
+                                auteur: message.auteur;
+                                heure: message.heure;
+                                corps: message.corps;
+                                groupe: message.groupe;
+                                initiales: message.initiales;
+                                teinte: message.teinte;
+                            }
                         }
                     }
-
-                    Rectangle {}
 
                     HorizontalLayout {
                         padding-left: 16px;
