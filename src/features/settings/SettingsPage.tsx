@@ -170,6 +170,7 @@ function AccountSection() {
   const session = useSession((state) => state.session);
   const profile = useSession((state) => state.profile);
   const updatePassword = useSession((state) => state.updatePassword);
+  const openModal = useUI((state) => state.openModal);
 
   const email = session?.user.email ?? null;
 
@@ -189,13 +190,49 @@ function AccountSection() {
 
       {profile ? (
         <div className="account">
-          <div className="account__banner" style={{ background: profile.accent }} />
+          {/*
+            La vraie banniere, pas un aplat de couleur.
+            Elle affichait la teinte d'accent : on changeait son image et rien
+            ne bougeait ici, ce qui laissait croire que l'enregistrement avait
+            echoue.
+          */}
+          <div className="account__banner">
+            {profile.banner_url ? (
+              <img src={profile.banner_url} alt="" className="account__banner-image" />
+            ) : (
+              <span className="account__banner-fallback" aria-hidden="true" />
+            )}
+          </div>
+
           <div className="account__head">
-            <Avatar profile={profile} size={80} showStatus />
-            <div className="account__identity">
-              <span className="account__name">{profile.display_name}</span>
-              <span className="account__handle">@{profile.username}</span>
-            </div>
+            <Avatar profile={profile} size={88} showStatus />
+          </div>
+
+          {/* Sous la banniere, pas dessus : pose dessus, le nom devenait
+              illisible des que l'image etait claire ou chargee. */}
+          <div className="account__identity">
+            <span className="account__name">{profile.display_name}</span>
+            <span className="account__handle">@{profile.username}</span>
+          </div>
+
+          <div className="account__actions">
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={() => openModal({ kind: 'edit-profile' })}
+            >
+              <Icon name="edit" size={15} />
+              Modifier mon profil
+            </button>
+
+            <button
+              type="button"
+              className="btn btn--sm"
+              onClick={() => openModal({ kind: 'profile', userId: profile.id })}
+            >
+              <Icon name="user-check" size={15} />
+              Voir ma fiche
+            </button>
           </div>
 
           <dl className="account__facts">

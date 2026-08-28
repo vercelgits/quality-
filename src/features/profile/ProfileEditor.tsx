@@ -4,6 +4,7 @@ import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { useSession } from '@/store/session';
 import { uploadProfileImage } from '@/lib/upload';
+import { supabase, errorMessage } from '@/lib/supabase';
 import { LIMITS } from '@/constants';
 import type { ProfileLink } from '@/types/db';
 
@@ -32,6 +33,10 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
   const [hue, setHue] = useState<number | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [bannerUrl, setBannerUrl] = useState<string | null>(null);
+  const [username, setUsername] = useState('');
+  const [etatPseudo, setEtatPseudo] = useState<
+    'inchange' | 'invalide' | 'verification' | 'libre' | 'pris'
+  >('inchange');
 
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState<'avatar' | 'banner' | null>(null);
@@ -39,6 +44,7 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
 
   const avatarInput = useRef<HTMLInputElement>(null);
   const bannerInput = useRef<HTMLInputElement>(null);
+  const demande = useRef(0);
 
   useEffect(() => {
     if (!open || !profile) return;
@@ -50,8 +56,46 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
     setHue(profile.theme_hue);
     setAvatarUrl(profile.avatar_url);
     setBannerUrl(profile.banner_url);
+    setUsername(profile.username);
+    setEtatPseudo('inchange');
     setError(null);
   }, [open, profile]);
+
+  /*
+   * Disponibilite du pseudo, verifiee apres une pause de frappe.
+   *
+   * Une requete par caractere serait du gaspillage, et le compteur `demande`
+   * evite qu'une reponse lente a une frappe ancienne vienne ecraser un
+   * resultat plus recent — on afficherait « libre » pour un pseudo qu'on a
+   * deja fini de retaper.
+   */
+  useEffect(() => {
+    if (!open || !profile) return;
+
+    const voulu = username.trim().toLowerCase();
+
+    if (voulu === profile.username) {
+      setEtatPseudo('inchange');
+      return;
+    }
+
+    if (!/^[a-z0-9_.-]{2,32}$/.test(voulu)) {
+      setEtatPseudo('invalide');
+      return;
+    }
+
+    setEtatPseudo('verification');
+    const mien = ++demande.current;
+
+    const minuteur = window.setTimeout(() => {
+      void supabase.rpc('username_available', { p_username: voulu }).then(({ data }) => {
+        if (mien !== demande.current) return;
+        setEtatPseudo(data === true ? 'libre' : 'pris');
+      });
+    }, 350);
+
+    return () => window.clearTimeout(minuteur);
+  }, [username, open, profile]);
 
   if (!profile) return null;
 
@@ -84,6 +128,26 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
       .map((link) => ({ label: link.label.trim(), url: link.url.trim() }))
       .filter((link) => link.label.length > 0 && /^https?:\/\//.test(link.url))
       .slice(0, 5);
+
+    /*
+     * Le pseudo part en premier, et seul son echec interrompt tout.
+     *
+     * Il est le seul champ qui peut etre refuse par la base — un autre l'a
+     * pris entre la verification et l'enregistrement. L'ecrire avant le reste
+     * evite d'avoir enregistre la moitie du formulaire avant de l'annoncer.
+     */
+    const voulu = username.trim().toLowerCase();
+
+    if (voulu !== profile.username) {
+      const { error: refus } = await supabase.rpc('claim_username', { p_username: voulu });
+
+      if (refus) {
+        setBusy(false);
+        setError(errorMessage(refus));
+        setEtatPseudo('pris');
+        return;
+      }
+    }
 
     await updateProfile({
       display_name: displayName.trim() || profile.username,
@@ -277,8 +341,49 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
           onChange={(event) => setDisplayName(event.target.value)}
         />
         <p className="field__hint">
-          Votre identifiant <strong>@{profile.username}</strong> ne change pas : c'est lui
-          qui sert a vous mentionner.
+          Le nom que les autres lisent. Il peut contenir ce que vous voulez, et
+          n'a pas besoin d'etre unique.
+        </p>
+      </div>
+
+      {/*
+        Le pseudo se change ici.
+        Il etait presente comme fixe — « votre identifiant ne change pas » —
+        alors que la fonction pour le changer existait deja, utilisee au
+        premier lancement. Rien ne justifiait de la reserver a ce moment-la.
+      */}
+      <div className="field">
+        <label className="field__label" htmlFor="pf-username">
+          Pseudo
+        </label>
+        <div className="pseudo-champ">
+          <span className="pseudo-champ__arobase" aria-hidden="true">
+            @
+          </span>
+          <input
+            id="pf-username"
+            className="input pseudo-champ__saisie"
+            value={username}
+            maxLength={32}
+            autoComplete="off"
+            spellCheck={false}
+            onChange={(event) => setUsername(event.target.value.toLowerCase())}
+            aria-describedby="pf-username-etat"
+          />
+          {etatPseudo === 'verification' ? <span className="spinner" /> : null}
+          {etatPseudo === 'libre' ? (
+            <Icon name="check-circle" size={16} className="pseudo-champ__ok" />
+          ) : null}
+        </div>
+
+        <p className="field__hint" id="pf-username-etat">
+          {etatPseudo === 'invalide'
+            ? 'Entre 2 et 32 caracteres : lettres, chiffres, point, tiret, souligne.'
+            : etatPseudo === 'pris'
+              ? 'Ce pseudo est deja pris.'
+              : etatPseudo === 'libre'
+                ? 'Libre.'
+                : "C'est lui qui sert a vous mentionner. Le changer casse les mentions deja ecrites, qui pointaient vers l'ancien."}
         </p>
       </div>
 

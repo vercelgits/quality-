@@ -45,13 +45,21 @@ export function devPreview(name: string): ReactNode | null {
     };
 
     useChat.setState((state) => ({ profiles: { ...state.profiles, [faux.id]: faux as never } }));
-    return <ProfileCard userId={faux.id} />;
+
+    // La largeur de la boite qui l'accueille dans l'application : sans elle,
+    // la carte s'etale sur tout l'ecran et sa mise en page n'a plus rien a
+    // voir avec ce que l'on verra.
+    return (
+      <div style={{ maxWidth: 620, margin: '0 auto' }}>
+        <ProfileCard userId={faux.id} />
+      </div>
+    );
   }
 
-  if (name === 'editeur') {
-    // L'editeur de profil ne s'ouvre qu'une fois connecte, et c'est justement
-    // la ou la banniere, la photo et quinze champs se disputent la hauteur de
-    // la boite : la mise en page s'y verifie mal a l'aveugle.
+  if (name === 'editeur' || name.startsWith('parametres')) {
+    // Ces ecrans ne s'ouvrent qu'une fois connecte. Sans profil dans le
+    // magasin, « Mon compte » ne rend rien du tout — soit exactement l'ecran
+    // qu'on cherche a verifier.
     const faux = {
       id: '00000000-0000-4000-8000-000000000002',
       username: 'zyko682',
@@ -69,10 +77,9 @@ export function devPreview(name: string): ReactNode | null {
     };
 
     useSession.setState({ profile: faux as never });
-    return <ProfileEditor open onClose={() => {}} />;
-  }
 
-  if (name.startsWith('parametres')) {
+    if (name === 'editeur') return <ProfileEditor open onClose={() => {}} />;
+
     const section = name.split(':')[1] ?? 'compte';
     useUI.getState().openSettings(section as SettingsSection);
     return <SettingsPage />;

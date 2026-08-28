@@ -669,28 +669,57 @@
 }
 
 .account__banner {
-  height: 100px;
-  background: var(--accent);
+  position: relative;
+  height: 132px;
+  overflow: hidden;
+}
+
+.account__banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.account__banner-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-aurora);
 }
 
 .account__head {
   display: flex;
-  align-items: flex-end;
-  gap: var(--space-5);
   padding: 0 var(--space-6);
-  margin-top: -40px;
+  margin-top: -44px;
 }
 
+/*
+ * L'avatar garde sa forme.
+ *
+ * En element de flex, il se laissait comprimer en largeur quand la ligne
+ * manquait de place — sans perdre de hauteur. On obtenait un ovale. `flex:
+ * none` lui rend son carre, donc son cercle.
+ */
 .account__head .avatar {
+  flex: none;
   border: 6px solid var(--bg-sunken);
   border-radius: var(--radius-full);
 }
 
+/* Sous la banniere, aligne a gauche comme sur la fiche de profil : les deux
+   ecrans montrent la meme personne, ils doivent se lire pareil. */
 .account__identity {
   display: flex;
   flex-direction: column;
-  padding-bottom: var(--space-4);
+  padding: var(--space-4) var(--space-6) 0;
   min-width: 0;
+}
+
+.account__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6) 0;
 }
 
 .account__name {

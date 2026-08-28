@@ -199,16 +199,33 @@ export function ProfileCard({ userId }: { userId: UUID }) {
           </ul>
         ) : null}
 
-        {stats && stats.mutual_spaces.length > 0 ? (
+        {/*
+          La section reste, meme vide.
+          La carte a une hauteur fixe : sans elle, un profil peu rempli laissait
+          un trou entre la bio et le bouton, qui se lisait comme un defaut
+          d'affichage plutot que comme une absence d'information.
+        */}
+        {!isMe ? (
           <section className="profile__mutual">
             <h3 className="profile__section-title">
-              {stats.mutual_spaces.length === 1
-                ? '1 espace en commun'
-                : `${stats.mutual_spaces.length} espaces en commun`}
+              {!stats
+                ? 'Espaces en commun'
+                : stats.mutual_spaces.length === 0
+                  ? 'Aucun espace en commun'
+                  : stats.mutual_spaces.length === 1
+                    ? '1 espace en commun'
+                    : `${stats.mutual_spaces.length} espaces en commun`}
             </h3>
 
+            {stats && stats.mutual_spaces.length === 0 ? (
+              <p className="profile__mutual-empty">
+                Vous ne partagez aucun espace. Cette fiche ne montre donc que ce
+                que cette personne a choisi d'y ecrire.
+              </p>
+            ) : null}
+
             <ul className="profile__mutual-list">
-              {stats.mutual_spaces.map((space) => (
+              {(stats?.mutual_spaces ?? []).map((space) => (
                 <li key={space.id}>
                   <button
                     type="button"

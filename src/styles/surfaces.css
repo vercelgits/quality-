@@ -90,7 +90,7 @@
  */
 .profile__banner {
   position: relative;
-  height: 180px;
+  height: 220px;
   overflow: hidden;
 }
 
@@ -134,8 +134,8 @@
 .profile__avatar {
   display: flex;
   justify-content: flex-start;
-  margin-top: -56px;
-  padding-left: var(--space-6);
+  margin-top: -64px;
+  padding-left: var(--space-7);
   /* Sort du plan de la carte : l'avatar avance vers le lecteur quand la carte
      penche, ce qui produit la parallaxe qui donne l'illusion de relief. */
   transform: translateZ(40px);
@@ -181,7 +181,11 @@
  * Le statut ne prend plus toute la largeur non plus : c'est une phrase courte,
  * un bandeau pleine largeur lui donnait le poids d'un avertissement.
  */
+/* `align-self` et non `display: inline-block` : la carte est une colonne flex,
+   qui transforme ses enfants en blocs et les etire sur toute la largeur. Le
+   statut est une phrase courte, il doit s'arreter a son texte. */
 .profile__status {
+  align-self: flex-start;
   display: inline-block;
   margin: var(--space-4) var(--space-6) 0;
   padding: var(--space-2) var(--space-4);
@@ -989,4 +993,83 @@
   .editor-images {
     margin-bottom: var(--space-3);
   }
+}
+
+/* --------------------------------------------------------------------------
+   Champ de pseudo
+   --------------------------------------------------------------------------
+   L'arobase est dessinee dans le champ plutot que tapee : la laisser a la
+   charge de qui saisit produit des pseudos commencant par « @@ », que la base
+   refuse ensuite sans que la raison saute aux yeux.
+   -------------------------------------------------------------------------- */
+
+.pseudo-champ {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pseudo-champ__arobase {
+  position: absolute;
+  left: var(--space-4);
+  color: var(--text-muted);
+  font-size: var(--text-md);
+  pointer-events: none;
+}
+
+.pseudo-champ__saisie {
+  width: 100%;
+  padding-left: calc(var(--space-4) + 1ch + 4px);
+}
+
+.pseudo-champ .spinner,
+.pseudo-champ__ok {
+  position: absolute;
+  right: var(--space-4);
+}
+
+.pseudo-champ__ok {
+  color: var(--success);
+}
+
+/* --------------------------------------------------------------------------
+   Fiche de profil : la hauteur
+   --------------------------------------------------------------------------
+   Elle se tassait en haut de l'ecran, large et courte, alors qu'elle decrit
+   une personne : bannieres, visage, bio, liens, espaces communs se lisent de
+   haut en bas. Elle occupe maintenant la hauteur disponible, dans la limite
+   de ce que la fenetre offre.
+
+   `min-height` plutot que `height` : une fiche presque vide ne doit pas
+   s'etirer sur du blanc, mais une fiche remplie ne doit plus etre bridee.
+   -------------------------------------------------------------------------- */
+
+.profile .tilt__inner {
+  display: flex;
+  flex-direction: column;
+  min-height: min(660px, 82vh);
+}
+
+/* La derniere marge pousse le bouton en bas plutot que de laisser un vide
+   sous lui : c'est l'action de la carte, sa place est au pied. */
+.profile__since {
+  margin-top: auto;
+}
+
+/* Les espaces communs prennent la place restante quand il y en a. */
+.profile__mutual-list {
+  max-height: min(220px, 32vh);
+}
+
+@media (max-height: 700px) {
+  .profile .tilt__inner {
+    min-height: 0;
+  }
+}
+
+.profile__mutual-empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-faint);
 }

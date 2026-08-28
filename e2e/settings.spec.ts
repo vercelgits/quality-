@@ -20,6 +20,18 @@ test.describe('Parametres', () => {
     });
   }
 
+  /*
+   * La colonne de gauche, et elle seule.
+   *
+   * Plusieurs sections portent des boutons dont l'intitule contient celui
+   * d'une section — « Modifier mon profil » contient « Profil ». Chercher dans
+   * la page entiere en attrapait deux et faisait echouer un test qui ne parle
+   * que de la navigation.
+   */
+  function nav(page: import('@playwright/test').Page) {
+    return page.getByRole('navigation', { name: 'Sections des parametres' });
+  }
+
   test('s ouvre sur Mon compte et liste toutes les sections', async ({ page }) => {
     await openSettings(page);
 
@@ -35,7 +47,7 @@ test.describe('Parametres', () => {
       'Raccourcis',
       'Avance',
     ]) {
-      await expect(page.getByRole('button', { name: label })).toBeVisible();
+      await expect(nav(page).getByRole('button', { name: label })).toBeVisible();
     }
   });
 
@@ -50,7 +62,7 @@ test.describe('Parametres', () => {
       'Notifications',
       'Raccourcis',
     ]) {
-      await page.getByRole('button', { name: label }).click();
+      await nav(page).getByRole('button', { name: label }).click();
       await expect(page.getByRole('heading', { level: 1, name: label })).toBeVisible();
     }
   });
@@ -91,7 +103,7 @@ test.describe('Parametres', () => {
 
   test('changer de theme agit immediatement et survit au rechargement', async ({ page }) => {
     await openSettings(page);
-    await page.getByRole('button', { name: 'Apparence' }).click();
+    await nav(page).getByRole('button', { name: 'Apparence' }).click();
 
     await page.getByRole('button', { name: 'Clair' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
@@ -103,14 +115,14 @@ test.describe('Parametres', () => {
 
     // On remet le theme sombre pour ne pas laisser le compte dans cet etat.
     await page.getByRole('button', { name: 'Preferences' }).click();
-    await page.getByRole('button', { name: 'Apparence' }).click();
+    await nav(page).getByRole('button', { name: 'Apparence' }).click();
     await page.getByRole('button', { name: 'Sombre' }).click();
     await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   });
 
   test('l etat des notifications est annonce, jamais promis a tort', async ({ page }) => {
     await openSettings(page);
-    await page.getByRole('button', { name: 'Notifications' }).click();
+    await nav(page).getByRole('button', { name: 'Notifications' }).click();
 
     // Trois issues possibles, toutes explicites : autorisees, bloquees, ou un
     // bouton pour demander. Aucune ne doit laisser la section muette.
@@ -130,7 +142,7 @@ test.describe('Parametres', () => {
     page,
   }) => {
     await openSettings(page);
-    await page.getByRole('button', { name: 'Accessibilite' }).click();
+    await nav(page).getByRole('button', { name: 'Accessibilite' }).click();
 
     const racine = page.locator('html');
     await expect(racine).toHaveAttribute('data-underline-links', 'off');
@@ -143,17 +155,65 @@ test.describe('Parametres', () => {
 
     // On repart d'un etat propre : le reglage est enregistre pour ce compte.
     await page.getByRole('button', { name: 'Preferences' }).click();
-    await page.getByRole('button', { name: 'Accessibilite' }).click();
+    await nav(page).getByRole('button', { name: 'Accessibilite' }).click();
     await page.getByText('Souligner les liens').click();
     await expect(racine).toHaveAttribute('data-underline-links', 'off');
   });
 
   test('la page Discussion regroupe ses reglages sous des intitules', async ({ page }) => {
     await openSettings(page);
-    await page.getByRole('button', { name: 'Discussion' }).click();
+    await nav(page).getByRole('button', { name: 'Discussion' }).click();
 
     for (const titre of ['Affichage des messages', 'Ecriture', 'Images animees']) {
       await expect(page.getByRole('heading', { level: 2, name: titre })).toBeVisible();
     }
+  });
+
+  /*
+   * Passer d'une boite a une autre.
+   *
+   * `dialog.close()` emet `close` sans dire qui l'a demande : en ouvrant
+   * l'editeur depuis la fiche, la fermeture de la fiche remettait l'etat a
+   * « aucune boite » et l'editeur disparaissait aussitot. Les boutons
+   * paraissaient morts. Le chemin complet est verifie ici, dans les deux sens.
+   */
+  test('ouvrir l editeur depuis la fiche de profil ne referme pas tout', async ({ page }) => {
+    await openSettings(page);
+
+    await page.getByRole('button', { name: 'Voir ma fiche' }).click();
+    const fiche = page.getByRole('dialog', { name: 'Profil', exact: true });
+    await expect(fiche).toBeVisible();
+
+    await fiche.getByRole('button', { name: 'Modifier mon profil' }).click();
+
+    const editeur = page.getByRole('dialog', { name: 'Mon profil', exact: true });
+    await expect(editeur).toBeVisible();
+    await expect(fiche).toBeHidden();
+
+    // Le pseudo se change ici : il etait annonce comme fixe alors que la
+    // fonction existait deja.
+    await expect(editeur.getByLabel('Pseudo')).toBeVisible();
+    await expect(
+      editeur.getByRole('button', { name: 'Changer la banniere', exact: true }),
+    ).toBeVisible();
+    await expect(
+      editeur.getByRole('button', { name: 'Changer la photo', exact: true }),
+    ).toBeVisible();
+
+    await editeur.getByRole('button', { name: 'Annuler' }).click();
+    await expect(editeur).toBeHidden();
+  });
+
+  test('la photo du compte reste ronde', async ({ page }) => {
+    await openSettings(page);
+
+    const avatar = page.locator('.account__head .avatar');
+    await expect(avatar).toBeVisible();
+
+    // Comprime en largeur par la ligne qui la contenait, elle devenait un
+    // ovale : la hauteur tenait, la largeur non.
+    const boite = await avatar.boundingBox();
+    expect(boite).not.toBeNull();
+    expect(Math.abs((boite?.width ?? 0) - (boite?.height ?? 0))).toBeLessThan(2);
   });
 });

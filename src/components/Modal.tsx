@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { Icon } from './Icon';
 
 interface ModalProps {
@@ -35,6 +35,40 @@ export function Modal({
 }: ModalProps) {
   const ref = useRef<HTMLDialogElement>(null);
 
+  /*
+   * Un identifiant par boite.
+   *
+   * Toutes portaient `id="modal-title"`. Plusieurs etant montees en meme temps
+   * — la plupart restent dans le document, simplement fermees — le document
+   * contenait autant de fois le meme identifiant, et `aria-labelledby` se
+   * resolvait sur le premier trouve. Une boite s'annoncait donc sous le titre
+   * d'une autre, aux lecteurs d'ecran comme aux tests.
+   */
+  const titreId = useId();
+
+  /*
+   * L'etat demande, lisible depuis les ecouteurs.
+   *
+   * `dialog.close()` emet `close` sans dire qui l'a demande. En passant d'une
+   * boite a une autre — « Modifier mon profil » depuis la fiche — la premiere
+   * se fermait, son `close` appelait `onClose`, et `onClose` remettait l'etat
+   * a « aucune boite » : celle qu'on venait d'ouvrir disparaissait dans la
+   * foulee. Les boutons paraissaient morts alors qu'ils faisaient exactement
+   * leur travail.
+   *
+   * On ne peut pas s'en sortir avec un drapeau pose le temps de l'appel :
+   * `close` n'est pas emis sur-le-champ mais dans une tache differee, et le
+   * drapeau est deja retombe quand l'ecouteur s'execute.
+   *
+   * Le critere fiable est l'etat demande au moment ou l'evenement arrive. Une
+   * fermeture voulue par la personne — Echap, la croix, le fond — survient
+   * alors que la boite est censee etre ouverte. Une fermeture que nous avons
+   * declenchee survient alors qu'elle est deja censee etre fermee : il n'y a
+   * plus rien a annoncer.
+   */
+  const ouvertureVoulue = useRef(open);
+  ouvertureVoulue.current = open;
+
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -55,7 +89,10 @@ export function Modal({
       event.preventDefault();
       onClose();
     };
-    const handleClose = () => onClose();
+    const handleClose = () => {
+      if (!ouvertureVoulue.current) return;
+      onClose();
+    };
 
     dialog.addEventListener('cancel', handleCancel);
     dialog.addEventListener('close', handleClose);
@@ -70,7 +107,7 @@ export function Modal({
       ref={ref}
       className="modal"
       style={{ maxWidth: width }}
-      {...(bare ? { 'aria-label': title } : { 'aria-labelledby': 'modal-title' })}
+      {...(bare ? { 'aria-label': title } : { 'aria-labelledby': titreId })}
       // Un clic sur la zone hors du panneau ferme la boite, comme partout.
       onClick={(event) => {
         if (event.target === ref.current) onClose();
@@ -89,7 +126,7 @@ export function Modal({
         ) : (
         <header className="modal__header">
           <div className="stack" style={{ gap: 'var(--space-1)', minWidth: 0 }}>
-            <h2 className="modal__title" id="modal-title">
+            <h2 className="modal__title" id={titreId}>
               {title}
             </h2>
             {description ? <p className="modal__description">{description}</p> : null}
