@@ -1059,8 +1059,8 @@
 
 .profile__grid {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
-  min-height: min(520px, 70vh);
+  grid-template-columns: 340px minmax(0, 1fr);
+  min-height: min(600px, 76vh);
 }
 
 .profile__aside {
@@ -1127,11 +1127,22 @@
    Colonne de gauche
    -------------------------------------------------------------------------- */
 
-.profile__aside .profile__banner {
-  height: 168px;
+/*
+ * Une banniere large plutot qu'une vignette.
+ *
+ * Confinee a la colonne de gauche, elle offrait trois cents pixels a une image
+ * concue pour en faire mille : on n'en voyait qu'un tiers. Elle coiffe
+ * desormais la fiche entiere, et les deux colonnes commencent dessous — c'est
+ * le sens d'une banniere.
+ */
+.profile__card .profile__banner {
+  height: 200px;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
 }
 
 .profile__aside .profile__avatar {
+  position: relative;
+  z-index: 2;
   margin-top: -56px;
   padding-left: var(--space-5);
   /*

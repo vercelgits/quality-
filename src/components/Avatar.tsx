@@ -84,7 +84,9 @@ export function Avatar({ profile, size = 38, status, showStatus = false }: Avata
       {showStatus && status ? (
         <span
           className={`avatar__status avatar__status--${status}`}
-          style={{ width: Math.max(8, size * 0.3), height: Math.max(8, size * 0.3) }}
+          // Un quart plutot qu'un tiers : a trente pour cent, sur un grand
+          // avatar, la pastille prenait plus de place que le visage n'en perd.
+          style={{ width: Math.max(8, size * 0.24), height: Math.max(8, size * 0.24) }}
           title={STATUS_LABEL[status]}
         >
           <span className="visually-hidden">{STATUS_LABEL[status]}</span>

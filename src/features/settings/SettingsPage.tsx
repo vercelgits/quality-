@@ -205,7 +205,7 @@ function AccountSection() {
           </div>
 
           <div className="account__head">
-            <Avatar profile={profile} size={88} showStatus />
+            <Avatar profile={profile} size={88} status={profile.status} showStatus />
           </div>
 
           {/* Sous la banniere, pas dessus : pose dessus, le nom devenait

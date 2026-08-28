@@ -695,10 +695,21 @@
 
 /* La pastille de presence est detouree dans l'avatar, pas posee dessus : le
    masque evite le halo qu'une bordure opaque laisserait sur un fond different. */
+/*
+ * La pastille d'etat se pose SUR le cercle, pas a cote.
+ *
+ * Elle depassait de cinq pixels en bas a droite, hors du disque. La silhouette
+ * de l'ensemble — un rond, plus un renflement d'un seul cote — se lisait comme
+ * un oeuf, et c'est ce qu'on voyait : ce n'est pas l'avatar qui etait ovale,
+ * c'est la pastille qui en cassait la rondeur.
+ *
+ * Posee a quatre pour cent du bord, son centre tombe pres du point du disque a
+ * quarante-cinq degres : elle mord sur le cercle au lieu d'en sortir.
+ */
 .avatar__status {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: 4%;
+  bottom: 4%;
   border-radius: 50%;
   border: 3px solid var(--bg-sidebar);
   box-sizing: content-box;

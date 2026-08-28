@@ -135,7 +135,17 @@ export function SpaceRail() {
           const isActive = space.id === activeSpaceId;
 
           return (
-            <li key={space.id} className="rail__item">
+            // Le clic droit vaut sur toute la ligne, pastille comprise : viser
+            // exactement le bouton demanderait une precision que rien ne
+            // justifie ici.
+            <li
+              key={space.id}
+              className="rail__item"
+              onContextMenu={(event) => {
+                setCible(space.id);
+                menu.open(event);
+              }}
+            >
               <span
                 className={
                   'rail__indicator' +
@@ -154,10 +164,6 @@ export function SpaceRail() {
                   'rail__button' + (isActive && view === 'space' ? ' is-active' : '')
                 }
                 onClick={() => selectSpace(space.id)}
-                onContextMenu={(event) => {
-                  setCible(space.id);
-                  menu.open(event);
-                }}
                 aria-current={isActive ? 'true' : undefined}
                 title={space.name}
               >

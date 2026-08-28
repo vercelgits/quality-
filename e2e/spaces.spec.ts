@@ -216,57 +216,89 @@ test.describe('Espaces et salons', () => {
     await expect(openDialog(page)).toHaveCount(0);
   });
   /*
-   * Le clic droit sur un salon.
+   * Les entrees sont relevees en une fois.
    *
-   * Les reglages ne s'atteignaient que par une roue dentee visible au survol,
-   * et seulement pour qui administre : les autres n'avaient aucun moyen de
-   * marquer un salon comme lu ou d'en copier le lien.
+   * Le menu se referme au moindre defilement — c'est voulu, un menu ancre a un
+   * point de l'ecran n'a plus de sens quand ce point a bouge. Mais cela veut
+   * dire qu'on ne peut pas l'interroger entree par entree : la premiere
+   * attente le laisse ouvert, la troisieme le trouve deja parti. On prend donc
+   * la liste entiere d'un coup.
    */
+  /*
+   * Ouvre le menu contextuel une fois la cible immobile.
+   *
+   * Le menu se ferme au moindre defilement. Or un clic commence par amener sa
+   * cible dans le champ : si ce defilement n'est pas termine quand le menu
+   * s'ouvre, il se referme dans la foulee et l'on releve une liste vide.
+   */
+  async function ouvrirMenu(
+    page: import('@playwright/test').Page,
+    cible: import('@playwright/test').Locator,
+  ): Promise<void> {
+    await expect(cible).toBeVisible({ timeout: 15_000 });
+    await cible.scrollIntoViewIfNeeded();
+
+    await expect
+      .poll(
+        async () => {
+          const avant = await cible.boundingBox();
+          await page.waitForTimeout(100);
+          const apres = await cible.boundingBox();
+          return avant && apres && Math.abs(avant.y - apres.y) < 1;
+        },
+        { timeout: 10_000, message: 'la liste continue de defiler' },
+      )
+      .toBe(true);
+
+    await cible.click({ button: 'right' });
+  }
+
+  async function entreesDuMenu(page: import('@playwright/test').Page): Promise<string[]> {
+    await expect(page.getByRole('menu')).toBeVisible();
+    return page
+      .getByRole('menu')
+      .locator('[role="menuitem"]')
+      .evaluateAll((noeuds) => noeuds.map((n) => (n.textContent ?? '').trim()));
+  }
+
   test('le clic droit sur un salon ouvre ses actions', async ({ page }) => {
     await openApp(page);
 
     // Le salon ouvert : il est forcement visible, la ou le premier de la liste
     // peut se trouver dans une categorie repliee.
-    const salon = page.locator('.channel.is-active').first();
-    await expect(salon).toBeVisible({ timeout: 15_000 });
-    await salon.click({ button: 'right' });
+    await ouvrirMenu(page, page.locator('.channel.is-active').first());
 
-    const menu = page.getByRole('menu');
-    await expect(menu).toBeVisible();
+    const entrees = await entreesDuMenu(page);
 
     // « Copier le lien du salon » discrimine : le menu d'un espace propose
     // « Tout marquer comme lu », qu'une recherche par sous-chaine confondrait
     // avec « Marquer comme lu ».
-    await expect(menu.getByRole('menuitem', { name: 'Copier le lien du salon' })).toBeVisible();
-    await expect(
-      menu.getByRole('menuitem', { name: 'Marquer comme lu', exact: true }),
-    ).toBeVisible();
+    expect(entrees).toContain('Copier le lien du salon');
+    expect(entrees).toContain('Marquer comme lu');
+    expect(entrees).toContain('Copier le nom');
 
     await page.keyboard.press('Escape');
-    await expect(menu).toHaveCount(0);
+    await expect(page.getByRole('menu')).toHaveCount(0);
   });
 
   test('le clic droit sur un espace ouvre ses actions', async ({ page }) => {
     await openApp(page);
 
-    const pastille = page.locator('.rail__list .rail__button').first();
-    await expect(pastille).toBeVisible({ timeout: 15_000 });
-    await pastille.click({ button: 'right' });
+    await ouvrirMenu(page, page.locator('.rail__list .rail__button').first());
 
-    const menu = page.getByRole('menu');
-    await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Inviter des personnes' })).toBeVisible();
-    await expect(
-      menu.getByRole('menuitem', { name: "Parametres de l'espace" }),
-    ).toBeVisible();
+    const entrees = await entreesDuMenu(page);
+
+    expect(entrees).toContain('Inviter des personnes');
+    expect(entrees).toContain("Parametres de l'espace");
 
     // Quitter ou supprimer selon le rang, mais jamais les deux : partir de son
     // propre espace le laisserait sans personne pour l'administrer.
-    const quitter = menu.getByRole('menuitem', { name: "Quitter l'espace" });
-    const supprimer = menu.getByRole('menuitem', { name: "Supprimer l'espace" });
-    expect((await quitter.count()) + (await supprimer.count())).toBe(1);
+    const sorties = entrees.filter(
+      (e) => e === "Quitter l'espace" || e === "Supprimer l'espace",
+    );
+    expect(sorties).toHaveLength(1);
 
     await page.keyboard.press('Escape');
-    await expect(menu).toHaveCount(0);
+    await expect(page.getByRole('menu')).toHaveCount(0);
   });
 });

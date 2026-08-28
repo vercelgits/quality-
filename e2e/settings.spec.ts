@@ -215,5 +215,20 @@ test.describe('Parametres', () => {
     const boite = await avatar.boundingBox();
     expect(boite).not.toBeNull();
     expect(Math.abs((boite?.width ?? 0) - (boite?.height ?? 0))).toBeLessThan(2);
+
+    /*
+     * La pastille d'etat reste dans le cadre.
+     *
+     * Elle debordait de cinq pixels en bas a droite : la silhouette de
+     * l'ensemble se lisait comme un oeuf, et c'est ce qu'on prenait pour un
+     * avatar ovale. Le cadre etant rond au pixel, c'est ce depassement qu'il
+     * faut retenir.
+     */
+    const dot = avatar.locator('.avatar__status');
+    const pastille = (await dot.count()) > 0 ? await dot.boundingBox() : null;
+    if (pastille && boite) {
+      expect(pastille.x + pastille.width).toBeLessThanOrEqual(boite.x + boite.width + 1);
+      expect(pastille.y + pastille.height).toBeLessThanOrEqual(boite.y + boite.height + 1);
+    }
   });
 });

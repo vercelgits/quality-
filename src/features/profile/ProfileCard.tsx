@@ -133,40 +133,43 @@ export function ProfileCard({ userId }: { userId: UUID }) {
       </div>
 
       <TiltCard className="profile__card" glare>
+        {/* Elle coiffe la fiche entiere : une banniere est faite pour etre
+            large, et confinee a la colonne de gauche on n'en voyait qu'un
+            tiers. */}
+        <div className="profile__banner">
+          {profile.banner_url ? (
+            isAnimatable(profile.banner_url) ? (
+          <AnimatedImage
+            src={profile.banner_url}
+            alt=""
+            className="profile__banner-image"
+            // Ouvrir une fiche est deja un geste delibere : la banniere
+            // s'anime sans qu'il faille en plus la survoler.
+            // « Jamais » reste respecte — c'est une demande, pas un
+            // defaut.
+            mode={animate === 'never' ? 'never' : 'always'}
+          />
+            ) : (
+          <img src={profile.banner_url} alt="" className="profile__banner-image" />
+            )
+          ) : (
+            <span className="profile__banner-fallback" />
+          )}
+
+          {isMe ? (
+            <button
+          type="button"
+          className="profile__banner-edit"
+          onClick={() => openModal({ kind: 'edit-profile' })}
+            >
+          <Icon name="camera" size={15} />
+          Changer
+            </button>
+          ) : null}
+        </div>
+
         <div className="profile__grid">
           <div className="profile__aside">
-            <div className="profile__banner">
-              {profile.banner_url ? (
-                isAnimatable(profile.banner_url) ? (
-                  <AnimatedImage
-                    src={profile.banner_url}
-                    alt=""
-                    className="profile__banner-image"
-                    // Ouvrir une fiche est deja un geste delibere : la banniere
-                    // s'anime sans qu'il faille en plus la survoler.
-                    // « Jamais » reste respecte — c'est une demande, pas un
-                    // defaut.
-                    mode={animate === 'never' ? 'never' : 'always'}
-                  />
-                ) : (
-                  <img src={profile.banner_url} alt="" className="profile__banner-image" />
-                )
-              ) : (
-                <span className="profile__banner-fallback" />
-              )}
-
-              {isMe ? (
-                <button
-                  type="button"
-                  className="profile__banner-edit"
-                  onClick={() => openModal({ kind: 'edit-profile' })}
-                >
-                  <Icon name="camera" size={15} />
-                  Changer
-                </button>
-              ) : null}
-            </div>
-
             <div className="profile__avatar">
               {isMe ? (
                 <button

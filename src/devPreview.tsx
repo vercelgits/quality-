@@ -23,7 +23,7 @@ import { useUI, type SettingsSection } from '@/store/ui';
 export function devPreview(name: string): ReactNode | null {
   if (name === 'amis') return <FriendsPage />;
 
-  if (name === 'profil') {
+  if (name === 'profil' || name === 'profil:moi') {
     // Un profil rempli, pose directement dans le magasin : la carte se lit mal
     // a vide, or c'est justement la version pleine — banniere, bio, liens,
     // espaces en commun — qu'il faut regarder quand on retouche sa mise en
@@ -46,11 +46,21 @@ export function devPreview(name: string): ReactNode | null {
 
     useChat.setState((state) => ({ profiles: { ...state.profiles, [faux.id]: faux as never } }));
 
+    /*
+     * `?preview=profil:moi` ouvre sa PROPRE fiche.
+     *
+     * C'est un autre rendu : l'avatar y est enveloppe dans un bouton, la
+     * banniere porte « Changer », et les onglets communs disparaissent. Ce
+     * chemin n'etait couvert par aucun apercu, et c'est precisement celui que
+     * l'on voit tous les jours.
+     */
+    if (name.endsWith(':moi')) useSession.setState({ profile: faux as never });
+
     // La largeur de la boite qui l'accueille dans l'application : sans elle,
     // la carte s'etale sur tout l'ecran et sa mise en page n'a plus rien a
     // voir avec ce que l'on verra.
     return (
-      <div style={{ maxWidth: 860, margin: '0 auto' }}>
+      <div style={{ maxWidth: 960, margin: '0 auto' }}>
         <ProfileCard userId={faux.id} />
       </div>
     );
