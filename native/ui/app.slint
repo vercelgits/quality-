@@ -232,6 +232,7 @@ export component Coquille inherits Window {
     in property <string> espace-actif;
     in property <string> salon-actif;
     in property <string> sujet-salon;
+    in property <bool> salon-vocal: false;
     in property <bool> temps-reel: false;
 
     callback choisir-espace(string);
@@ -408,7 +409,7 @@ export component Coquille inherits Window {
                             spacing: 10px;
                             alignment: start;
                             Text {
-                                text: root.salon-actif;
+                                text: (root.salon-vocal ? "♪  " : "#  ") + root.salon-actif;
                                 color: Theme.texte;
                                 font-size: 15px;
                                 font-weight: 700;
@@ -424,7 +425,51 @@ export component Coquille inherits Window {
                     }
                     Rectangle { height: 1px; background: Theme.bordure; }
 
-                    ScrollView {
+                    if root.salon-vocal: VerticalLayout {
+                        alignment: center;
+                        spacing: 8px;
+
+                        Text {
+                            text: "♪";
+                            color: Theme.texte-faible;
+                            font-size: 40px;
+                            horizontal-alignment: center;
+                        }
+                        Text {
+                            text: "Salon vocal";
+                            color: Theme.texte;
+                            font-size: 17px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                        }
+                        Text {
+                            text: "La voix n'est pas encore branchee dans le client natif.";
+                            color: Theme.texte-faible;
+                            font-size: 13px;
+                            horizontal-alignment: center;
+                        }
+                    }
+
+                    if !root.salon-vocal && root.messages.length == 0: VerticalLayout {
+                        alignment: center;
+                        spacing: 6px;
+
+                        Text {
+                            text: "Aucun message";
+                            color: Theme.texte;
+                            font-size: 17px;
+                            font-weight: 600;
+                            horizontal-alignment: center;
+                        }
+                        Text {
+                            text: "Ecrivez le premier, en bas.";
+                            color: Theme.texte-faible;
+                            font-size: 13px;
+                            horizontal-alignment: center;
+                        }
+                    }
+
+                    if !root.salon-vocal: ScrollView {
                         vertical-stretch: 1;
 
                         VerticalLayout {
@@ -443,7 +488,27 @@ export component Coquille inherits Window {
                         }
                     }
 
-                    HorizontalLayout {
+                    if root.salon-vocal: HorizontalLayout {
+                        padding: 16px;
+
+                        Rectangle {
+                            height: 44px;
+                            border-radius: Theme.rayon-sm;
+                            background: zone-vocal.has-hover ? #4752c4 : Theme.accent;
+                            animate background { duration: 120ms; }
+
+                            Text {
+                                text: "Rejoindre le salon vocal";
+                                color: white;
+                                font-size: 15px;
+                                font-weight: 600;
+                            }
+
+                            zone-vocal := TouchArea {}
+                        }
+                    }
+
+                    if !root.salon-vocal: HorizontalLayout {
                         padding-left: 16px;
                         padding-right: 16px;
 

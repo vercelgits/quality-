@@ -230,12 +230,13 @@ fn rafraichir_vue(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
         .map(|e| e.name.clone())
         .unwrap_or_default();
 
-    let nom_salon = amorce
+    let salon_ouvert = amorce
         .channels
         .iter()
-        .find(|c| Some(c.id.as_str()) == garde.salon_actif.as_deref())
-        .map(|c| format!("#  {}", c.name))
-        .unwrap_or_default();
+        .find(|c| Some(c.id.as_str()) == garde.salon_actif.as_deref());
+
+    let nom_salon = salon_ouvert.map(|c| c.name.clone()).unwrap_or_default();
+    let est_vocal = salon_ouvert.map(|c| c.kind == "voice").unwrap_or(false);
 
     // Les membres viennent des profils de l'amorce : ce sont les personnes
     // qu'on est susceptible de croiser, et la liste est deja en memoire.
@@ -258,6 +259,7 @@ fn rafraichir_vue(fenetre: &Coquille, etat: &Arc<Mutex<Etat>>) {
     fenetre.set_membres(ModelRc::new(VecModel::from(membres)));
     fenetre.set_espace_actif(nom_espace.into());
     fenetre.set_salon_actif(nom_salon.into());
+    fenetre.set_salon_vocal(est_vocal);
 }
 
 /// Charge les derniers messages du salon ouvert.
