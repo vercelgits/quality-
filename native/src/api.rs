@@ -356,6 +356,7 @@ impl Client {
     }
 
     /// Relit un message precis.
+    #[allow(dead_code, reason = "utilise par les tests, et par la relecture a venir")]
     ///
     /// Utile pour verifier qu'une ecriture a bien atteint la base : chercher le
     /// message parmi les derniers depend du trafic du salon, et echoue des que
