@@ -630,3 +630,47 @@
 :root[data-transparency='off'] .workspace::after {
   display: none;
 }
+
+/* ==========================================================================
+   Commandes du vocal dans la barre utilisateur
+
+   Les memes reperes que sur la scene : ce sont les boutons qu'on cherche le
+   plus vite, souvent au milieu d'une phrase, et ils doivent se reconnaitre
+   sans lire l'infobulle.
+   ========================================================================== */
+
+.userbar__controls .icon-btn svg {
+  transition: transform var(--duration-fast) var(--spring);
+}
+
+.userbar__controls .icon-btn:hover svg {
+  transform: scale(1.12);
+}
+
+.userbar__controls .icon-btn.is-active {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.userbar__controls .icon-btn.is-active:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* Le micro coupe respire, ici aussi : c'est la barre qu'on a sous les yeux
+   quand on parle sans etre entendu. */
+.userbar__controls .icon-btn.is-active:first-child {
+  animation: rappel-coupe-discret 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes rappel-coupe-discret {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--danger) 40%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in oklab, var(--danger) 22%, transparent); }
+}
+
+[data-motion='reduced'] .userbar__controls .icon-btn,
+[data-motion='reduced'] .userbar__controls .icon-btn svg {
+  animation: none;
+  transition: none;
+  transform: none;
+}

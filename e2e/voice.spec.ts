@@ -188,6 +188,38 @@ test.describe('Salon vocal', () => {
     await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
   });
 
+  test('couper et diffuser ne portent pas la meme couleur', async ({ page }) => {
+    if (!(await openVoiceChannel(page))) return;
+    await page.getByRole('button', { name: 'Rejoindre le salon vocal' }).click();
+
+    const micro = stage(page).locator('.voice-controls__mic');
+    await expect(micro).toBeVisible({ timeout: 20_000 });
+
+    const fond = (cible: ReturnType<typeof stage>) =>
+      cible.evaluate((n) => getComputedStyle(n).backgroundColor);
+
+    // Couper le micro : rouge, comme tout ce qui interrompt.
+    //
+    // La souris est ecartee apres le clic : rester dessus donne la teinte de
+    // survol, plus sombre, et le test mesurerait alors autre chose que l'etat.
+    await micro.click();
+    await page.mouse.move(0, 0);
+    await expect.poll(() => fond(micro)).toContain('rgb(218, 55, 60)');
+
+    // Diffuser sa camera : vert. Le meme rouge pour les deux forcerait a lire
+    // l'infobulle pour savoir si l'on emet ou si l'on est coupe.
+    const camera = stage(page).getByRole('button', { name: 'Activer la camera' });
+    await camera.click();
+
+    const cameraActive = stage(page).getByRole('button', { name: 'Couper la camera' });
+    await expect(cameraActive).toBeVisible({ timeout: 15_000 });
+    await page.mouse.move(0, 0);
+    await expect.poll(() => fond(cameraActive)).toContain('rgb(35, 165, 89)');
+
+    await cameraActive.click();
+    await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
+  });
+
   test('le test du micro demarre et s arrete', async ({ page }) => {
     await openApp(page);
 

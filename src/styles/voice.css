@@ -346,3 +346,137 @@
     display: none;
   }
 }
+
+/* ==========================================================================
+   Commandes du vocal
+
+   Plus grandes, colorees selon ce qu'elles font, et qui repondent au doigt.
+   Des ronds gris identiques obligent a lire l'infobulle pour savoir lequel
+   coupe le micro — alors que ce sont les boutons qu'on cherche le plus vite,
+   souvent au milieu d'une phrase.
+   ========================================================================== */
+
+.voice-controls .icon-btn {
+  width: 52px;
+  height: 52px;
+  position: relative;
+  overflow: hidden;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.voice-controls .icon-btn svg {
+  width: 22px;
+  height: 22px;
+  transition: transform var(--duration-fast) var(--spring);
+}
+
+.voice-controls .icon-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.voice-controls .icon-btn:hover svg {
+  transform: scale(1.1);
+}
+
+.voice-controls .icon-btn:active {
+  transform: translateY(0) scale(0.92);
+  transition-duration: var(--duration-instant);
+}
+
+/*
+ * Onde qui part du centre au clic.
+ *
+ * Elle confirme que l'appui a ete pris en compte avant meme que l'etat ne
+ * change — et couper son micro est justement l'action ou l'on doute le plus
+ * d'avoir reussi.
+ */
+.voice-controls .icon-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: currentColor;
+  opacity: 0;
+  transform: scale(0.2);
+}
+
+.voice-controls .icon-btn:active::after {
+  animation: onde-appui 420ms var(--ease-out);
+}
+
+@keyframes onde-appui {
+  from { opacity: 0.28; transform: scale(0.2); }
+  to   { opacity: 0;    transform: scale(1.6); }
+}
+
+/* Chaque commande porte sa couleur une fois active : rouge pour ce qui coupe,
+   vert pour ce qui diffuse. */
+.voice-controls .icon-btn.is-active {
+  background: var(--danger);
+  color: #fff;
+  box-shadow: 0 0 18px color-mix(in oklab, var(--danger) 45%, transparent);
+}
+
+.voice-controls .icon-btn.is-active:hover {
+  background: var(--danger-hover);
+}
+
+/* Camera et partage diffusent : leur etat actif est vert, pas rouge. */
+.voice-controls .icon-btn.is-broadcasting {
+  background: var(--success);
+  color: #fff;
+  box-shadow: 0 0 18px color-mix(in oklab, var(--success) 45%, transparent);
+}
+
+/*
+ * Le micro coupe respire lentement.
+ *
+ * On oublie qu'on est mute — c'est l'erreur la plus courante en vocal. Un
+ * halo qui bat rappelle l'etat sans occuper l'attention.
+ */
+/* Une classe plutot qu'un fragment d'infobulle : reformuler « Couper le
+   micro » aurait silencieusement supprime ce rappel. */
+.voice-controls__mic.is-active {
+  animation: rappel-coupe 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes rappel-coupe {
+  0%, 100% { box-shadow: 0 0 14px color-mix(in oklab, var(--danger) 35%, transparent); }
+  50%      { box-shadow: 0 0 26px color-mix(in oklab, var(--danger) 60%, transparent); }
+}
+
+/* Quitter : la seule action sans retour, donc la seule qui reste large. */
+.voice-controls .btn--danger {
+  width: 68px;
+  height: 52px;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.voice-controls .btn--danger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 22px color-mix(in oklab, var(--danger) 50%, transparent);
+}
+
+.voice-controls .btn--danger:active {
+  transform: translateY(0) scale(0.94);
+}
+
+[data-motion='reduced'] .voice-controls .icon-btn,
+[data-motion='reduced'] .voice-controls .icon-btn svg,
+[data-motion='reduced'] .voice-controls .btn--danger {
+  transition: none;
+  transform: none;
+  animation: none;
+}
+
+[data-motion='reduced'] .voice-controls .icon-btn::after {
+  display: none;
+}

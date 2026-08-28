@@ -10,6 +10,7 @@ import {
   screenBitrate,
   cameraBitrate,
   applyEncodingWithRetry,
+  preferVideoCodec,
 } from '@/store/devices';
 import type { UUID, VoiceParticipant, VoiceSignal } from '@/types/db';
 
@@ -852,6 +853,14 @@ export const useVoice = create<VoiceState>((set, get) => {
 
       for (const [peerId, peer] of peers) {
         peer.screenSender = peer.connection.addTrack(videoTrack, display);
+
+        // Le codec se choisit sur le transceiver, pas sur l'emetteur : c'est
+        // lui qui porte la negociation.
+        const transceiver = peer.connection
+          .getTransceivers()
+          .find((t) => t.sender === peer.screenSender);
+        if (transceiver) preferVideoCodec(transceiver);
+
         void applyEncodingWithRetry(peer.screenSender, screenBitrate(media), media.screenPriority);
 
         if (audioTrack) {

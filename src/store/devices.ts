@@ -372,3 +372,40 @@ export async function applySink(element: HTMLAudioElement, speakerId: string | n
     // Appareil disparu ou permission absente.
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Codec                                                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Impose un codec video au transceiver d'un partage.
+ *
+ * Sans consigne, le navigateur negocie souvent VP8 : il est partout, mais a
+ * debit egal il rend nettement moins bien qu'AV1 ou VP9 sur du texte et des
+ * aplats — c'est-a-dire sur un ecran partage. La difference se voit surtout
+ * dans les zones fines, ou VP8 fait baver les caracteres.
+ *
+ * L'ordre exprime une preference, pas une exigence : si le pair d'en face ne
+ * sait decoder que VP8, la negociation retombe dessus. Rien ne casse.
+ */
+export function preferVideoCodec(
+  transceiver: RTCRtpTransceiver,
+  ordre: readonly string[] = ['video/AV1', 'video/VP9', 'video/H264', 'video/VP8'],
+): void {
+  try {
+    const disponibles = RTCRtpSender.getCapabilities('video')?.codecs;
+    if (!disponibles || typeof transceiver.setCodecPreferences !== 'function') return;
+
+    const rang = (codec: RTCRtpCodec) => {
+      const index = ordre.indexOf(codec.mimeType);
+      // Les codecs hors liste passent apres, dans leur ordre d'origine.
+      return index === -1 ? ordre.length : index;
+    };
+
+    const classes = [...disponibles].sort((a, b) => rang(a) - rang(b));
+    transceiver.setCodecPreferences(classes);
+  } catch {
+    // Navigateur qui refuse, ou negociation deja engagee : on garde le choix
+    // par defaut plutot que d'interrompre le partage.
+  }
+}

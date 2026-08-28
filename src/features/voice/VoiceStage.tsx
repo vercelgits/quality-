@@ -226,7 +226,7 @@ export function VoiceStage({ channel }: { channel: Channel }) {
 
         <button
           type="button"
-          className={'icon-btn' + (muted ? ' is-active' : '')}
+          className={'icon-btn voice-controls__mic' + (muted ? ' is-active' : '')}
           onClick={toggleMute}
           aria-pressed={muted}
           title={muted ? 'Reactiver le micro' : 'Couper le micro'}
@@ -246,7 +246,7 @@ export function VoiceStage({ channel }: { channel: Channel }) {
 
         <button
           type="button"
-          className={'icon-btn' + (cameraOn ? ' is-active' : '')}
+          className={'icon-btn' + (cameraOn ? ' is-broadcasting' : '')}
           onClick={() => void toggleCamera()}
           aria-pressed={cameraOn}
           title={cameraOn ? 'Couper la camera' : 'Activer la camera'}
@@ -256,7 +256,7 @@ export function VoiceStage({ channel }: { channel: Channel }) {
 
         <button
           type="button"
-          className={'icon-btn' + (sharing ? ' is-active' : '')}
+          className={'icon-btn' + (sharing ? ' is-broadcasting' : '')}
           onClick={() => void toggleScreenShare()}
           aria-pressed={sharing}
           title={sharing ? 'Arreter le partage' : 'Partager l’ecran'}
