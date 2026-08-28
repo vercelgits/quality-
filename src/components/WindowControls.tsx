@@ -57,12 +57,25 @@ export function WindowControls() {
 
   const agir = (action: 'reduire' | 'basculer' | 'fermer') => {
     void (async () => {
-      const { getCurrentWindow } = await import('@tauri-apps/api/window');
-      const fenetre = getCurrentWindow();
+      try {
+        const { getCurrentWindow } = await import('@tauri-apps/api/window');
+        const fenetre = getCurrentWindow();
 
-      if (action === 'reduire') await fenetre.minimize();
-      else if (action === 'fermer') await fenetre.close();
-      else await fenetre.toggleMaximize();
+        if (action === 'reduire') await fenetre.minimize();
+        else if (action === 'fermer') await fenetre.close();
+        else await fenetre.toggleMaximize();
+      } catch (cause) {
+        /*
+         * Un refus doit s'entendre.
+         *
+         * Ces appels passent par le systeme de permissions de Tauri : sans la
+         * capacite correspondante, la promesse est rejetee et il ne se passe
+         * rien du tout. Le bouton parait casse, et rien n'indique ou chercher —
+         * c'est exactement ce qui est arrive a « Fermer » et « Agrandir »,
+         * accordees nulle part pendant que « Reduire » l'etait.
+         */
+        console.error(`Commande de fenetre refusee (${action}) :`, cause);
+      }
     })();
   };
 

@@ -1059,8 +1059,8 @@
 
 .profile__grid {
   display: grid;
-  grid-template-columns: 340px minmax(0, 1fr);
-  min-height: min(600px, 76vh);
+  grid-template-columns: 420px minmax(0, 1fr);
+  min-height: min(560px, 74vh);
 }
 
 .profile__aside {
@@ -1128,22 +1128,22 @@
    -------------------------------------------------------------------------- */
 
 /*
- * Une banniere large plutot qu'une vignette.
+ * La banniere coiffe la colonne de gauche, pas la fiche entiere.
  *
- * Confinee a la colonne de gauche, elle offrait trois cents pixels a une image
- * concue pour en faire mille : on n'en voyait qu'un tiers. Elle coiffe
- * desormais la fiche entiere, et les deux colonnes commencent dessous — c'est
- * le sens d'une banniere.
+ * Elle appartient a l'identite : elle doit surmonter le visage et le nom, pas
+ * les onglets. La colonne est en revanche assez large pour qu'on en voie
+ * quelque chose, et le format reste franchement horizontal — 420 sur 132, soit
+ * a peu pres trois pour un.
  */
-.profile__card .profile__banner {
-  height: 200px;
-  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+.profile__aside .profile__banner {
+  height: 132px;
+  border-radius: var(--radius-xl) 0 0 0;
 }
 
 .profile__aside .profile__avatar {
   position: relative;
   z-index: 2;
-  margin-top: -56px;
+  margin-top: -50px;
   padding-left: var(--space-5);
   /*
    * A plat.

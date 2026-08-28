@@ -60,7 +60,7 @@ export function devPreview(name: string): ReactNode | null {
     // la carte s'etale sur tout l'ecran et sa mise en page n'a plus rien a
     // voir avec ce que l'on verra.
     return (
-      <div style={{ maxWidth: 960, margin: '0 auto' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto' }}>
         <ProfileCard userId={faux.id} />
       </div>
     );

@@ -679,12 +679,38 @@
   border-radius: 50%;
 }
 
+/*
+ * Un cercle, pas une ellipse.
+ *
+ * `border-radius: 50%` decrit un pourcentage de CHAQUE cote : sur une boite de
+ * cent par cent-vingt, il dessine une ellipse, pas un rond. Il ne garantit
+ * donc rien tant qu'on n'a pas prouve que la boite est carree — et il suffit
+ * d'un parent en grille, d'une ligne de flex trop courte ou d'une hauteur
+ * heritee pour qu'elle ne le soit plus.
+ *
+ * `clip-path: circle(50%)` ne depend pas du rapport de la boite : le rayon est
+ * calcule sur la diagonale, et la decoupe reste ronde quoi qu'il arrive. Le
+ * `border-radius` est conserve pour les moteurs qui ignoreraient la decoupe.
+ */
 .avatar__image,
 .avatar__initials {
   width: 100%;
   height: 100%;
   border-radius: 50%;
+  clip-path: circle(50%);
   object-fit: cover;
+}
+
+/*
+ * L'anneau clair autour de la photo suit la meme regle.
+ *
+ * Il vient d'un fond et d'une marge interieure sur `.avatar`, decoupes par le
+ * meme rayon en pourcentage : si la boite s'allonge, l'anneau s'allonge avec
+ * elle et c'est lui qu'on voit deborder. `aspect-ratio` rattrape le cas ou une
+ * des deux mesures serait contredite.
+ */
+.avatar {
+  aspect-ratio: 1;
 }
 
 .avatar__initials {

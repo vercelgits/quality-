@@ -440,7 +440,7 @@ function ProfileModal({
   // La carte se suffit a elle-meme : la boite ne porte ni titre ni chrome, pour
   // que la banniere touche le bord et que la carte reste l'objet principal.
   return (
-    <Modal open={open} title="Profil" onClose={onClose} width={960} bare>
+    <Modal open={open} title="Profil" onClose={onClose} width={900} bare>
       {userId ? <ProfileCard userId={userId} /> : null}
     </Modal>
   );

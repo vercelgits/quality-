@@ -204,6 +204,24 @@ test.describe('Parametres', () => {
     await expect(editeur).toBeHidden();
   });
 
+  /*
+   * La croix de la fiche de profil.
+   *
+   * La fiche n'a pas d'en-tete : sa croix flotte sur la carte, et rien ne
+   * garantit qu'elle reste au-dessus quand la carte gagne des couches — fond
+   * flou, reflet, colonnes.
+   */
+  test('la croix referme la fiche de profil', async ({ page }) => {
+    await openSettings(page);
+
+    await page.getByRole('button', { name: 'Voir ma fiche' }).click();
+    const fiche = page.getByRole('dialog', { name: 'Profil', exact: true });
+    await expect(fiche).toBeVisible();
+
+    await fiche.getByRole('button', { name: 'Fermer' }).click();
+    await expect(fiche).toBeHidden();
+  });
+
   test('la photo du compte reste ronde', async ({ page }) => {
     await openSettings(page);
 
