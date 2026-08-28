@@ -109,6 +109,16 @@ interface VoiceState {
   remoteCameras: Record<UUID, MediaStream>;
   /** Partage affiche en grand, s'il y en a un. */
   focusedShare: UUID | null;
+
+  /**
+   * Partages que l'on a choisi de regarder.
+   *
+   * Recevoir un flux ne coute presque rien ; le decoder coute cher. Une
+   * definition 1080p a soixante images par seconde occupe un coeur entier sur
+   * une machine modeste — imposee a chacun, y compris a qui n'a aucune envie de
+   * regarder. Rien ne se decode donc avant un clic.
+   */
+  watchedShares: Record<UUID, boolean>;
   /** Flux audio distants, indexes par identifiant d'utilisateur. */
   remoteAudio: Record<UUID, MediaStream>;
   /** Flux de partage d'ecran distants, indexes de la meme facon. */
@@ -134,6 +144,8 @@ interface VoiceState {
   toggleScreenShare: () => Promise<void>;
   toggleCamera: () => Promise<void>;
   focusShare: (userId: UUID | null) => void;
+  /** Ouvre ou ferme le partage de quelqu'un. Ferme, il n'est plus decode. */
+  toggleWatch: (userId: UUID) => void;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -185,6 +197,7 @@ const INTERVALLE_PUBLICATION = 200;
 
 let publicationDifferee: number | null = null;
 let etatEnAttente = false;
+let publicationEnVol = false;
 let instantArrivee = 0;
 
 /** Etat du micro avant la sourdine, pour le retablir en sortant. */
@@ -271,6 +284,32 @@ async function capturer(contraintes: MediaStreamConstraints): Promise<MediaStrea
   }
 }
 
+/**
+ * Une tuile par personne, portant son etat le plus recent.
+ *
+ * La presence de Realtime associe a chaque cle une *liste* d'entrees, une par
+ * connexion. Une meme personne peut donc y figurer plusieurs fois : deux
+ * onglets ouverts, mais surtout une connexion precedente dont le serveur n'a
+ * pas encore constate la disparition — navigateur ferme sans prevenir, mise en
+ * veille, reseau coupe. L'entree survit jusqu'a l'expiration du socket.
+ *
+ * En laissant passer les doublons, on affichait deux tuiles pour la meme
+ * personne, dont une figee dans l'etat ou sa connexion s'est perdue.
+ *
+ * On garde l'entree arrivee en dernier : `joined_at` est fige a l'arrivee, donc
+ * la plus grande valeur designe la connexion la plus recente.
+ */
+function dedupliquer(entrees: VoiceParticipant[]): VoiceParticipant[] {
+  const parPersonne = new Map<UUID, VoiceParticipant>();
+
+  for (const entree of entrees) {
+    const connue = parPersonne.get(entree.user_id);
+    if (!connue || entree.joined_at >= connue.joined_at) parPersonne.set(entree.user_id, entree);
+  }
+
+  return [...parPersonne.values()].sort((a, b) => a.joined_at - b.joined_at);
+}
+
 export const useVoice = create<VoiceState>((set, get) => {
   /**
    * Publie l'etat vocal, au plus une fois par intervalle.
@@ -289,17 +328,35 @@ export const useVoice = create<VoiceState>((set, get) => {
 
     etatEnAttente = true;
 
-    if (publicationDifferee !== null) return;
+    // Un envoi est en cours, ou une fenetre est ouverte : l'etat courant sera
+    // pris a la fin de l'un ou de l'autre. Rien a faire de plus.
+    if (publicationEnVol || publicationDifferee !== null) return;
 
-    const emettre = () => {
-      publicationDifferee = null;
-      if (!etatEnAttente) return;
-      etatEnAttente = false;
+    void emettre();
+  }
 
-      const courant = get();
-      if (!room || !courant.channelId || !courant.userId) return;
+  /**
+   * Emet l'etat, puis rouvre une fenetre.
+   *
+   * `track()` n'est jamais appele tant que le precedent n'a pas repondu. Deux
+   * publications qui se chevauchaient laissaient la seconde sans reponse : sa
+   * promesse ne se resolvait plus, et l'etat cessait d'etre annonce — l'anneau
+   * de la personne restait fige sur son avant-derniere valeur, au bout de trois
+   * bascules environ. Le symptome etait d'autant plus deroutant qu'il ne
+   * demandait pas de cliquer vite.
+   */
+  async function emettre(): Promise<void> {
+    publicationDifferee = null;
+    if (!etatEnAttente) return;
 
-      void room.track({
+    const courant = get();
+    if (!room || !courant.channelId || !courant.userId) return;
+
+    etatEnAttente = false;
+    publicationEnVol = true;
+
+    try {
+      await room.track({
         user_id: courant.userId,
         channel_id: courant.channelId,
         muted: courant.muted,
@@ -310,13 +367,16 @@ export const useVoice = create<VoiceState>((set, get) => {
         // paraitre chaque mise a jour comme une nouvelle arrivee.
         joined_at: instantArrivee,
       } satisfies VoiceParticipant);
+    } catch {
+      // Un envoi perdu n'est pas grave en soi : le suivant portera l'etat
+      // complet, puisque c'est l'etat courant qui est publie, non un delta.
+    } finally {
+      publicationEnVol = false;
+    }
 
-      // Une nouvelle fenetre s'ouvre : si un changement survient pendant
-      // celle-ci, il sera emis a sa fermeture.
-      publicationDifferee = window.setTimeout(emettre, INTERVALLE_PUBLICATION);
-    };
-
-    emettre();
+    // Une fenetre s'ouvre : un changement survenu pendant l'envoi part a sa
+    // fermeture, sans qu'on ait a l'emettre aussitot.
+    if (room) publicationDifferee = window.setTimeout(() => void emettre(), INTERVALLE_PUBLICATION);
   }
 
   /**
@@ -491,6 +551,18 @@ export const useVoice = create<VoiceState>((set, get) => {
     pendingStreams.delete(stream.id);
 
     if (purpose === 'screen') {
+      /*
+       * Un partage arrive ferme.
+       *
+       * Le decodage ne demarre qu'au clic sur « Regarder ». Sans cela, ouvrir
+       * un salon ou trois personnes diffusent lancait trois decodages
+       * simultanes, que l'on veuille les regarder ou non — de quoi rendre
+       * l'application inutilisable sur une machine modeste, sans que rien
+       * n'explique pourquoi.
+       */
+      const regarde = get().watchedShares[peerId] === true;
+      for (const piste of stream.getVideoTracks()) piste.enabled = regarde;
+
       set((state) => ({ remoteScreens: { ...state.remoteScreens, [peerId]: stream } }));
     } else {
       set((state) => ({ remoteCameras: { ...state.remoteCameras, [peerId]: stream } }));
@@ -717,6 +789,7 @@ export const useVoice = create<VoiceState>((set, get) => {
     remoteScreens: {},
     remoteCameras: {},
     focusedShare: null,
+    watchedShares: {},
     speaking: {},
     participantsByChannel: {},
     outboundStats: null,
@@ -770,11 +843,13 @@ export const useVoice = create<VoiceState>((set, get) => {
         })
         .on('presence', { event: 'sync' }, () => {
           if (!room) return;
-          const participants = Object.values(room.presenceState<VoiceParticipant>())
-            .flat()
-            .filter((entry): entry is VoiceParticipant & { presence_ref: string } =>
-              Boolean(entry && typeof entry === 'object' && 'user_id' in entry),
-            );
+          const participants = dedupliquer(
+            Object.values(room.presenceState<VoiceParticipant>())
+              .flat()
+              .filter((entry): entry is VoiceParticipant & { presence_ref: string } =>
+                Boolean(entry && typeof entry === 'object' && 'user_id' in entry),
+              ),
+          );
 
           set((state) => ({
             participantsByChannel: { ...state.participantsByChannel, [channelId]: participants },
@@ -1075,5 +1150,28 @@ export const useVoice = create<VoiceState>((set, get) => {
     },
 
     focusShare: (userId) => set({ focusedShare: userId }),
+
+    /*
+     * Regarder, ou ne pas regarder.
+     *
+     * Couper `enabled` sur la piste recue suffit a arreter le decodage : le
+     * navigateur jette les images sans les developper. Le flux continue
+     * d'arriver — c'est la bande passante, pas le processeur, et c'est le
+     * processeur qui faisait ramer les machines modestes. Le rouvrir est
+     * instantane, sans renegociation.
+     */
+    toggleWatch: (userId) => {
+      const suivant = !get().watchedShares[userId];
+
+      const flux = get().remoteScreens[userId];
+      for (const piste of flux?.getVideoTracks() ?? []) piste.enabled = suivant;
+
+      set((state) => ({
+        watchedShares: { ...state.watchedShares, [userId]: suivant },
+        // Fermer un partage qu'on avait agrandi le reduit aussi : le laisser
+        // « agrandi » alors qu'il ne s'affiche plus n'aurait pas de sens.
+        focusedShare: suivant ? state.focusedShare : null,
+      }));
+    },
   };
 });

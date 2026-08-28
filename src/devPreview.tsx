@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { FriendsPage } from '@/features/friends/FriendsPage';
 import { ProfileCard } from '@/features/profile/ProfileCard';
 import { useChat } from '@/store/chat';
+import { ProfileEditor } from '@/features/profile/ProfileEditor';
+import { useSession } from '@/store/session';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { useUI, type SettingsSection } from '@/store/ui';
 
@@ -44,6 +46,30 @@ export function devPreview(name: string): ReactNode | null {
 
     useChat.setState((state) => ({ profiles: { ...state.profiles, [faux.id]: faux as never } }));
     return <ProfileCard userId={faux.id} />;
+  }
+
+  if (name === 'editeur') {
+    // L'editeur de profil ne s'ouvre qu'une fois connecte, et c'est justement
+    // la ou la banniere, la photo et quinze champs se disputent la hauteur de
+    // la boite : la mise en page s'y verifie mal a l'aveugle.
+    const faux = {
+      id: '00000000-0000-4000-8000-000000000002',
+      username: 'zyko682',
+      display_name: 'ex',
+      avatar_url: null,
+      banner_url: null,
+      bio: null,
+      pronouns: null,
+      custom_status: null,
+      status: 'online',
+      theme_hue: null,
+      links: [],
+      username_chosen: true,
+      created_at: '2026-03-14T10:00:00.000Z',
+    };
+
+    useSession.setState({ profile: faux as never });
+    return <ProfileEditor open onClose={() => {}} />;
   }
 
   if (name.startsWith('parametres')) {

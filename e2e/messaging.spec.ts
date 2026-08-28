@@ -21,10 +21,36 @@ function messageRow(page: Page, text: string) {
  * temps reel le remplace. Agir entre les deux vise un noeud sur le point de
  * disparaitre : le survol se perd et le clic n'aboutit jamais.
  */
+/*
+ * Le message, une fois la liste immobile.
+ *
+ * Attendre la fin de l'envoi ne suffit pas : la liste defile encore vers le
+ * bas, en douceur, pendant une fraction de seconde. Playwright refuse alors de
+ * cliquer — « element is not stable » — et le test echoue sur une barre
+ * d'actions parfaitement correcte, simplement en mouvement. Le defaut
+ * s'aggravait a mesure que le salon de test se remplissait, la course au bas
+ * de liste s'allongeant a chaque passe.
+ *
+ * On attend donc que la position du message ne bouge plus d'une image a
+ * l'autre, plutot que de deviner un delai.
+ */
 async function settledMessage(page: Page, text: string) {
   const row = page.locator('.message:not(.is-pending)', { hasText: text }).last();
   await expect(row).toBeVisible({ timeout: 15_000 });
   await row.scrollIntoViewIfNeeded();
+
+  await expect
+    .poll(
+      async () => {
+        const avant = await row.boundingBox();
+        await page.waitForTimeout(120);
+        const apres = await row.boundingBox();
+        return avant && apres && Math.abs(avant.y - apres.y) < 1;
+      },
+      { timeout: 10_000, message: 'la liste continue de defiler' },
+    )
+    .toBe(true);
+
   return row;
 }
 

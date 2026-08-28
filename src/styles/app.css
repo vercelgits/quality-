@@ -915,13 +915,26 @@
   color: var(--text-muted);
 }
 
+/*
+ * Les boites de dialogue respirent davantage.
+ *
+ * Seize pixels de marge et douze entre les blocs suffisaient a une boite de
+ * confirmation, pas a un formulaire de quinze champs : le contenu touchait les
+ * bords et les groupes se confondaient. Le pas passe a vingt et seize.
+ *
+ * `--modal-padding` existe pour que ce qui doit deborder jusqu'au bord —
+ * l'apercu de l'editeur de profil — le fasse avec la meme valeur, au lieu de
+ * la recopier et de deriver a la premiere retouche.
+ */
 .modal__body {
+  --modal-padding: var(--space-6);
+
   flex: 1;
   min-height: 0;
-  padding: var(--space-5);
+  padding: var(--modal-padding);
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: var(--space-5);
 }
 
 .modal__footer {

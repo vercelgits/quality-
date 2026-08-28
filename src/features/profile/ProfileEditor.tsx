@@ -155,7 +155,7 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
         </div>
 
         <div className="editor-preview__avatar">
-          <Avatar profile={preview} size={76} />
+          <Avatar profile={preview} size={92} />
           <button
             type="button"
             className="editor-preview__avatar-btn"
@@ -176,6 +176,56 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
           @{profile.username}
           {pronouns ? ` · ${pronouns}` : ''}
         </p>
+      </div>
+
+      {/*
+        Deux boutons en clair, en plus de ceux poses sur l'image.
+        Les seconds se confondent avec la banniere des qu'elle porte une photo,
+        et on ne pense pas a cliquer une image pour la remplacer. Ici, l'action
+        est ecrite.
+      */}
+      <div className="editor-images">
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => avatarInput.current?.click()}
+          disabled={uploading !== null}
+        >
+          {uploading === 'avatar' ? <span className="spinner" /> : <Icon name="camera" size={15} />}
+          Changer la photo
+        </button>
+
+        <button
+          type="button"
+          className="btn btn--sm"
+          onClick={() => bannerInput.current?.click()}
+          disabled={uploading !== null}
+        >
+          {uploading === 'banner' ? <span className="spinner" /> : <Icon name="image" size={15} />}
+          Changer la banniere
+        </button>
+
+        {avatarUrl ? (
+          <button
+            type="button"
+            className="btn btn--sm btn--ghost"
+            onClick={() => setAvatarUrl(null)}
+            disabled={uploading !== null}
+          >
+            Retirer la photo
+          </button>
+        ) : null}
+
+        {bannerUrl ? (
+          <button
+            type="button"
+            className="btn btn--sm btn--ghost"
+            onClick={() => setBannerUrl(null)}
+            disabled={uploading !== null}
+          >
+            Retirer la banniere
+          </button>
+        ) : null}
       </div>
 
       <p className="field__hint">

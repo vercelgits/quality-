@@ -37,6 +37,8 @@ export function VoiceStage({ channel }: { channel: Channel }) {
   const remoteCameras = useVoice((state) => state.remoteCameras);
   const cameraOn = useVoice((state) => state.cameraOn);
   const focusedShare = useVoice((state) => state.focusedShare);
+  const watchedShares = useVoice((state) => state.watchedShares);
+  const toggleWatch = useVoice((state) => state.toggleWatch);
   const focusShare = useVoice((state) => state.focusShare);
   const toggleCamera = useVoice((state) => state.toggleCamera);
   const speaking = useVoice((state) => state.speaking);
@@ -62,10 +64,17 @@ export function VoiceStage({ channel }: { channel: Channel }) {
     return () => window.clearInterval(timer);
   }, [connected, joinedAt]);
 
-  // Les partages distants arrivent par WebRTC ; le sien vient de la capture
-  // locale, qui ne fait pas l'aller-retour reseau.
+  /*
+   * Seuls les partages qu'on a ouverts sont affiches.
+   *
+   * Les partages distants arrivent par WebRTC ; le sien vient de la capture
+   * locale, qui ne fait pas l'aller-retour reseau. Tant qu'on n'a pas clique
+   * « Regarder », la vignette n'est pas montee du tout : pas de balise video,
+   * donc pas de decodage — c'est la que se joue le cout, pas dans la
+   * reception.
+   */
   const screenShares = participants
-    .filter((participant) => participant.sharing)
+    .filter((participant) => participant.sharing && watchedShares[participant.user_id])
     .map((participant) => ({
       userId: participant.user_id,
       stream:
@@ -165,25 +174,48 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           const isMe = participant.user_id === profile?.id;
           const isSpeaking = speaking[participant.user_id] ?? false;
 
+          /*
+           * Son propre etat est lu localement, jamais dans la presence.
+           *
+           * La presence est un echo : elle repart au serveur et revient. Tant
+           * qu'elle n'est pas revenue, l'anneau restait sur l'ancienne couleur
+           * — et si un envoi se perdait, il y restait pour de bon. On sait
+           * pourtant de source sure si l'on vient de couper son micro : c'est
+           * nous qui l'avons fait.
+           */
+          const etat = isMe
+            ? {
+                muted,
+                deafened,
+                sharing,
+                video: cameraOn,
+              }
+            : participant;
+
           return (
             <VoiceTile
               key={participant.user_id}
               userId={participant.user_id}
+              // Sa propre tuile est reperable. Une presence perimee — quelqu'un
+              // dont le navigateur s'est ferme sans prevenir — laisse une tuile
+              // fantome dans la grille, et rien ne permettait plus de dire
+              // laquelle etait la sienne.
+              isMe={isMe}
               // Un seul etat porte l'anneau a la fois, du plus grave au plus
               // anodin : sourd, puis micro coupe, puis en train de parler.
               // Les cumuler donnerait deux couleurs sur le meme bord.
               className={
                 'voice-tile' +
-                (participant.deafened
+                (etat.deafened
                   ? ' is-deafened'
-                  : participant.muted
+                  : etat.muted
                     ? ' is-muted'
                     : isSpeaking
                       ? ' is-speaking'
                       : '')
               }
             >
-              {participant.video ? (
+              {etat.video ? (
                 <CameraTile
                   stream={isMe ? (localCamera ?? undefined) : remoteCameras[participant.user_id]}
                   mirrored={isMe}
@@ -211,8 +243,8 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                 {isMe ? ' (vous)' : ''}
               </button>
               <span className="voice-tile__icons">
-                {participant.muted ? <Icon name="mic-off" size={14} /> : null}
-                {participant.deafened ? <Icon name="headphones-off" size={14} /> : null}
+                {etat.muted ? <Icon name="mic-off" size={14} /> : null}
+                {etat.deafened ? <Icon name="headphones-off" size={14} /> : null}
               </span>
 
               {/*
@@ -221,7 +253,7 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                 vignette du bas etait cliquable — et sur une grille chargee elle
                 passe inapercue.
               */}
-              {participant.sharing ? (
+              {etat.sharing ? (
                 <div className="voice-tile__live">
                   <span className="voice-tile__badge">
                     <span className="voice-tile__pulse" aria-hidden="true" />
@@ -231,14 +263,10 @@ export function VoiceStage({ channel }: { channel: Channel }) {
                   <button
                     type="button"
                     className="voice-tile__watch"
-                    onClick={() =>
-                      focusShare(
-                        focusedShare === participant.user_id ? null : participant.user_id,
-                      )
-                    }
+                    onClick={() => toggleWatch(participant.user_id)}
                   >
                     <Icon name="screen" size={14} />
-                    {focusedShare === participant.user_id
+                    {watchedShares[participant.user_id]
                       ? 'Masquer'
                       : isMe
                         ? 'Voir mon partage'
@@ -453,7 +481,21 @@ function ScreenTile({
         'screen-tile' + (focused ? ' is-focused' : '') + (fullscreen ? ' is-fullscreen' : '')
       }
     >
-      <video ref={ref} className="screen-tile__video" autoPlay playsInline muted />
+      {/*
+        L'image elle-meme agrandit et reduit.
+        C'est le geste qu'on tente d'abord devant une video trop petite ; viser
+        un bouton de trente pixels dans un coin ne vient qu'ensuite. Le bouton
+        reste, pour le clavier et pour qui prefere une cible nommee.
+      */}
+      <button
+        type="button"
+        className="screen-tile__surface"
+        onClick={onToggleFocus}
+        disabled={!onToggleFocus}
+        aria-label={focused ? 'Reduire le partage' : 'Agrandir le partage'}
+      >
+        <video ref={ref} className="screen-tile__video" autoPlay playsInline muted />
+      </button>
 
       <figcaption className="screen-tile__label">
         <Icon name="screen" size={13} />
@@ -529,16 +571,18 @@ function CameraTile({ stream, mirrored }: { stream: MediaStream | undefined; mir
 function VoiceTile({
   userId,
   className,
+  isMe = false,
   children,
 }: {
   userId: UUID;
   className: string;
+  isMe?: boolean;
   children: ReactNode;
 }) {
   const menu = useContextMenu();
 
   return (
-    <li className={className} onContextMenu={menu.open}>
+    <li className={className} data-me={isMe ? 'true' : undefined} onContextMenu={menu.open}>
       {children}
       {menu.position ? (
         <UserContextMenu userId={userId} position={menu.position} onClose={menu.close} />

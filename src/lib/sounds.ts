@@ -17,8 +17,16 @@
  * deux evenements se suivent de pres.
  */
 
-/** Do, re, mi, sol, la — puis l'octave. En hertz. */
-const GAMME = [523.25, 587.33, 659.25, 783.99, 880.0, 1046.5];
+/*
+ * Do, re, mi, sol, la — puis l'octave. En hertz.
+ *
+ * Une octave plus bas qu'a l'origine. Dans le registre precedent, du do5 au
+ * do6, les notes percaient : elles se placaient dans la meme bande que les
+ * consonnes de la voix, et coupaient donc ce qu'on etait en train d'ecouter au
+ * lieu de s'y ajouter. Descendues au do4, elles passent sous la parole et se
+ * remarquent sans interrompre.
+ */
+const GAMME = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25];
 
 export type Cue =
   | 'mute'
@@ -159,6 +167,9 @@ export function playCue(cue: Cue): void {
     const oscillateur = ctx.createOscillator();
     const enveloppe = ctx.createGain();
 
+    // Onde triangulaire : quelques harmoniques, mais decroissant vite. Une
+    // sinusoide serait trop douce pour s'entendre par-dessus une conversation,
+    // une dent de scie trop mordante dans le registre grave.
     oscillateur.type = 'triangle';
     oscillateur.frequency.value = GAMME[note.degre] ?? GAMME[0]!;
 

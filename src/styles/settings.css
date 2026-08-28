@@ -139,8 +139,8 @@
 }
 
 .settings__group {
-  padding-bottom: var(--space-7);
-  margin-bottom: var(--space-7);
+  padding-bottom: var(--space-8);
+  margin-bottom: var(--space-8);
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -215,15 +215,17 @@
 .settings__field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-3);
 }
 
 .settings__form {
   gap: var(--space-5);
 }
 
+/* L'ecart entre deux reglages doit rester nettement superieur a l'ecart
+   interne d'un reglage, sinon les deux se lisent comme une seule liste. */
 .settings__field + .settings__field {
-  margin-top: var(--space-5);
+  margin-top: var(--space-7);
 }
 
 .settings__label {

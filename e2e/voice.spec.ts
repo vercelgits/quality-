@@ -113,11 +113,10 @@ test.describe('Salon vocal', () => {
     if (!(await openVoiceChannel(page))) return;
     await page.getByRole('button', { name: 'Rejoindre le salon vocal' }).click();
 
-    const tuile = page.locator('.voice-tile').first();
+    const tuile = page.locator('.voice-tile[data-me="true"]');
     await expect(tuile).toBeVisible({ timeout: 20_000 });
 
-    const anneau = async () =>
-      tuile.evaluate((n) => getComputedStyle(n).boxShadow);
+    const anneau = async () => tuile.evaluate((n) => getComputedStyle(n).boxShadow);
 
     // Micro coupe : orange.
     await stage(page).getByRole('button', { name: 'Couper le micro' }).click();
@@ -161,6 +160,41 @@ test.describe('Salon vocal', () => {
     await sourdine().click();
     await sourdine().click();
     await expect(micro()).toHaveAttribute('aria-pressed', 'true');
+
+    await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
+  });
+
+  /*
+   * L'anneau doit survivre a plusieurs allers-retours.
+   *
+   * Signale a l'usage : apres trois bascules environ, la couleur ne revenait
+   * plus. Le test verifie la couleur a chaque tour plutot qu'a la fin — c'est
+   * le tour ou elle cesse d'apparaitre qui renseigne.
+   */
+  test('l anneau revient a chaque bascule, pas seulement la premiere', async ({ page }) => {
+    page.on('console', (m) => {
+      const t = m.text();
+      if (t.startsWith('TRACK')) console.log('>>', t);
+    });
+    if (!(await openVoiceChannel(page))) return;
+    await page.getByRole('button', { name: 'Rejoindre le salon vocal' }).click();
+
+    const tuile = page.locator('.voice-tile[data-me="true"]');
+    await expect(tuile).toBeVisible({ timeout: 20_000 });
+
+    const anneau = async () => tuile.evaluate((n) => getComputedStyle(n).boxShadow);
+
+    for (let tour = 1; tour <= 5; tour += 1) {
+      await stage(page).getByRole('button', { name: 'Couper le micro' }).click();
+      await expect
+        .poll(anneau, { message: `tour ${tour} : anneau orange attendu` })
+        .toContain('rgb(240, 178, 50)');
+
+      await stage(page).getByRole('button', { name: 'Reactiver le micro' }).click();
+      await expect
+        .poll(anneau, { message: `tour ${tour} : anneau orange devait disparaitre` })
+        .not.toContain('rgb(240, 178, 50)');
+    }
 
     await stage(page).getByRole('button', { name: /Quitter/ }).first().click();
   });

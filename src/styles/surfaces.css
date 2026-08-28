@@ -416,10 +416,20 @@
    Editeur de profil
    -------------------------------------------------------------------------- */
 
+/*
+ * L'apercu ne se laisse pas comprimer.
+ *
+ * `.modal__body` est une colonne flex, et un enfant en `overflow: hidden` y
+ * prend une taille minimale automatique de zero : quand la boite manquait de
+ * hauteur, ce bloc s'ecrasait a quelques pixels et rognait la banniere,
+ * l'avatar et les deux boutons qui servent justement a les changer. On ne
+ * pouvait plus changer sa photo, et rien ne le laissait deviner.
+ */
 .editor-preview {
   position: relative;
-  margin: calc(var(--space-5) * -1) calc(var(--space-5) * -1) var(--space-3);
-  padding-bottom: var(--space-5);
+  flex: none;
+  margin: calc(var(--modal-padding) * -1) calc(var(--modal-padding) * -1) var(--space-5);
+  padding-bottom: var(--space-6);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--bg-sunken);
   overflow: hidden;
@@ -427,7 +437,7 @@
 
 .editor-preview__banner {
   position: relative;
-  height: 96px;
+  height: 140px;
   overflow: hidden;
 }
 
@@ -446,18 +456,26 @@
 
 .editor-preview__banner-btn {
   position: absolute;
-  right: var(--space-3);
-  bottom: var(--space-3);
+  right: var(--space-4);
+  bottom: var(--space-4);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border: 1px solid oklch(100% 0 0 / 0.22);
   border-radius: var(--radius-full);
-  background: oklch(0% 0 0 / 0.55);
+  background: oklch(0% 0 0 / 0.62);
   color: #fff;
-  font-size: var(--text-xs);
-  font-weight: var(--weight-medium);
-  backdrop-filter: blur(8px);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-semibold);
+  backdrop-filter: blur(10px);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--spring);
+}
+
+.editor-preview__banner-btn:active:not(:disabled) {
+  transform: scale(0.96);
 }
 
 .editor-preview__banner-btn:hover:not(:disabled) {
@@ -467,7 +485,7 @@
 .editor-preview__avatar {
   position: relative;
   width: fit-content;
-  margin: -38px auto 0;
+  margin: -44px 0 0 var(--space-6);
 }
 
 .editor-preview__avatar .avatar {
@@ -478,12 +496,12 @@
 
 .editor-preview__avatar-btn {
   position: absolute;
-  right: -2px;
-  bottom: -2px;
+  right: -4px;
+  bottom: -4px;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full);
   background: var(--accent);
   color: #fff;
@@ -492,16 +510,17 @@
 }
 
 .editor-preview__name {
-  margin-top: var(--space-3);
-  font-size: var(--text-md);
+  margin: var(--space-4) var(--space-6) 0;
+  font-size: var(--text-lg);
   font-weight: var(--weight-bold);
-  text-align: center;
+  text-align: left;
 }
 
 .editor-preview__handle {
-  font-size: var(--text-xs);
+  margin: 0 var(--space-6);
+  font-size: var(--text-sm);
   color: var(--text-muted);
-  text-align: center;
+  text-align: left;
 }
 
 .hue-row {
@@ -904,4 +923,70 @@
   overflow-y: auto;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Editeur de profil : respiration
+   --------------------------------------------------------------------------
+   Les champs se touchaient presque : etiquette, champ, aide, etiquette
+   suivante, sans rien pour marquer ou finit un reglage et ou commence le
+   suivant. On lisait un bloc, pas une liste.
+
+   Le reglage passe par `:has()` plutot que par une classe posee sur un
+   conteneur : la boite de dialogue ne prend pas de classe, et envelopper les
+   quinze champs dans un `div` aurait reindente cent cinquante lignes pour un
+   changement d'espacement.
+
+   L'ecart entre deux champs vaut plus du double de l'ecart interne a un champ.
+   C'est ce rapport, et non la valeur absolue, qui fait qu'un groupe se lit
+   comme un groupe.
+   -------------------------------------------------------------------------- */
+
+.modal__body:has(.editor-preview) {
+  gap: var(--space-7);
+}
+
+.modal__body:has(.editor-preview) .field {
+  gap: var(--space-3);
+}
+
+/* Les champs de saisie gagnent en hauteur : quarante pixels pour une ligne de
+   texte donnent une cible etroite, et serrent le texte contre les bords. */
+.modal__body:has(.editor-preview) .input,
+.modal__body:has(.editor-preview) textarea {
+  min-height: 46px;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+}
+
+.modal__body:has(.editor-preview) textarea {
+  min-height: 112px;
+  line-height: var(--leading-relaxed);
+}
+
+/* Les pastilles de couleur ont besoin d'air : collees, on ne distingue plus
+   laquelle porte l'anneau de selection. */
+.modal__body:has(.editor-preview) .hue-row {
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+/* Deux boutons nommes, sous l'apercu : la seule action du bloc doit etre
+   lisible sans avoir a deviner qu'une image est cliquable. */
+.editor-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+/*
+ * Repli pour les moteurs sans `:has()`.
+ *
+ * L'espacement par defaut reste celui de la boite : plus serre, mais lisible.
+ * Rien ne casse — on perd seulement la respiration ajoutee.
+ */
+@supports not selector(:has(*)) {
+  .editor-images {
+    margin-bottom: var(--space-3);
+  }
 }
