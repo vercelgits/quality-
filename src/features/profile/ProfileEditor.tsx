@@ -145,7 +145,11 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
             onClick={() => bannerInput.current?.click()}
             disabled={uploading !== null}
           >
-            {uploading === 'banner' ? <span className="spinner" /> : <Icon name="edit" size={14} />}
+            {uploading === 'banner' ? (
+              <span className="spinner" />
+            ) : (
+              <Icon name="camera" size={14} />
+            )}
             Banniere
           </button>
         </div>
@@ -159,7 +163,11 @@ export function ProfileEditor({ open, onClose }: { open: boolean; onClose: () =>
             disabled={uploading !== null}
             aria-label="Changer la photo de profil"
           >
-            {uploading === 'avatar' ? <span className="spinner" /> : <Icon name="edit" size={14} />}
+            {uploading === 'avatar' ? (
+              <span className="spinner" />
+            ) : (
+              <Icon name="camera" size={14} />
+            )}
           </button>
         </div>
 
