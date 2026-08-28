@@ -67,7 +67,14 @@ const DEFAULTS: MediaPreferences = {
   videoQuality: '720p',
   screenQuality: '1080p',
   screenFrameRate: 60,
-  screenPriority: 'motion',
+  // La nettete plutot que la fluidite.
+  //
+  // Avec « fluidite », la couche de congestion tient les images par seconde et
+  // sacrifie la definition : au premier a-coup de liaison, un 1080p tombe a
+  // 640 de large et le texte devient illisible. On voit un flou permanent, sans
+  // comprendre pourquoi. L'inverse garde les pixels et laisse tomber quelques
+  // images — bien moins genant sur ce qu'on partage d'ordinaire.
+  screenPriority: 'detail',
   cueVolume: 0.6,
   shareSystemAudio: true,
 };
@@ -276,7 +283,7 @@ export function screenBitrate(media: MediaPreferences): number {
   const hauteur =
     media.screenQuality === '720p' ? 720 : media.screenQuality === '1080p' ? 1080 : 1440;
 
-  const base = hauteur >= 1440 ? 12_000_000 : hauteur >= 1080 ? 8_000_000 : 4_000_000;
+  const base = hauteur >= 1440 ? 16_000_000 : hauteur >= 1080 ? 12_000_000 : 6_000_000;
 
   // Doubler les images par seconde ne double pas le debit necessaire : deux
   // images consecutives se ressemblent, et l'encodeur ne transmet que l'ecart.
@@ -388,9 +395,20 @@ export async function applySink(element: HTMLAudioElement, speakerId: string | n
  * L'ordre exprime une preference, pas une exigence : si le pair d'en face ne
  * sait decoder que VP8, la negociation retombe dessus. Rien ne casse.
  */
+/**
+ * Impose un ordre de codecs a l'emission.
+ *
+ * H264 passe devant, malgre une compression moins efficace que VP9 ou AV1 : il
+ * est le seul que toutes les cartes graphiques encodent en materiel. Les deux
+ * autres retombent souvent sur le processeur, qui ne tient pas un 1080p a
+ * soixante images en temps reel — Chrome divise alors la definition pour ne pas
+ * prendre de retard, et l'on obtient une image bien pire qu'avec un codec
+ * theoriquement moins bon. Mieux vaut un codec moyen encode correctement qu'un
+ * excellent codec qui n'y arrive pas.
+ */
 export function preferVideoCodec(
   transceiver: RTCRtpTransceiver,
-  ordre: readonly string[] = ['video/AV1', 'video/VP9', 'video/H264', 'video/VP8'],
+  ordre: readonly string[] = ['video/H264', 'video/VP9', 'video/AV1', 'video/VP8'],
 ): void {
   try {
     const disponibles = RTCRtpSender.getCapabilities('video')?.codecs;

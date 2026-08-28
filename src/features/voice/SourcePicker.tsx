@@ -11,12 +11,15 @@ import { useDevices } from '@/store/devices';
  * navigateur ne nous laisse pas faire, et ce qu'une application de bureau a le
  * droit de faire.
  *
- * Reserve, et elle est entiere : choisir ici ne suffit pas encore a capturer.
- * La capture elle-meme passe toujours par `getDisplayMedia`, qui rouvre sa
- * propre fenetre. Remplacer cette derniere etape demande de capturer les
- * images cote Rust et de les pousser vers WebRTC — c'est la suite, et c'est le
- * gros du travail. Ce panneau existe des maintenant pour qu'on puisse juger de
- * la liste et de la mise en page avant d'y brancher le flux.
+ * La fenetre du moteur ne s'ouvre plus : il lui est demande au demarrage de
+ * prendre l'ecran entier sans rien afficher. Choisir une fenetre ici revient
+ * donc a n'emettre que la portion correspondante de cette image — voir
+ * `decoupe.ts`.
+ *
+ * Ce que cela ne sait pas faire : ce qui recouvre la fenetre partagee est
+ * diffuse avec elle, puisque le systeme ne nous donne que l'image finale de
+ * l'ecran. Isoler une fenetre demanderait une capture native, qui reste a
+ * ecrire.
  */
 
 interface Source {
@@ -85,7 +88,12 @@ export function SourcePicker({
           <button type="button" className="btn" onClick={onClose}>
             Annuler
           </button>
-          <button type="button" className="btn btn--primary" onClick={() => onStart(selection)}>
+          <button
+            type="button"
+            className="btn btn--primary"
+            disabled={selection === null}
+            onClick={() => onStart(selection)}
+          >
             <Icon name="screen" size={15} />
             Partager
           </button>

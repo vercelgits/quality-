@@ -141,7 +141,8 @@ interface VoiceState {
   leave: () => Promise<void>;
   toggleMute: () => void;
   toggleDeafen: () => void;
-  toggleScreenShare: () => Promise<void>;
+  /** `sourceId` vient de notre selecteur natif ; absent, le moteur choisit. */
+  toggleScreenShare: (sourceId?: string) => Promise<void>;
   toggleCamera: () => Promise<void>;
   focusShare: (userId: UUID | null) => void;
   /** Ouvre ou ferme le partage de quelqu'un. Ferme, il n'est plus decode. */
@@ -202,6 +203,9 @@ let instantArrivee = 0;
 
 /** Etat du micro avant la sourdine, pour le retablir en sortant. */
 let mutedBeforeDeafen = false;
+
+/** Arret de la decoupe en cours, s'il y en a une. */
+let arreterDecoupe: (() => void) | null = null;
 
 /** Plage couverte par `getByteFrequencyData`, de l'octet 0 a l'octet 255. */
 export const ANALYSER_FLOOR = -100;
@@ -973,7 +977,7 @@ export const useVoice = create<VoiceState>((set, get) => {
       publishState();
     },
 
-    toggleScreenShare: async () => {
+    toggleScreenShare: async (sourceId) => {
       const { sharing, localScreen } = get();
 
       if (sharing) {
@@ -986,6 +990,12 @@ export const useVoice = create<VoiceState>((set, get) => {
           }
         }
         for (const track of localScreen?.getTracks() ?? []) track.stop();
+
+        // La decoupe tient un canevas, une balise video et deux minuteurs :
+        // les laisser tourner apres l'arret consommerait un coeur pour dessiner
+        // dans le vide.
+        arreterDecoupe?.();
+        arreterDecoupe = null;
 
         set({ sharing: false, localScreen: null });
         stopStats();
@@ -1026,7 +1036,40 @@ export const useVoice = create<VoiceState>((set, get) => {
         return;
       }
 
-      const [videoTrack] = display.getVideoTracks();
+      /*
+       * Decoupe, quand une fenetre precise a ete choisie.
+       *
+       * Sur le bureau, la selection du moteur web est court-circuitee : il
+       * prend toujours l'ecran entier. Choisir une fenetre dans notre
+       * selecteur revient donc a n'emettre que la portion correspondante —
+       * sans quoi on diffuserait tout l'ecran en croyant l'inverse.
+       */
+      let videoTrack = display.getVideoTracks()[0];
+
+      if (sourceId && sourceId.startsWith('fenetre:')) {
+        try {
+          const { decouperSource } = await import('./decoupe');
+          const decoupe = await decouperSource(
+            display,
+            sourceId,
+            useDevices.getState().media.screenFrameRate,
+          );
+
+          arreterDecoupe = decoupe.arreter;
+          if (decoupe.piste) videoTrack = decoupe.piste;
+
+          if (decoupe.horsEcranPrincipal) {
+            set({
+              error:
+                "Cette fenetre est sur un second ecran : c'est l'ecran entier qui est partage.",
+            });
+          }
+        } catch {
+          // Decoupe impossible : on partage l'ecran plutot que rien, et
+          // l'utilisateur le voit dans sa propre vignette.
+        }
+      }
+
       if (!videoTrack) return;
 
       // L'indice de contenu oriente l'encodeur avant meme la negociation :

@@ -1705,3 +1705,20 @@
 [data-motion='reduced'] .channel:hover:not(.is-active) {
   transform: none;
 }
+
+/* Le membre vocal est devenu un bouton : il ne doit pour autant pas en avoir
+   l'allure. Seul le survol signale qu'il repond. */
+button.voice-member {
+  width: 100%;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+button.voice-member:hover {
+  background: var(--bg-hover);
+}

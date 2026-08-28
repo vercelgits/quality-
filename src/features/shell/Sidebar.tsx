@@ -373,11 +373,22 @@ function ChannelItem({
           {participants.map((participant) => {
             const profile = profiles[participant.user_id];
             return (
-              <li className="voice-member" key={participant.user_id}>
-                <Avatar profile={profile} size={20} />
-                <span className="truncate">{profile?.display_name ?? 'Quelqu’un'}</span>
-                {participant.muted ? <Icon name="mic-off" size={12} /> : null}
-                {participant.sharing ? <Icon name="screen" size={12} /> : null}
+              <li key={participant.user_id}>
+                {/* Un nom se clique pour savoir a qui l'on a affaire — ici comme
+                    dans la conversation ou sur la scene vocale. */}
+                <button
+                  type="button"
+                  className="voice-member"
+                  onClick={() => openModal({ kind: 'profile', userId: participant.user_id })}
+                  title={
+                    profile ? `Voir le profil de ${profile.display_name}` : 'Voir le profil'
+                  }
+                >
+                  <Avatar profile={profile} size={20} />
+                  <span className="truncate">{profile?.display_name ?? 'Quelqu’un'}</span>
+                  {participant.muted ? <Icon name="mic-off" size={12} /> : null}
+                  {participant.sharing ? <Icon name="screen" size={12} /> : null}
+                </button>
               </li>
             );
           })}

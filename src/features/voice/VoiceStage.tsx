@@ -362,9 +362,9 @@ export function VoiceStage({ channel }: { channel: Channel }) {
           <SourcePicker
             open={panneauPartage}
             onClose={() => setPanneauPartage(false)}
-            onStart={() => {
+            onStart={(source) => {
               setPanneauPartage(false);
-              void toggleScreenShare();
+              void toggleScreenShare(source?.id);
             }}
           />
         ) : (

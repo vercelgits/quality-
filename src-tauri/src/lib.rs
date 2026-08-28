@@ -71,10 +71,51 @@ mod capture;
 #[path = "capture_autre.rs"]
 mod capture;
 
+/// Retire la fenetre de selection de partage imposee par WebView2.
+///
+/// A chaque appel de `getDisplayMedia`, le moteur ouvre sa propre fenetre —
+/// celle qui annonce « http://tauri.localhost veut partager votre ecran ». Elle
+/// n'est reglable par aucune API : ni Tauri ni la page n'ont prise dessus.
+///
+/// WebView2 lit en revanche `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS` a la
+/// creation de son environnement, avant toute fenetre. Le drapeau
+/// `--auto-select-desktop-capture-source` demande a Chromium de choisir seul la
+/// premiere source dont le nom contient la chaine donnee, et de ne rien
+/// afficher.
+///
+/// Deux reserves, et elles comptent :
+///
+///  - Le nom compare est celui que le moteur donne aux sources, susceptible
+///    d'etre traduit. On essaie donc plusieurs formulations ; si aucune ne
+///    correspond, la fenetre reapparait comme avant — on ne perd rien.
+///  - Le choix porte toujours sur l'ecran entier. Partager une fenetre seule
+///    demande de decouper l'image, ce que fait l'interface a partir de la zone
+///    que le systeme nous donne.
+///
+/// La variable doit etre posee avant que Tauri ne construise le WebView : une
+/// fois l'environnement cree, elle n'est plus relue.
+#[cfg(windows)]
+fn desactiver_selecteur_webview() {
+    // `std::env::set_var` est marque `unsafe` a partir de l'edition 2024 ; en
+    // 2021 il ne l'est pas, et l'appel a lieu avant tout fil supplementaire.
+    std::env::set_var(
+        "WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS",
+        "--auto-select-desktop-capture-source=Entire screen",
+    );
+}
+
+#[cfg(not(windows))]
+fn desactiver_selecteur_webview() {}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    desactiver_selecteur_webview();
+
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![capture::sources_partageables])
+        .invoke_handler(tauri::generate_handler![
+            capture::sources_partageables,
+            capture::zone_source
+        ])
         // Une seconde instance ne cree pas de fenetre : elle reveille celle qui
         // existe deja. Sans cela, cliquer deux fois sur l'icone ouvrirait deux
         // applications connectees au meme compte.

@@ -23,13 +23,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Deux cibles pour macOS, reunies en un binaire universel : les Mac
-          # a puce Apple et les anciens a puce Intel n'executent pas le meme
-          # code, et une seule archive doit servir aux deux.
+          # `universal-apple-darwin` n'existe pas pour rustup : c'est une
+          # notion propre a Tauri, qui compile les deux architectures d'Apple
+          # puis les fusionne en un seul binaire. Il faut donc installer les
+          # vraies cibles, et ne donner la pseudo-cible qu'au constructeur.
           - systeme: macos-latest
+            cibles_rust: aarch64-apple-darwin,x86_64-apple-darwin
             cible: universal-apple-darwin
             nom: macOS
           - systeme: windows-latest
+            cibles_rust: x86_64-pc-windows-msvc
             cible: x86_64-pc-windows-msvc
             nom: Windows
 
@@ -46,7 +49,7 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.cible }}
+          targets: ${{ matrix.cibles_rust }}
 
       # Le cache porte sur `target/` et le registre : sans lui, chaque
       # execution recompile Tauri et ses dependances depuis zero, soit une

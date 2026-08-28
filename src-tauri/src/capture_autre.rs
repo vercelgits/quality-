@@ -24,3 +24,23 @@ pub struct Source {
 pub fn sources_partageables() -> Vec<Source> {
     Vec::new()
 }
+
+#[derive(Serialize)]
+pub struct Zone {
+    pub x: i32,
+    pub y: i32,
+    pub largeur: i32,
+    pub hauteur: i32,
+    pub visible: bool,
+}
+
+#[tauri::command]
+pub fn zone_source(_id: String) -> Zone {
+    Zone {
+        x: 0,
+        y: 0,
+        largeur: 0,
+        hauteur: 0,
+        visible: false,
+    }
+}

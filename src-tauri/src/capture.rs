@@ -22,7 +22,7 @@ use windows::Win32::Graphics::Gdi::{
 };
 use windows::Win32::UI::WindowsAndMessaging::{
     EnumWindows, GetAncestor, GetWindowLongW, GetWindowRect, GetWindowTextLengthW, GetWindowTextW,
-    IsIconic, IsWindowVisible, GA_ROOT, GWL_EXSTYLE, WS_EX_TOOLWINDOW,
+    IsIconic, IsWindow, IsWindowVisible, GA_ROOT, GWL_EXSTYLE, WS_EX_TOOLWINDOW,
 };
 
 /// Une source qu'on peut proposer au partage.
@@ -305,4 +305,80 @@ pub fn sources_partageables() -> Vec<Source> {
     }
 
     liste
+}
+
+/// Position d'une source a l'ecran, en pixels physiques.
+#[derive(Serialize)]
+pub struct Zone {
+    pub x: i32,
+    pub y: i32,
+    pub largeur: i32,
+    pub hauteur: i32,
+    /// Faux quand la fenetre a disparu ou a ete reduite depuis le choix.
+    pub visible: bool,
+}
+
+/// Ou se trouve la source choisie, maintenant.
+///
+/// La capture porte toujours sur l'ecran entier — c'est la seule facon d'eviter
+/// la fenetre de selection du moteur web. Partager une fenetre seule consiste
+/// donc a decouper cette image, et le decoupage doit suivre la fenetre quand on
+/// la deplace ou la redimensionne. D'ou cette interrogation repetee plutot
+/// qu'une position figee au depart.
+#[tauri::command]
+pub fn zone_source(id: String) -> Zone {
+    let absente = Zone {
+        x: 0,
+        y: 0,
+        largeur: 0,
+        hauteur: 0,
+        visible: false,
+    };
+
+    let Some((genre, valeur)) = id.split_once(':') else {
+        return absente;
+    };
+
+    let Ok(poignee) = valeur.parse::<isize>() else {
+        return absente;
+    };
+
+    if genre == "ecran" {
+        let moniteur = HMONITOR(poignee as *mut _);
+        let mut info = MONITORINFOEXW::default();
+        info.monitorInfo.cbSize = std::mem::size_of::<MONITORINFOEXW>() as u32;
+
+        let ok = unsafe { GetMonitorInfoW(moniteur, &mut info.monitorInfo as *mut _) };
+        if !ok.as_bool() {
+            return absente;
+        }
+
+        let cadre = info.monitorInfo.rcMonitor;
+        return Zone {
+            x: cadre.left,
+            y: cadre.top,
+            largeur: cadre.right - cadre.left,
+            hauteur: cadre.bottom - cadre.top,
+            visible: true,
+        };
+    }
+
+    let fenetre = HWND(poignee as *mut _);
+
+    if !unsafe { IsWindow(fenetre) }.as_bool() || !partageable(fenetre) {
+        return absente;
+    }
+
+    let mut cadre = RECT::default();
+    if unsafe { GetWindowRect(fenetre, &mut cadre) }.is_err() {
+        return absente;
+    }
+
+    Zone {
+        x: cadre.left,
+        y: cadre.top,
+        largeur: cadre.right - cadre.left,
+        hauteur: cadre.bottom - cadre.top,
+        visible: true,
+    }
 }
