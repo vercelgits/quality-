@@ -1059,11 +1059,8 @@
 
 .profile__grid {
   display: grid;
-  grid-template-columns: 228px minmax(0, 1fr);
-  /* Plus haute que large : une fiche decrit une personne, et cela se lit de
-     haut en bas. La borne suit la fenetre pour ne pas deborder sur un ecran
-     bas. */
-  min-height: min(560px, 72vh);
+  grid-template-columns: 300px minmax(0, 1fr);
+  min-height: min(520px, 70vh);
 }
 
 .profile__aside {
@@ -1131,12 +1128,23 @@
    -------------------------------------------------------------------------- */
 
 .profile__aside .profile__banner {
-  height: 96px;
+  height: 168px;
 }
 
 .profile__aside .profile__avatar {
-  margin-top: -46px;
+  margin-top: -56px;
   padding-left: var(--space-5);
+  /*
+   * A plat.
+   *
+   * L'avatar etait pousse de quarante pixels vers le lecteur, du temps ou la
+   * carte s'inclinait sous le curseur. L'inclinaison est neutralisee depuis,
+   * mais la profondeur restait : sous la perspective de la carte, elle
+   * grossissait le visage d'environ cinq pour cent par rapport a tout le
+   * reste, et le decalait legerement du centre. Un effet sans cause, qui
+   * faussait la seule chose qui doit rester fidele.
+   */
+  transform: none;
 }
 
 .profile__aside .profile__identity,

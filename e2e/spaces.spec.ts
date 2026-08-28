@@ -225,14 +225,22 @@ test.describe('Espaces et salons', () => {
   test('le clic droit sur un salon ouvre ses actions', async ({ page }) => {
     await openApp(page);
 
-    const salon = page.locator('.channel').first();
+    // Le salon ouvert : il est forcement visible, la ou le premier de la liste
+    // peut se trouver dans une categorie repliee.
+    const salon = page.locator('.channel.is-active').first();
     await expect(salon).toBeVisible({ timeout: 15_000 });
     await salon.click({ button: 'right' });
 
     const menu = page.getByRole('menu');
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Marquer comme lu' })).toBeVisible();
+
+    // « Copier le lien du salon » discrimine : le menu d'un espace propose
+    // « Tout marquer comme lu », qu'une recherche par sous-chaine confondrait
+    // avec « Marquer comme lu ».
     await expect(menu.getByRole('menuitem', { name: 'Copier le lien du salon' })).toBeVisible();
+    await expect(
+      menu.getByRole('menuitem', { name: 'Marquer comme lu', exact: true }),
+    ).toBeVisible();
 
     await page.keyboard.press('Escape');
     await expect(menu).toHaveCount(0);
