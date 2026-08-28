@@ -89,6 +89,18 @@ export interface Preferences {
   alwaysShowFocus: boolean;
   /** Attenue les couleurs vives, qui fatiguent a la longue. */
   saturation: number;
+
+  /* -- Notifications ----------------------------------------------------- */
+
+  /** Joue une note quand on est mentionne. */
+  mentionSound: boolean;
+  /**
+   * Previent a chaque message, et plus seulement aux mentions.
+   *
+   * Faux par defaut : dans un salon vif, une bulle par message pousse a tout
+   * couper au bout de dix minutes — et on perd alors aussi les mentions.
+   */
+  notifyEveryMessage: boolean;
 }
 
 const DEFAULT_PREFERENCES: Preferences = {
@@ -110,6 +122,9 @@ const DEFAULT_PREFERENCES: Preferences = {
   textScale: 'normal',
   alwaysShowFocus: false,
   saturation: 100,
+
+  mentionSound: true,
+  notifyEveryMessage: false,
 };
 
 const STORAGE_KEY = 'orbit:preferences';

@@ -2,6 +2,8 @@ import { create } from 'zustand';
 import { supabase, errorMessage } from '@/lib/supabase';
 import { LIMITS } from '@/constants';
 import { notify, preview } from '@/lib/notify';
+import { playCue } from '@/lib/sounds';
+import { useSession } from '@/store/session';
 import type {
   Attachment,
   Bookmark,
@@ -921,14 +923,23 @@ export const useChat = create<ChatState>((set, get) => ({
         new RegExp(`@(${me.username}|everyone|here|tous)\\b`, 'i').test(raw.content);
       get().bumpUnread(raw.channel_id, mentioned);
 
-      // Seules les mentions declenchent une bulle. Notifier chaque message d'un
-      // salon actif reviendrait a ce que l'utilisateur coupe tout au bout de
-      // dix minutes.
-      if (mentioned) {
+      /*
+       * Par defaut, seules les mentions font une bulle : notifier chaque
+       * message d'un salon vif conduit a tout couper au bout de dix minutes,
+       * et on perd alors aussi les mentions. Qui veut l'inverse le demande
+       * explicitement dans les parametres.
+       */
+      const preferences = useSession.getState().preferences;
+
+      if (mentioned && preferences.mentionSound) playCue('mention');
+
+      if (mentioned || preferences.notifyEveryMessage) {
         const author = state.profiles[raw.author_id];
         const channel = state.channels.find((item) => item.id === raw.channel_id);
         void notify({
-          title: `${author?.display_name ?? 'Quelqu’un'} vous a mentionne`,
+          title: mentioned
+            ? `${author?.display_name ?? 'Quelqu’un'} vous a mentionne`
+            : (author?.display_name ?? 'Nouveau message'),
           body: `${channel ? `#${channel.name} · ` : ''}${preview(raw.content)}`,
           tag: raw.channel_id,
         });

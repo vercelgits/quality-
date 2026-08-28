@@ -30,7 +30,8 @@ export type Cue =
   | 'peer-join'
   | 'peer-leave'
   | 'share-start'
-  | 'share-stop';
+  | 'share-stop'
+  | 'mention';
 
 interface Note {
   /** Indice dans la gamme. */
@@ -50,6 +51,18 @@ interface Note {
  * arrive » rendrait les deux illisibles dans un salon anime.
  */
 const PARTITIONS: Record<Cue, Note[]> = {
+  /*
+   * Mention : deux notes qui montent, la seconde plus longue.
+   *
+   * Elle doit s'entendre par-dessus autre chose — de la musique, une voix —
+   * sans faire sursauter. Deux degres ecartes portent mieux qu'une note seule,
+   * et la montee se distingue de « quitter », qui descend.
+   */
+  mention: [
+    { degre: 2, debut: 0, duree: 0.09, gain: 0.5 },
+    { degre: 5, debut: 0.09, duree: 0.22, gain: 0.5 },
+  ],
+
   mute: [{ degre: 2, debut: 0, duree: 0.09, gain: 0.5 }],
   unmute: [{ degre: 4, debut: 0, duree: 0.09, gain: 0.5 }],
 

@@ -974,6 +974,8 @@ function AppearanceSection() {
 
 function NotificationsSection() {
   const [state, setState] = useState<NotificationPermissionState>('default');
+  const preferences = useSession((state) => state.preferences);
+  const setPreference = useSession((state) => state.setPreference);
 
   useEffect(() => {
     void permissionState().then(setState);
@@ -984,6 +986,25 @@ function NotificationsSection() {
       <h1 className="settings__title">Notifications</h1>
 
       <section className="settings__group">
+        <h2 className="settings__group-title">Quand etre prevenu</h2>
+
+        <div className="settings__stack">
+          <SwitchRow
+            label="Une note quand on me mentionne"
+            hint="Un son court, distinct de ceux du vocal. Son volume suit celui des sons de l'application, dans Voix et video."
+            checked={preferences.mentionSound}
+            onChange={(value) => setPreference('mentionSound', value)}
+          />
+          <SwitchRow
+            label="Me prevenir a chaque message"
+            hint="Et plus seulement aux mentions. Dans un salon vif, cela devient vite intenable — et on finit par tout couper, mentions comprises."
+            checked={preferences.notifyEveryMessage}
+            onChange={(value) => setPreference('notifyEveryMessage', value)}
+          />
+        </div>
+      </section>
+
+      <section className="settings__group">
         <h2 className="settings__group-title">Bulles du systeme</h2>
 
         {state === 'unsupported' ? (
@@ -991,8 +1012,8 @@ function NotificationsSection() {
         ) : (
           <>
             <p className="settings__hint">
-              Une bulle apparait uniquement quand on vous mentionne et que la
-              fenetre n’est pas au premier plan.
+              Une bulle apparait quand la fenetre n’est pas au premier plan,
+              selon la portee choisie ci-dessus.
               {isDesktop() ? ' Elle passe par le centre de notifications du systeme.' : ''}
             </p>
 
