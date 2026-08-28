@@ -182,6 +182,8 @@ interface ChatState {
   joinSpace: (inviteCode: string) => Promise<Space | null>;
   createChannel: (spaceId: UUID, name: string, kind: 'text' | 'voice') => Promise<void>;
   /** Supprime un salon ; renvoie l'espace ou se replier, ou `null` en cas d'echec. */
+  /** Quitte un espace. Renvoie faux si le serveur a refuse. */
+  leaveSpace: (spaceId: UUID, userId: UUID) => Promise<boolean>;
   deleteChannel: (channelId: UUID) => Promise<UUID | null>;
   renameChannel: (channelId: UUID, name: string, topic?: string | null) => Promise<boolean>;
 
@@ -854,6 +856,38 @@ export const useChat = create<ChatState>((set, get) => ({
     }
 
     get().applyChannel(data as Channel);
+  },
+
+  /*
+   * Quitter un espace, c'est retirer sa propre ligne d'appartenance.
+   *
+   * Aucune fonction dediee : la politique RLS autorise deja a supprimer sa
+   * propre appartenance — c'est la meme regle qui permet a un administrateur
+   * d'exclure quelqu'un. Ajouter une fonction par-dessus n'apporterait qu'une
+   * indirection.
+   *
+   * Le proprietaire n'est pas concerne : partir laisserait l'espace sans
+   * personne pour l'administrer. L'interface ne lui propose donc pas l'action,
+   * et lui offre la suppression a la place.
+   */
+  leaveSpace: async (spaceId, userId) => {
+    const { error: failure } = await supabase
+      .from('space_members')
+      .delete()
+      .eq('space_id', spaceId)
+      .eq('user_id', userId);
+
+    if (failure) {
+      set({ error: errorMessage(failure) });
+      return false;
+    }
+
+    set((state) => ({
+      spaces: state.spaces.filter((space) => space.id !== spaceId),
+      channels: state.channels.filter((channel) => channel.space_id !== spaceId),
+    }));
+
+    return true;
   },
 
   deleteChannel: async (channelId) => {

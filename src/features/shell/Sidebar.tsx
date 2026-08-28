@@ -7,6 +7,9 @@ import { Icon } from '@/components/Icon';
 import { Avatar } from '@/components/Avatar';
 import { formatRelative } from '@/lib/time';
 import { DirectMessageList } from '@/features/dm/DirectMessageList';
+import { ChannelContextMenu } from '@/features/channels/ChannelContextMenu';
+import { useContextMenu } from '@/components/ContextMenu';
+import { Modal } from '@/components/Modal';
 import type { Channel, UUID } from '@/types/db';
 
 export function Sidebar() {
@@ -268,11 +271,54 @@ function ChannelItem({
     channel.kind === 'voice' ? state.participantsByChannel[channel.id] : undefined,
   );
   const openModal = useUI((state) => state.openModal);
+  const deleteChannel = useChat((state) => state.deleteChannel);
+  const menu = useContextMenu();
+  const [aSupprimer, setASupprimer] = useState(false);
 
   const hasUnread = unread > 0 && !active;
 
   return (
-    <li>
+    <li onContextMenu={menu.open}>
+      {menu.position ? (
+        <ChannelContextMenu
+          channel={channel}
+          position={menu.position}
+          onClose={menu.close}
+          canManage={canManage}
+          onDelete={() => setASupprimer(true)}
+        />
+      ) : null}
+
+      <Modal
+        open={aSupprimer}
+        title={`Supprimer #${channel.name} ?`}
+        description="Les messages du salon disparaissent avec lui. Cette action est definitive."
+        onClose={() => setASupprimer(false)}
+        width={440}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setASupprimer(false)}>
+              Annuler
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={() => {
+                setASupprimer(false);
+                void deleteChannel(channel.id);
+              }}
+            >
+              <Icon name="trash" size={15} />
+              Supprimer
+            </button>
+          </>
+        }
+      >
+        <p className="field__hint">
+          Personne ne pourra plus lire ce qui s&rsquo;y est dit, vous compris.
+        </p>
+      </Modal>
+
       <button
         type="button"
         className={

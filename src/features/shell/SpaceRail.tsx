@@ -1,4 +1,10 @@
+import { useState } from 'react';
 import { useChat } from '@/store/chat';
+import { useSession } from '@/store/session';
+import { useContextMenu } from '@/components/ContextMenu';
+import { SpaceContextMenu } from '@/features/spaces/SpaceContextMenu';
+import { Modal } from '@/components/Modal';
+import type { UUID } from '@/types/db';
 import { useUI } from '@/store/ui';
 import { initialsFor } from '@/constants';
 import { Icon } from '@/components/Icon';
@@ -21,6 +27,21 @@ export function SpaceRail() {
   const openModal = useUI((state) => state.openModal);
   const view = useUI((state) => state.view);
   const showDirectMessages = useUI((state) => state.showDirectMessages);
+  const members = useChat((state) => state.members);
+  const leaveSpace = useChat((state) => state.leaveSpace);
+  const moi = useSession((state) => state.profile);
+
+  const menu = useContextMenu();
+  // Le menu est unique et se deplace : en monter un par pastille en
+  // fabriquerait autant que d'espaces, tous inutiles sauf un.
+  const [cible, setCible] = useState<UUID | null>(null);
+  const [aQuitter, setAQuitter] = useState<UUID | null>(null);
+
+  const espaceVise = spaces.find((space) => space.id === cible);
+  const espaceAQuitter = spaces.find((space) => space.id === aQuitter);
+
+  const rangDans = (spaceId: UUID) =>
+    members.find((membre) => membre.space_id === spaceId && membre.user_id === moi?.id)?.role;
 
   // Non-lus cumules de toutes les conversations privees, affiches sur le
   // bouton d'accueil.
@@ -30,6 +51,47 @@ export function SpaceRail() {
 
   return (
     <nav className="rail" aria-label="Navigation principale">
+      {menu.position && espaceVise ? (
+        <SpaceContextMenu
+          space={espaceVise}
+          role={rangDans(espaceVise.id)}
+          position={menu.position}
+          onClose={menu.close}
+          onLeave={() => setAQuitter(espaceVise.id)}
+        />
+      ) : null}
+
+      <Modal
+        open={espaceAQuitter !== undefined}
+        title={`Quitter ${espaceAQuitter?.name ?? ''} ?`}
+        description="Vous perdrez l'acces a ses salons. Il faudra une nouvelle invitation pour revenir."
+        onClose={() => setAQuitter(null)}
+        width={440}
+        footer={
+          <>
+            <button type="button" className="btn" onClick={() => setAQuitter(null)}>
+              Annuler
+            </button>
+            <button
+              type="button"
+              className="btn btn--danger"
+              onClick={() => {
+                const id = aQuitter;
+                setAQuitter(null);
+                if (id && moi) void leaveSpace(id, moi.id);
+              }}
+            >
+              <Icon name="log-out" size={15} />
+              Quitter
+            </button>
+          </>
+        }
+      >
+        <p className="field__hint">
+          Vos messages restent en place : partir ne les efface pas.
+        </p>
+      </Modal>
+
       <div className="rail__home">
         <span
           className={'rail__indicator' + (view === 'direct' ? ' is-active' : '')}
@@ -92,6 +154,10 @@ export function SpaceRail() {
                   'rail__button' + (isActive && view === 'space' ? ' is-active' : '')
                 }
                 onClick={() => selectSpace(space.id)}
+                onContextMenu={(event) => {
+                  setCible(space.id);
+                  menu.open(event);
+                }}
                 aria-current={isActive ? 'true' : undefined}
                 title={space.name}
               >

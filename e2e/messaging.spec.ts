@@ -222,7 +222,7 @@ test.describe('Parcours authentifies', () => {
     await expect(fiche).toBeVisible();
   });
 
-  test('le clic droit sur un message ouvre les actions de la personne', async ({ page }) => {
+  test('le clic droit sur un message ouvre les actions du message', async ({ page }) => {
     await openApp(page);
 
     const text = uniqueText('Menu');
@@ -234,8 +234,17 @@ test.describe('Parcours authentifies', () => {
 
     const menu = page.getByRole('menu');
     await expect(menu).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: /profil/i })).toBeVisible();
-    await expect(menu.getByRole('menuitem', { name: 'Copier le pseudo' })).toBeVisible();
+
+    // Le message d'abord — c'est lui qu'on a vise. Le profil de l'auteur reste
+    // atteignable, mais plus bas.
+    await expect(menu.getByRole('menuitem', { name: 'Repondre' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Copier le texte' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Epingler le message' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: /profil de l/i })).toBeVisible();
+
+    // Sur son propre message : supprimer. Signaler n'aurait pas de sens.
+    await expect(menu.getByRole('menuitem', { name: 'Supprimer le message' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Signaler le message' })).toHaveCount(0);
 
     // Echap referme : un menu qu'on ne peut fermer qu'en cliquant ailleurs
     // piege qui navigue au clavier.

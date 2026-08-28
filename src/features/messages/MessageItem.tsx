@@ -10,7 +10,7 @@ import { AttachmentList } from './AttachmentList';
 import { LinkPreviews } from './LinkPreview';
 import type { Message, Profile, UUID } from '@/types/db';
 import { useContextMenu } from '@/components/ContextMenu';
-import { UserContextMenu } from '@/features/profile/UserContextMenu';
+import { MessageContextMenu } from './MessageContextMenu';
 import { useUI } from '@/store/ui';
 import { useSession } from '@/store/session';
 
@@ -121,10 +121,24 @@ function MessageItemInner({
       onContextMenu={menu.open}
     >
       {menu.position ? (
-        <UserContextMenu
-          userId={message.author_id}
+        <MessageContextMenu
+          message={message}
           position={menu.position}
           onClose={menu.close}
+          mine={message.author_id === currentUserId}
+          canManage={canManage}
+          bookmarked={bookmarked}
+          onReply={onReply}
+          onEdit={onEdit}
+          onDelete={onDelete}
+          onReact={onReact}
+          onPin={onPin}
+          onStartThread={onStartThread}
+          onBookmark={onBookmark}
+          onReport={onReport}
+          onOpenAuthor={() =>
+            author && openModal({ kind: 'profile', userId: author.id })
+          }
         />
       ) : null}
       {replyTo ? (

@@ -215,4 +215,50 @@ test.describe('Espaces et salons', () => {
     await page.keyboard.press('Escape');
     await expect(openDialog(page)).toHaveCount(0);
   });
+  /*
+   * Le clic droit sur un salon.
+   *
+   * Les reglages ne s'atteignaient que par une roue dentee visible au survol,
+   * et seulement pour qui administre : les autres n'avaient aucun moyen de
+   * marquer un salon comme lu ou d'en copier le lien.
+   */
+  test('le clic droit sur un salon ouvre ses actions', async ({ page }) => {
+    await openApp(page);
+
+    const salon = page.locator('.channel').first();
+    await expect(salon).toBeVisible({ timeout: 15_000 });
+    await salon.click({ button: 'right' });
+
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Marquer comme lu' })).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Copier le lien du salon' })).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+  });
+
+  test('le clic droit sur un espace ouvre ses actions', async ({ page }) => {
+    await openApp(page);
+
+    const pastille = page.locator('.rail__list .rail__button').first();
+    await expect(pastille).toBeVisible({ timeout: 15_000 });
+    await pastille.click({ button: 'right' });
+
+    const menu = page.getByRole('menu');
+    await expect(menu).toBeVisible();
+    await expect(menu.getByRole('menuitem', { name: 'Inviter des personnes' })).toBeVisible();
+    await expect(
+      menu.getByRole('menuitem', { name: "Parametres de l'espace" }),
+    ).toBeVisible();
+
+    // Quitter ou supprimer selon le rang, mais jamais les deux : partir de son
+    // propre espace le laisserait sans personne pour l'administrer.
+    const quitter = menu.getByRole('menuitem', { name: "Quitter l'espace" });
+    const supprimer = menu.getByRole('menuitem', { name: "Supprimer l'espace" });
+    expect((await quitter.count()) + (await supprimer.count())).toBe(1);
+
+    await page.keyboard.press('Escape');
+    await expect(menu).toHaveCount(0);
+  });
 });

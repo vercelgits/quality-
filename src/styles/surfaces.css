@@ -64,8 +64,14 @@
    Carte de profil
    -------------------------------------------------------------------------- */
 
+/* Le fond flou se cale sur la fiche : sans `position: relative` ici, il
+   remontait jusqu'au premier ancetre positionne et debordait tres au-dela de
+   la carte. */
 .profile {
+  position: relative;
   padding: var(--space-1);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
 }
 
 .profile__card {
@@ -1032,44 +1038,233 @@
   color: var(--success);
 }
 
-/* --------------------------------------------------------------------------
-   Fiche de profil : la hauteur
-   --------------------------------------------------------------------------
-   Elle se tassait en haut de l'ecran, large et courte, alors qu'elle decrit
-   une personne : bannieres, visage, bio, liens, espaces communs se lisent de
-   haut en bas. Elle occupe maintenant la hauteur disponible, dans la limite
-   de ce que la fenetre offre.
-
-   `min-height` plutot que `height` : une fiche presque vide ne doit pas
-   s'etirer sur du blanc, mais une fiche remplie ne doit plus etre bridee.
-   -------------------------------------------------------------------------- */
-
-.profile .tilt__inner {
-  display: flex;
-  flex-direction: column;
-  min-height: min(660px, 82vh);
-}
-
-/* La derniere marge pousse le bouton en bas plutot que de laisser un vide
-   sous lui : c'est l'action de la carte, sa place est au pied. */
-.profile__since {
-  margin-top: auto;
-}
-
-/* Les espaces communs prennent la place restante quand il y en a. */
-.profile__mutual-list {
-  max-height: min(220px, 32vh);
-}
-
-@media (max-height: 700px) {
-  .profile .tilt__inner {
-    min-height: 0;
-  }
-}
 
 .profile__mutual-empty {
   margin: 0;
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
   color: var(--text-faint);
+}
+
+/* ==========================================================================
+   Fiche de profil : deux colonnes
+   ==========================================================================
+   Une seule colonne obligeait a empiler bio, espaces et amis, alors qu'on ne
+   les regarde jamais en meme temps : la carte s'allongeait et il fallait la
+   faire defiler pour une information qui tient dans un coin.
+
+   A gauche, ce qui ne change pas : le visage, le nom, l'action. A droite, ce
+   qu'on vient chercher, un onglet a la fois.
+   ========================================================================== */
+
+.profile__grid {
+  display: grid;
+  grid-template-columns: 228px minmax(0, 1fr);
+  /* Plus haute que large : une fiche decrit une personne, et cela se lit de
+     haut en bas. La borne suit la fenetre pour ne pas deborder sur un ecran
+     bas. */
+  min-height: min(560px, 72vh);
+}
+
+.profile__aside {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border-right: 1px solid var(--border-subtle);
+  background: color-mix(in oklab, var(--bg-raised) 82%, transparent);
+}
+
+.profile__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: color-mix(in oklab, var(--bg-raised) 62%, transparent);
+}
+
+/* --------------------------------------------------------------------------
+   Le fond : la banniere, floutee
+   -------------------------------------------------------------------------- */
+
+.profile__wash {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.profile__wash-image,
+.profile__wash-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  /*
+   * Assez floue pour qu'il n'en reste que des masses colorees.
+   * Un flou plus leger laisserait deviner des formes, et le texte pose dessus
+   * deviendrait penible a lire — c'est de la couleur qu'on veut, pas l'image.
+   *
+   * L'agrandissement compense le bord : un flou de cette ampleur delave les
+   * quatre cotes, qui laisseraient sinon un lisere clair.
+   */
+  filter: blur(44px) saturate(140%) brightness(0.55);
+  transform: scale(1.35);
+}
+
+.profile__wash-fallback {
+  background: var(--gradient-aurora);
+}
+
+/* La carte se pose au-dessus du fond. */
+.profile .tilt__inner {
+  position: relative;
+  background: transparent;
+}
+
+.profile__grid {
+  position: relative;
+  z-index: 1;
+}
+
+/* --------------------------------------------------------------------------
+   Colonne de gauche
+   -------------------------------------------------------------------------- */
+
+.profile__aside .profile__banner {
+  height: 96px;
+}
+
+.profile__aside .profile__avatar {
+  margin-top: -46px;
+  padding-left: var(--space-5);
+}
+
+.profile__aside .profile__identity,
+.profile__aside .profile__badges,
+.profile__aside .profile__status,
+.profile__aside .profile__since {
+  padding-left: var(--space-5);
+  padding-right: var(--space-5);
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.profile__action {
+  margin: var(--space-5) var(--space-5) 0;
+  min-height: 40px;
+  border-radius: var(--radius-lg);
+}
+
+/* Repousse la date en bas de la colonne : c'est une mention, pas une
+   information qu'on vient chercher. */
+.profile__aside .profile__since {
+  margin-top: auto;
+  padding-bottom: var(--space-5);
+  padding-top: var(--space-5);
+}
+
+.profile__banner-edit {
+  right: var(--space-3);
+  top: var(--space-3);
+  padding: 4px var(--space-3);
+  font-size: var(--text-2xs);
+}
+
+/* --------------------------------------------------------------------------
+   Colonne de droite : onglets
+   -------------------------------------------------------------------------- */
+
+.profile__tabs {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-5) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.profile__tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.profile__tab {
+  position: relative;
+  flex: none;
+  padding: 0 var(--space-3) var(--space-3);
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: var(--text-md);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.profile__tab:hover {
+  color: var(--text-secondary);
+}
+
+.profile__tab.is-active {
+  color: var(--text-primary);
+}
+
+/* Le trait sous l'onglet actif deborde d'un pixel sur la bordure du bandeau,
+   pour le recouvrir plutot que de s'aligner dessus. */
+.profile__tab.is-active::after {
+  content: '';
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  bottom: -1px;
+  height: 2px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+}
+
+.profile__panel {
+  flex: 1;
+  min-height: 0;
+  padding: var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.profile__empty {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--text-faint);
+}
+
+.profile__panel .profile__bio,
+.profile__panel .profile__links {
+  margin: 0 0 var(--space-4);
+  padding: 0;
+}
+
+.profile__panel .profile__mutual-list {
+  max-height: none;
+  overflow: visible;
+}
+
+/* --------------------------------------------------------------------------
+   Etroit : la grille redevient une colonne
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 620px) {
+  .profile__grid {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .profile__aside {
+    border-right: 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .profile__aside .profile__since {
+    margin-top: var(--space-4);
+  }
 }

@@ -39,7 +39,12 @@ export function ProfileCard({ userId }: { userId: UUID }) {
   const [opening, setOpening] = useState(false);
 
   const [stats, setStats] = useState<ProfileStats | null>(null);
+  const [onglet, setOnglet] = useState<'apropos' | 'espaces' | 'amis'>('apropos');
   const profile = profiles[userId] ?? (userId === me?.id ? me : undefined);
+
+  useEffect(() => {
+    setOnglet('apropos');
+  }, [userId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +63,7 @@ export function ProfileCard({ userId }: { userId: UUID }) {
       setStats({
         joined_at: brut.joined_at ?? new Date().toISOString(),
         mutual_spaces: Array.isArray(brut.mutual_spaces) ? brut.mutual_spaces : [],
+        mutual_friends: Array.isArray(brut.mutual_friends) ? brut.mutual_friends : [],
         roles: Array.isArray(brut.roles) ? brut.roles : [],
       });
     })();
@@ -89,210 +95,280 @@ export function ProfileCard({ userId }: { userId: UUID }) {
   // arrivent alors en `undefined` plutot qu'en `null`.
   const hue = profile.theme_hue ?? null;
   const links = profile.links ?? [];
+
+  const espaces = stats?.mutual_spaces ?? [];
+  const amis = stats?.mutual_friends ?? [];
+
+  /*
+   * Les onglets communs n'existent que sur la fiche de quelqu'un d'autre.
+   *
+   * « Espaces en commun » avec soi-meme voudrait dire tous ses espaces, et
+   * « amis en commun » tous ses amis : deux listes qu'on a deja ailleurs, et
+   * qui n'apprennent rien ici.
+   */
+  const onglets = isMe
+    ? ([{ id: 'apropos', label: 'A propos' }] as const)
+    : ([
+        { id: 'apropos', label: 'A propos' },
+        { id: 'espaces', label: `Espaces (${espaces.length})` },
+        { id: 'amis', label: `Amis (${amis.length})` },
+      ] as const);
   const cardStyle =
     typeof hue === 'number' ? ({ '--hue-primary': hue } as React.CSSProperties) : undefined;
 
   return (
     <div className="profile" style={cardStyle}>
-      <TiltCard className="profile__card" glare>
-        <div className="profile__banner">
-          {profile.banner_url ? (
-            isAnimatable(profile.banner_url) ? (
-              <AnimatedImage
-                src={profile.banner_url}
-                alt=""
-                className="profile__banner-image"
-                // Ouvrir une fiche de profil est deja un geste deliberе : la
-                // banniere s'anime sans qu'il faille en plus la survoler.
-                // « Jamais » reste respecte — c'est une demande, pas un defaut.
-                mode={animate === 'never' ? 'never' : 'always'}
-              />
-            ) : (
-              <img src={profile.banner_url} alt="" className="profile__banner-image" />
-            )
-          ) : (
-            <span className="profile__banner-fallback" aria-hidden="true" />
-          )}
-        </div>
-
-        {/*
-          Sur sa propre fiche, la banniere et la photo sont les deux surfaces
-          qu'on essaie d'abord de cliquer pour les changer. Elles mènent donc a
-          l'editeur, plutot que de renvoyer vers un bouton en bas de carte.
-        */}
-        {isMe ? (
-          <button
-            type="button"
-            className="profile__banner-edit"
-            onClick={() => openModal({ kind: 'edit-profile' })}
-          >
-            <Icon name="camera" size={15} />
-            Changer la banniere
-          </button>
-        ) : null}
-
-        <div className="profile__avatar">
-          {isMe ? (
-            <button
-              type="button"
-              className="profile__avatar-edit"
-              onClick={() => openModal({ kind: 'edit-profile' })}
-              aria-label="Changer ma photo de profil"
-            >
-              <Avatar profile={profile} size={108} status={profile.status} showStatus />
-              <span className="profile__avatar-veil" aria-hidden="true">
-                <Icon name="camera" size={22} />
-              </span>
-            </button>
-          ) : (
-            <Avatar profile={profile} size={108} status={profile.status} showStatus />
-          )}
-        </div>
-
-        <div className="profile__identity">
-          <h2 className="profile__name">{profile.display_name}</h2>
-          <p className="profile__handle">
-            @{profile.username}
-            {profile.pronouns ? (
-              <>
-                <span className="profile__dot" aria-hidden="true">
-                  ·
-                </span>
-                {profile.pronouns}
-              </>
-            ) : null}
-          </p>
-        </div>
-
-        {profile.custom_status ? (
-          <p className="profile__status">{profile.custom_status}</p>
-        ) : null}
-
-        {stats && stats.roles.length > 0 ? (
-          <ul className="profile__badges">
-            {stats.roles.map((role) => (
-              <li key={role} className={`profile-badge profile-badge--${role}`}>
-                <Icon name={ROLE_ICON[role]} size={13} />
-                {ROLE_LABEL[role]}
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {profile.bio ? <p className="profile__bio">{profile.bio}</p> : null}
-
-        {links.length > 0 ? (
-          <ul className="profile__links">
-            {links.map((link) => (
-              <li key={link.url}>
-                <a
-                  className="profile-link"
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer nofollow"
-                >
-                  <Icon name="link" size={13} />
-                  <span className="truncate">{link.label}</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : null}
-
-        {/*
-          La section reste, meme vide.
-          La carte a une hauteur fixe : sans elle, un profil peu rempli laissait
-          un trou entre la bio et le bouton, qui se lisait comme un defaut
-          d'affichage plutot que comme une absence d'information.
-        */}
-        {!isMe ? (
-          <section className="profile__mutual">
-            <h3 className="profile__section-title">
-              {!stats
-                ? 'Espaces en commun'
-                : stats.mutual_spaces.length === 0
-                  ? 'Aucun espace en commun'
-                  : stats.mutual_spaces.length === 1
-                    ? '1 espace en commun'
-                    : `${stats.mutual_spaces.length} espaces en commun`}
-            </h3>
-
-            {stats && stats.mutual_spaces.length === 0 ? (
-              <p className="profile__mutual-empty">
-                Vous ne partagez aucun espace. Cette fiche ne montre donc que ce
-                que cette personne a choisi d'y ecrire.
-              </p>
-            ) : null}
-
-            <ul className="profile__mutual-list">
-              {(stats?.mutual_spaces ?? []).map((space) => (
-                <li key={space.id}>
-                  <button
-                    type="button"
-                    className="profile-mutual"
-                    onClick={() => {
-                      selectSpace(space.id);
-                      closeModal();
-                    }}
-                  >
-                    {space.icon_url ? (
-                      <img src={space.icon_url} alt="" className="profile-mutual__icon" />
-                    ) : (
-                      <span
-                        className="profile-mutual__icon profile-mutual__icon--letter"
-                        style={{ background: hueFor(space.id) }}
-                        aria-hidden="true"
-                      >
-                        {space.name.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <span className="truncate">{space.name}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
-
-        <p className="profile__since">
-          {stats
-            ? `Parmi nous depuis le ${new Intl.DateTimeFormat('fr-FR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              }).format(new Date(stats.joined_at))}`
-            : ' '}
-        </p>
-
-        {isMe ? (
-          <button
-            type="button"
-            className="btn btn--primary btn--block"
-            onClick={() => openModal({ kind: 'edit-profile' })}
-          >
-            <Icon name="edit" size={15} />
-            Modifier mon profil
-          </button>
+      {/*
+        La banniere, floue, en fond de toute la fiche.
+        Elle donne sa couleur a l'ensemble sans jamais disputer la lecture :
+        floutee a ce point, il n'en reste que des masses colorees. Le texte
+        passe dessus sur un voile sombre, jamais sur l'image nette.
+      */}
+      <div className="profile__wash" aria-hidden="true">
+        {profile.banner_url ? (
+          <img src={profile.banner_url} alt="" className="profile__wash-image" />
         ) : (
-          <button
-            type="button"
-            className="btn btn--primary btn--block"
-            disabled={opening}
-            onClick={() => {
-              setOpening(true);
-              void openDm(profile.id).then((channel) => {
-                setOpening(false);
-                if (!channel) return;
-                showDirectMessages();
-                selectChannel(channel.id);
-                closeModal();
-              });
-            }}
-          >
-            {opening ? <span className="spinner" /> : <Icon name="send" size={15} />}
-            Envoyer un message
-          </button>
+          <span className="profile__wash-fallback" />
         )}
+      </div>
+
+      <TiltCard className="profile__card" glare>
+        <div className="profile__grid">
+          <div className="profile__aside">
+            <div className="profile__banner">
+              {profile.banner_url ? (
+                isAnimatable(profile.banner_url) ? (
+                  <AnimatedImage
+                    src={profile.banner_url}
+                    alt=""
+                    className="profile__banner-image"
+                    // Ouvrir une fiche est deja un geste delibere : la banniere
+                    // s'anime sans qu'il faille en plus la survoler.
+                    // « Jamais » reste respecte — c'est une demande, pas un
+                    // defaut.
+                    mode={animate === 'never' ? 'never' : 'always'}
+                  />
+                ) : (
+                  <img src={profile.banner_url} alt="" className="profile__banner-image" />
+                )
+              ) : (
+                <span className="profile__banner-fallback" />
+              )}
+
+              {isMe ? (
+                <button
+                  type="button"
+                  className="profile__banner-edit"
+                  onClick={() => openModal({ kind: 'edit-profile' })}
+                >
+                  <Icon name="camera" size={15} />
+                  Changer
+                </button>
+              ) : null}
+            </div>
+
+            <div className="profile__avatar">
+              {isMe ? (
+                <button
+                  type="button"
+                  className="profile__avatar-edit"
+                  onClick={() => openModal({ kind: 'edit-profile' })}
+                  aria-label="Changer ma photo de profil"
+                >
+                  <Avatar profile={profile} size={96} status={profile.status} showStatus />
+                  <span className="profile__avatar-veil" aria-hidden="true">
+                    <Icon name="camera" size={20} />
+                  </span>
+                </button>
+              ) : (
+                <Avatar profile={profile} size={96} status={profile.status} showStatus />
+              )}
+            </div>
+
+            <div className="profile__identity">
+              <h2 className="profile__name">{profile.display_name}</h2>
+              <p className="profile__handle">
+                @{profile.username}
+                {profile.pronouns ? (
+                  <>
+                    <span className="profile__dot" aria-hidden="true">
+                      ·
+                    </span>
+                    {profile.pronouns}
+                  </>
+                ) : null}
+              </p>
+            </div>
+
+            {stats && stats.roles.length > 0 ? (
+              <ul className="profile__badges">
+                {stats.roles.map((role) => (
+                  <li key={role} className={`profile-badge profile-badge--${role}`}>
+                    <Icon name={ROLE_ICON[role]} size={13} />
+                    {ROLE_LABEL[role]}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+
+            {profile.custom_status ? (
+              <p className="profile__status">{profile.custom_status}</p>
+            ) : null}
+
+            {isMe ? (
+              <button
+                type="button"
+                className="btn btn--primary profile__action"
+                onClick={() => openModal({ kind: 'edit-profile' })}
+              >
+                <Icon name="edit" size={15} />
+                Modifier mon profil
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn--primary profile__action"
+                disabled={opening}
+                onClick={() => {
+                  setOpening(true);
+                  void openDm(profile.id).then((channel) => {
+                    setOpening(false);
+                    if (!channel) return;
+                    showDirectMessages();
+                    selectChannel(channel.id);
+                    closeModal();
+                  });
+                }}
+              >
+                {opening ? <span className="spinner" /> : <Icon name="send" size={15} />}
+                Envoyer un message
+              </button>
+            )}
+
+            <p className="profile__since">
+              {stats
+                ? `Parmi nous depuis le ${new Intl.DateTimeFormat('fr-FR', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  }).format(new Date(stats.joined_at))}`
+                : ' '}
+            </p>
+          </div>
+
+          {/*
+            La colonne de droite change de contenu, la gauche jamais.
+            Bio, espaces et amis ne se regardent pas en meme temps : les
+            empiler faisait defiler une carte qui tient largement en hauteur.
+          */}
+          <div className="profile__main">
+            <nav className="profile__tabs" aria-label="Sections du profil">
+              {onglets.map((entree) => (
+                <button
+                  key={entree.id}
+                  type="button"
+                  className={'profile__tab' + (onglet === entree.id ? ' is-active' : '')}
+                  aria-current={onglet === entree.id ? 'page' : undefined}
+                  onClick={() => setOnglet(entree.id)}
+                >
+                  {entree.label}
+                </button>
+              ))}
+            </nav>
+
+            <div className="profile__panel">
+              {onglet === 'apropos' ? (
+                <>
+                  {profile.bio ? (
+                    <p className="profile__bio">{profile.bio}</p>
+                  ) : (
+                    <p className="profile__empty">
+                      {isMe
+                        ? "Vous n'avez encore rien ecrit sur vous."
+                        : "Cette personne n'a rien ecrit sur elle."}
+                    </p>
+                  )}
+
+                  {links.length > 0 ? (
+                    <ul className="profile__links">
+                      {links.map((link) => (
+                        <li key={link.url}>
+                          <a
+                            className="profile-link"
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer nofollow"
+                          >
+                            <Icon name="link" size={13} />
+                            <span className="truncate">{link.label}</span>
+                          </a>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              ) : null}
+
+              {onglet === 'espaces' ? (
+                espaces.length === 0 ? (
+                  <p className="profile__empty">
+                    Vous ne partagez aucun espace. Cette fiche ne montre donc que
+                    ce que cette personne a choisi d&rsquo;y ecrire.
+                  </p>
+                ) : (
+                  <ul className="profile__mutual-list">
+                    {espaces.map((space) => (
+                      <li key={space.id}>
+                        <button
+                          type="button"
+                          className="profile-mutual"
+                          onClick={() => {
+                            selectSpace(space.id);
+                            closeModal();
+                          }}
+                        >
+                          {space.icon_url ? (
+                            <img src={space.icon_url} alt="" className="profile-mutual__icon" />
+                          ) : (
+                            <span
+                              className="profile-mutual__icon profile-mutual__icon--letter"
+                              style={{ background: hueFor(space.id) }}
+                              aria-hidden="true"
+                            >
+                              {space.name.slice(0, 1).toUpperCase()}
+                            </span>
+                          )}
+                          <span className="truncate">{space.name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+
+              {onglet === 'amis' ? (
+                amis.length === 0 ? (
+                  <p className="profile__empty">Aucune connaissance commune.</p>
+                ) : (
+                  <ul className="profile__mutual-list">
+                    {amis.map((ami) => (
+                      <li key={ami.id}>
+                        <button
+                          type="button"
+                          className="profile-mutual"
+                          onClick={() => openModal({ kind: 'profile', userId: ami.id })}
+                        >
+                          <Avatar profile={ami as Profile} size={32} />
+                          <span className="truncate">{ami.display_name}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )
+              ) : null}
+            </div>
+          </div>
+        </div>
       </TiltCard>
     </div>
   );

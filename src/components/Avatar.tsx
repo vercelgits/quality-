@@ -33,7 +33,27 @@ export function Avatar({ profile, size = 38, status, showStatus = false }: Avata
   const seed = profile?.id ?? name;
 
   return (
-    <span className="avatar" style={{ width: size, height: size }}>
+    /*
+     * Les quatre mesures, pas seulement deux.
+     *
+     * `width` et `height` seules se laissent contredire : un parent en flex
+     * comprime la largeur sans toucher a la hauteur, un parent en grille
+     * etire ou serre selon la colonne. On obtient un ovale, et la cause
+     * change d'un ecran a l'autre — ce qui rend le defaut penible a
+     * poursuivre. Les bornes minimales et maximales ferment la question une
+     * fois pour toutes, quel que soit le mode de mise en page du parent.
+     */
+    <span
+      className="avatar"
+      style={{
+        width: size,
+        height: size,
+        minWidth: size,
+        minHeight: size,
+        maxWidth: size,
+        maxHeight: size,
+      }}
+    >
       {profile?.avatar_url ? (
         // Le composant anime ne sert que pour un format qui peut l'etre :
         // pour un PNG il ajouterait un canevas et un rendu pour rien.

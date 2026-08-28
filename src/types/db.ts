@@ -47,6 +47,8 @@ export interface ProfileStats {
   joined_at: ISODate;
   /** Espaces partages avec la personne consultee. Vide sur sa propre fiche. */
   mutual_spaces: { id: UUID; name: string; icon_url: string | null }[];
+  /** Connaissances communes. Vide sur sa propre fiche. */
+  mutual_friends: { id: UUID; username: string; display_name: string; avatar_url: string | null }[];
   roles: SpaceRole[];
 }
 
