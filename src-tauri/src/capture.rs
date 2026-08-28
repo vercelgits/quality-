@@ -9,8 +9,6 @@
 //! Rien n'est envoye nulle part. Les vignettes sont produites a la demande,
 //! rendues dans la fenetre de l'application, et jetees ensuite.
 
-#![cfg(windows)]
-
 use base64::Engine;
 use serde::Serialize;
 
@@ -307,12 +305,4 @@ pub fn sources_partageables() -> Vec<Source> {
     }
 
     liste
-}
-
-/// Sur les systemes sans Win32, l'interface retombe sur le selecteur du moteur
-/// web. Le module reste compile pour ne pas semer de conditions ailleurs.
-#[cfg(not(windows))]
-#[tauri::command]
-pub fn sources_partageables() -> Vec<Source> {
-    Vec::new()
 }

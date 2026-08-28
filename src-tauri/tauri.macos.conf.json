@@ -1,0 +1,41 @@
+{
+  "_commentaire": [
+    "Reglages propres a macOS.",
+    "",
+    "La fusion remplace les tableaux au lieu de les completer : cette liste de",
+    "fenetres doit donc repeter l'objet entier, et pas seulement ce qui change.",
+    "Une version qui ne portait que `decorations` a suffi a ramener la fenetre",
+    "aux 800 sur 600 par defaut, sans que rien ne le signale.",
+    "",
+    "macOS garde ses decorations : les retirer emporterait les pastilles rouge,",
+    "orange et verte, que le systeme dessine lui-meme et que personne ne",
+    "s'attend a voir remplacees. `Overlay` les fait flotter sur le contenu, ce",
+    "qui donne la meme barre integree que sous Windows sans rien redessiner."
+  ],
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "Orbit",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 760,
+        "minHeight": 560,
+        "resizable": true,
+        "center": true,
+        "maximized": true,
+        "decorations": true,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": false,
+        "theme": null,
+        "dragDropEnabled": false
+      }
+    ]
+  },
+  "bundle": {
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    }
+  }
+}

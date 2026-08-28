@@ -19,11 +19,22 @@ import { Icon } from './Icon';
 
 const DANS_TAURI = typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window;
 
+/*
+ * macOS garde ses propres pastilles.
+ *
+ * Le systeme les dessine lui-meme, en haut a gauche, et la fenetre est
+ * configuree pour qu'elles flottent sur le contenu — `titleBarStyle: Overlay`.
+ * En redessiner trois autres a droite donnerait six boutons pour trois
+ * actions, dont trois au mauvais endroit pour qui utilise un Mac.
+ */
+const SUR_MAC =
+  typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
+
 export function WindowControls() {
   const [agrandie, setAgrandie] = useState(false);
 
   useEffect(() => {
-    if (!DANS_TAURI) return;
+    if (!DANS_TAURI || SUR_MAC) return;
     let annule = false;
     let detacher: (() => void) | undefined;
 
@@ -53,7 +64,7 @@ export function WindowControls() {
     };
   }, []);
 
-  if (!DANS_TAURI) return null;
+  if (!DANS_TAURI || SUR_MAC) return null;
 
   const agir = (action: 'reduire' | 'basculer' | 'fermer') => {
     void (async () => {

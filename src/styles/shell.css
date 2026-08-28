@@ -1634,12 +1634,22 @@
 }
 
 /*
- * L'en-tete doit s'arreter avant les commandes, sinon son dernier bouton
- * passe dessous. La reserve n'existe que sur le bureau : dans un navigateur,
- * le composant ne rend rien et la place serait perdue.
+ * L'en-tete doit s'arreter avant les commandes, sinon son dernier bouton passe
+ * dessous. La reserve n'existe que sur le bureau — dans un navigateur, le
+ * composant ne rend rien — et elle change de cote selon le systeme : nos trois
+ * boutons a droite sous Windows, les pastilles d'Apple a gauche sous macOS.
  */
-:root[data-desktop='true'] .channel-header {
+:root[data-chrome='windows'] .channel-header {
   padding-right: calc(var(--space-4) + 138px);
+}
+
+/*
+ * Sur macOS, les pastilles flottent en haut A GAUCHE — donc au-dessus du rail
+ * des espaces, pas de l'en-tete du salon. C'est le rail qui doit leur ceder la
+ * place, en descendant son contenu sous elles.
+ */
+:root[data-chrome='mac'] .rail {
+  padding-top: 36px;
 }
 
 /* Le curseur de deplacement n'a de sens que la ou le glissement fonctionne. */

@@ -172,7 +172,17 @@ export function applyPreferences(preferences: Preferences): void {
   // L'application de bureau dessine sa propre barre de titre : les en-tetes
   // doivent lui reserver la place. Dans un navigateur, cette place n'existe
   // pas et la reserver la gaspillerait.
-  if ('__TAURI_INTERNALS__' in window) root.setAttribute('data-desktop', 'true');
+  if ('__TAURI_INTERNALS__' in window) {
+    root.setAttribute('data-desktop', 'true');
+
+    // Le systeme distingue les deux chromes : a droite nos trois boutons sous
+    // Windows, a gauche les pastilles d'Apple sous macOS. Les en-tetes doivent
+    // reserver la place du bon cote.
+    root.setAttribute(
+      'data-chrome',
+      /Mac|iPhone|iPad/.test(navigator.userAgent) ? 'mac' : 'windows',
+    );
+  }
 
   if (preferences.theme === 'system') {
     root.removeAttribute('data-theme');

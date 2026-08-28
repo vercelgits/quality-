@@ -1,0 +1,88 @@
+# Construction des applications de bureau.
+#
+# Un paquet macOS ne peut etre fabrique que sur macOS : la chaine de
+# compilation a besoin du SDK d'Apple, que sa licence interdit de redistribuer,
+# et le format `.app` est monte par des outils qui n'existent que la. Le meme
+# raisonnement vaut pour Windows. On confie donc chaque paquet a une machine du
+# bon systeme.
+#
+# Se declenche a la main — onglet « Actions » du depot, bouton « Run workflow ».
+
+name: Applications de bureau
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+jobs:
+  construire:
+    strategy:
+      # Un echec sur un systeme ne doit pas emporter les autres : mieux vaut
+      # une application livree sur deux que rien du tout.
+      fail-fast: false
+      matrix:
+        include:
+          # Deux cibles pour macOS, reunies en un binaire universel : les Mac
+          # a puce Apple et les anciens a puce Intel n'executent pas le meme
+          # code, et une seule archive doit servir aux deux.
+          - systeme: macos-latest
+            cible: universal-apple-darwin
+            nom: macOS
+          - systeme: windows-latest
+            cible: x86_64-pc-windows-msvc
+            nom: Windows
+
+    runs-on: ${{ matrix.systeme }}
+    name: ${{ matrix.nom }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.cible }}
+
+      # Le cache porte sur `target/` et le registre : sans lui, chaque
+      # execution recompile Tauri et ses dependances depuis zero, soit une
+      # dizaine de minutes pour rien.
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      # L'interface est verifiee avant d'etre empaquetee : livrer une
+      # application qui ne compile pas en TypeScript n'aurait pas de sens.
+      - run: npx tsc --noEmit
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Les cles de l'environnement sont necessaires a la compilation :
+          # Vite les inscrit dans le paquet. Elles sont publiques par
+          # construction — la cle « publishable » de Supabase est faite pour
+          # etre lue par le navigateur, et les politiques RLS sont ce qui
+          # protege les donnees, pas le secret de cette cle.
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        with:
+          args: --target ${{ matrix.cible }}
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: orbit-${{ matrix.nom }}
+          # `if-no-files-found: error` plutot que le defaut silencieux : une
+          # archive vide se telecharge sans rien dire, et on ne s'en apercoit
+          # qu'en l'ouvrant.
+          if-no-files-found: error
+          path: |
+            src-tauri/target/${{ matrix.cible }}/release/bundle/dmg/*.dmg
+            src-tauri/target/${{ matrix.cible }}/release/bundle/macos/*.app.tar.gz
+            src-tauri/target/${{ matrix.cible }}/release/bundle/nsis/*.exe
+            src-tauri/target/${{ matrix.cible }}/release/bundle/msi/*.msi

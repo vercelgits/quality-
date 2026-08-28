@@ -59,6 +59,16 @@ fn focus_main(app: &tauri::AppHandle) {
 }
 
 /// Enumeration des sources partageables, pour notre propre selecteur.
+///
+/// L'implementation depend du systeme : Win32 sur Windows, une liste vide
+/// ailleurs tant que macOS et Linux n'ont pas la leur. Les deux exposent la
+/// meme commande, donc rien ne change en aval.
+#[cfg(windows)]
+#[path = "capture.rs"]
+mod capture;
+
+#[cfg(not(windows))]
+#[path = "capture_autre.rs"]
 mod capture;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
